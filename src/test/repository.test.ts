@@ -21,6 +21,28 @@ function setup(url, toggles, headers = {}) {
   return nock(url).persist().get('/client/features').reply(200, { features: toggles }, headers);
 }
 
+function createMockEventSource() {
+  const eventSource: any = {
+    eventEmitter: new EventEmitter(),
+    listeners: new Set<string>(),
+    addEventListener(eventName: string, handler: () => void) {
+      eventSource.listeners.add(eventName);
+      eventSource.eventEmitter.on(eventName, handler);
+    },
+    close() {
+      eventSource.listeners.forEach((eventName: string) => {
+        eventSource.eventEmitter.removeAllListeners(eventName);
+      });
+      eventSource.closed = true;
+    },
+    closed: false,
+    emit(eventName: string, data: unknown) {
+      eventSource.eventEmitter.emit(eventName, data);
+    },
+  };
+  return eventSource;
+}
+
 test('should fetch from endpoint', (t) =>
   new Promise((resolve) => {
     const url = 'http://unleash-test-0.app';
@@ -1450,22 +1472,7 @@ test('Streaming deltas', async (t) => {
   };
   setup(url, [{ ...feature, name: 'initialFetch' }]);
   const storageProvider: StorageProvider<ClientFeaturesResponse> = new InMemStorageProvider();
-  const eventSource: any = {
-    eventEmitter: new EventEmitter(),
-    listeners: new Set<string>(),
-    addEventListener(eventName: string, handler: () => void) {
-      eventSource.listeners.add(eventName);
-      eventSource.eventEmitter.on(eventName, handler);
-    },
-    close() {
-      eventSource.listeners.forEach((eventName: string) => {
-        eventSource.eventEmitter.removeAllListeners(eventName);
-      });
-    },
-    emit(eventName: string, data: unknown) {
-      eventSource.eventEmitter.emit(eventName, data);
-    },
-  };
+  const eventSource = createMockEventSource();
 
   const repo = new Repository({
     url,
@@ -1682,4 +1689,131 @@ test('Polling delta', async (t) => {
 
   const noSegment = repo.getSegment(1);
   t.deepEqual(noSegment, undefined);
+});
+
+test('Switch from polling to streaming mode via HTTP header', async (t) => {
+  const url = 'http://unleash-test-mode-switch-polling-to-streaming.app';
+  const feature = {
+    name: 'feature',
+    enabled: true,
+    strategies: [
+      {
+        name: 'default',
+      },
+    ],
+  };
+
+  nock(url)
+    .persist()
+    .get('/client/features')
+    .reply(200, { features: [feature] }, { 'fetching-mode': 'streaming' });
+
+  nock(url).persist().get('/client/streaming').reply(200);
+
+  const storageProvider: StorageProvider<ClientFeaturesResponse> = new InMemStorageProvider();
+
+  const repo = new Repository({
+    url,
+    appName,
+    instanceId,
+    connectionId,
+    refreshInterval: 10,
+    // @ts-expect-error
+    bootstrapProvider: new DefaultBootstrapProvider({}),
+    storageProvider,
+    mode: { type: 'polling', format: 'full' },
+  });
+
+  const modePromise = new Promise<void>((resolve) => {
+    repo.once('mode', (data) => {
+      t.deepEqual(data, { from: 'polling', to: 'streaming' });
+      resolve();
+    });
+  });
+
+  await repo.start();
+
+  await repo.fetch();
+
+  await modePromise;
+
+  t.is(repo.getMode().type, 'streaming');
+
+  repo.stop();
+});
+
+test('Switch from streaming to polling mode via EventSource', async (t) => {
+  const url = 'http://unleash-test-mode-switch-streaming-to-polling.app';
+  const feature = {
+    name: 'feature',
+    enabled: true,
+    strategies: [
+      {
+        name: 'default',
+      },
+    ],
+  };
+
+  nock(url)
+    .persist()
+    .get('/client/features')
+    .reply(200, { features: [{ ...feature, enabled: false }] });
+
+  const storageProvider: StorageProvider<ClientFeaturesResponse> = new InMemStorageProvider();
+  const eventSource = createMockEventSource();
+
+  const repo = new Repository({
+    url,
+    appName,
+    instanceId,
+    connectionId,
+    refreshInterval: 10,
+    // @ts-expect-error
+    bootstrapProvider: new DefaultBootstrapProvider({}),
+    storageProvider,
+    eventSource,
+    mode: { type: 'streaming' },
+  });
+
+  await repo.start();
+
+  eventSource.emit('unleash-connected', {
+    type: 'unleash-connected',
+    data: JSON.stringify({
+      events: [
+        {
+          type: 'hydration',
+          eventId: 1,
+          features: [feature],
+          segments: [],
+        },
+      ],
+    }),
+  });
+
+  let toggles = repo.getToggles();
+  t.is(toggles[0].enabled, true);
+
+  const modePromise = new Promise<void>((resolve) => {
+    repo.once('mode', (data) => {
+      t.deepEqual(data, { from: 'streaming', to: 'polling' });
+      resolve();
+    });
+  });
+
+  eventSource.emit('fetching-mode-change', {
+    data: 'polling',
+  });
+
+  await modePromise;
+
+  t.is(repo.getMode().type, 'polling');
+  t.true(eventSource.closed);
+
+  await repo.fetch();
+
+  toggles = repo.getToggles();
+  t.is(toggles[0].enabled, false);
+
+  repo.stop();
 });

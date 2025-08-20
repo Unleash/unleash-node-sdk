@@ -1,7 +1,7 @@
 import { tmpdir } from 'os';
 import { EventEmitter } from 'events';
 import Client from './client';
-import Repository, { RepositoryInterface, SUPPORTED_SPEC_VERSION } from './repository';
+import Repository, { RepositoryInterface } from './repository';
 import Metrics from './metrics';
 import { Context } from './context';
 import { Strategy, defaultStrategies } from './strategy';
@@ -18,9 +18,6 @@ import { resolveBootstrapProvider } from './repository/bootstrap-provider';
 import { ImpressionEvent, UnleashEvents } from './events';
 import { UnleashConfig } from './unleash-config';
 import FileStorageProvider from './repository/storage-provider-file';
-import { resolveUrl } from './url-utils';
-import { EventSource } from './event-source';
-import { buildHeaders } from './request';
 import { uuidv4 } from './uuidv4';
 import { InMemoryMetricRegistry } from './impact-metrics/metric-types';
 export { Strategy, UnleashEvents, UnleashConfig };
@@ -134,29 +131,6 @@ export class Unleash extends EventEmitter {
         bootstrapProvider,
         bootstrapOverride,
         mode: experimentalMode,
-        eventSource:
-          experimentalMode?.type === 'streaming'
-            ? new EventSource(resolveUrl(unleashUrl, './client/streaming'), {
-                headers: buildHeaders({
-                  appName,
-                  instanceId: unleashInstanceId,
-                  etag: undefined,
-                  contentType: undefined,
-                  custom: customHeaders,
-                  specVersionSupported: SUPPORTED_SPEC_VERSION,
-                  connectionId: unleashConnectionId,
-                }),
-                readTimeoutMillis: 60000, // start a new SSE connection when no heartbeat received in 1 minute
-                initialRetryDelayMillis: 2000,
-                maxBackoffMillis: 30000,
-                retryResetIntervalMillis: 60000,
-                jitterRatio: 0.5,
-                errorFilter: function () {
-                  // retry all errors
-                  return true;
-                },
-              })
-            : undefined,
         storageProvider: storageProvider || new FileStorageProvider(backupPath),
       });
 
