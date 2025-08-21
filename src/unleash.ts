@@ -373,4 +373,15 @@ export class Unleash extends EventEmitter {
     await this.flushMetrics();
     this.destroy();
   }
+
+  /**
+   * Experimental: Change the fetching mode at runtime
+   * @param mode The new mode to switch to ('polling' or 'streaming')
+   */
+  async setExperimentalMode(mode: 'polling' | 'streaming'): Promise<void> {
+    if (this.repository.setMode) {
+      return this.repository.setMode(mode);
+    }
+    throw new Error('setMode is not supported by this repository implementation');
+  }
 }

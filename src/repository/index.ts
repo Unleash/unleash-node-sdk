@@ -31,6 +31,7 @@ export interface RepositoryInterface extends EventEmitter {
   getSegment(id: number): Segment | undefined;
   stop(): void;
   start(): Promise<void>;
+  setMode?(mode: 'polling' | 'streaming'): Promise<void>;
 }
 
 export interface RepositoryOptions {
@@ -174,13 +175,8 @@ export default class Repository extends EventEmitter implements EventEmitter {
 
   private async handleModeChange(event: { data: string }) {
     try {
-      const newMode = event.data;
-
-      if (newMode === 'polling' && this.mode.type === 'streaming') {
-        await this.switchToPolling();
-      } else if (newMode === 'streaming' && this.mode.type === 'polling') {
-        await this.switchToStreaming();
-      }
+      const newMode = event.data as 'polling' | 'streaming';
+      await this.setMode(newMode);
     } catch (err) {
       this.emit(UnleashEvents.Error, new Error(`Failed to handle mode change: ${err}`));
     }
@@ -597,6 +593,24 @@ Message: ${err.message}`,
 
   getMode(): Mode {
     return this.mode;
+  }
+
+  async setMode(mode: 'polling' | 'streaming'): Promise<void> {
+    if (this.stopped) {
+      return;
+    }
+
+    const currentMode = this.mode;
+
+    if (currentMode.type === mode) {
+      return;
+    }
+
+    if (mode === 'polling' && currentMode.type === 'streaming') {
+      await this.switchToPolling();
+    } else if (mode === 'streaming' && currentMode.type === 'polling') {
+      await this.switchToStreaming();
+    }
   }
 
   private enhanceStrategies = (

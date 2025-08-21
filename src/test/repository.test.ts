@@ -1817,3 +1817,158 @@ test('Switch from streaming to polling mode via EventSource', async (t) => {
 
   repo.stop();
 });
+
+test('setMode can switch from polling to streaming mode', async (t) => {
+  const url = 'http://unleash-test-setmode-polling-to-streaming.app';
+  const feature = {
+    name: 'feature',
+    enabled: true,
+    strategies: [
+      {
+        name: 'default',
+      },
+    ],
+  };
+
+  setup(url, [feature]);
+
+  const storageProvider: StorageProvider<ClientFeaturesResponse> = new InMemStorageProvider();
+  const mockEventSource = createMockEventSource();
+
+  const repo = new Repository({
+    url,
+    appName,
+    instanceId,
+    connectionId,
+    refreshInterval: 10,
+    bootstrapProvider: new DefaultBootstrapProvider({}, appName, instanceId),
+    storageProvider,
+    eventSource: mockEventSource,
+    mode: { type: 'polling', format: 'full' },
+  });
+
+  const modePromise = new Promise<void>((resolve) => {
+    repo.once('mode', (data) => {
+      t.deepEqual(data, { from: 'polling', to: 'streaming' });
+      resolve();
+    });
+  });
+
+  await repo.start();
+
+  t.is(repo.getMode().type, 'polling');
+
+  await repo.setMode('streaming');
+
+  await modePromise;
+
+  t.is(repo.getMode().type, 'streaming');
+
+  repo.stop();
+});
+
+test('setMode can switch from streaming to polling mode', async (t) => {
+  const url = 'http://unleash-test-setmode-streaming-to-polling.app';
+  const feature = {
+    name: 'feature',
+    enabled: false,
+    strategies: [
+      {
+        name: 'default',
+      },
+    ],
+  };
+
+  setup(url, [{ ...feature, enabled: true }]);
+
+  const storageProvider: StorageProvider<ClientFeaturesResponse> = new InMemStorageProvider();
+  const eventSource = createMockEventSource();
+
+  const repo = new Repository({
+    url,
+    appName,
+    instanceId,
+    connectionId,
+    refreshInterval: 10,
+    bootstrapProvider: new DefaultBootstrapProvider({}, appName, instanceId),
+    storageProvider,
+    eventSource,
+    mode: { type: 'streaming' },
+  });
+
+  await repo.start();
+
+  eventSource.emit('unleash-connected', {
+    type: 'unleash-connected',
+    data: JSON.stringify({
+      events: [
+        {
+          type: 'hydration',
+          eventId: 1,
+          features: [feature],
+          segments: [],
+        },
+      ],
+    }),
+  });
+
+  let toggles = repo.getToggles();
+  t.is(toggles[0].enabled, false);
+
+  const modePromise = new Promise<void>((resolve) => {
+    repo.once('mode', (data) => {
+      t.deepEqual(data, { from: 'streaming', to: 'polling' });
+      resolve();
+    });
+  });
+
+  t.is(repo.getMode().type, 'streaming');
+
+  await repo.setMode('polling');
+
+  await modePromise;
+
+  t.is(repo.getMode().type, 'polling');
+  t.true(eventSource.closed);
+
+  await repo.fetch();
+
+  toggles = repo.getToggles();
+  t.is(toggles[0].enabled, true);
+
+  repo.stop();
+});
+
+test('setMode should be no-op when repository is stopped', async (t) => {
+  const url = 'http://unleash-test-setmode-stopped.app';
+  const feature = {
+    name: 'feature',
+    enabled: true,
+    strategies: [
+      {
+        name: 'default',
+      },
+    ],
+  };
+
+  setup(url, [feature]);
+
+  const repo = new Repository({
+    url,
+    appName,
+    instanceId,
+    connectionId,
+    refreshInterval: 10,
+    storageProvider: new InMemStorageProvider(),
+    bootstrapProvider: new DefaultBootstrapProvider({}, appName, instanceId),
+    mode: { type: 'polling', format: 'full' },
+  });
+
+  await repo.start();
+  t.is(repo.getMode().type, 'polling');
+
+  repo.stop();
+
+  await repo.setMode('streaming');
+  t.is(repo.getMode().type, 'polling');
+});
