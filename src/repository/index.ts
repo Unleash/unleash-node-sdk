@@ -175,7 +175,7 @@ export default class Repository extends EventEmitter implements EventEmitter {
 
   private async handleModeChange(event: { data: string }) {
     try {
-      const newMode = event.data; // Plain string: 'polling' or 'streaming'
+      const newMode = event.data;
 
       if (newMode === 'polling' && this.mode.type === 'streaming') {
         await this.switchToPolling();
