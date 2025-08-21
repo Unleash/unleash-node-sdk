@@ -29,7 +29,6 @@ export interface RepositoryInterface extends EventEmitter {
   getToggles(): FeatureInterface[];
   getTogglesWithSegmentData(): EnhancedFeatureInterface[];
   getSegment(id: number): Segment | undefined;
-  getMode(): Mode;
   stop(): void;
   start(): Promise<void>;
 }
