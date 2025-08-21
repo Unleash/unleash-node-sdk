@@ -13,6 +13,7 @@ export enum UnleashEvents {
   Sent = 'sent',
   Registered = 'registered',
   Impression = 'impression',
+  Mode = 'mode',
 }
 
 export interface ImpressionEvent {

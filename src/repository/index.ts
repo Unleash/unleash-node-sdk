@@ -6,9 +6,9 @@ import {
   FeatureInterface,
   parseClientFeaturesDelta,
 } from '../feature';
-import { get } from '../request';
+import { get, buildHeaders } from '../request';
 import { CustomHeaders, CustomHeadersFunction } from '../headers';
-import getUrl from '../url-utils';
+import getUrl, { resolveUrl } from '../url-utils';
 import { HttpOptions } from '../http-options';
 import { TagFilter } from '../tags';
 import { BootstrapProvider } from './bootstrap-provider';
@@ -19,7 +19,7 @@ import {
   Segment,
   StrategyTransportInterface,
 } from '../strategy/strategy';
-import type { EventSource } from '../event-source';
+import { EventSource } from '../event-source';
 import { Mode } from '../unleash-config';
 
 export const SUPPORTED_SPEC_VERSION = '5.2.0';
@@ -29,6 +29,7 @@ export interface RepositoryInterface extends EventEmitter {
   getToggles(): FeatureInterface[];
   getTogglesWithSegmentData(): EnhancedFeatureInterface[];
   getSegment(id: number): Segment | undefined;
+  getMode(): Mode;
   stop(): void;
   start(): Promise<void>;
 }
@@ -146,6 +147,10 @@ export default class Repository extends EventEmitter implements EventEmitter {
     this.segments = new Map();
     this.eventSource = eventSource;
     this.mode = mode;
+    this.setupEventSource();
+  }
+
+  private setupEventSource() {
     if (this.eventSource) {
       // On re-connect it guarantees catching up with the latest state.
       this.eventSource.addEventListener('unleash-connected', async (event: { data: string }) => {
@@ -155,6 +160,7 @@ export default class Repository extends EventEmitter implements EventEmitter {
       this.eventSource.addEventListener('error', (error: unknown) => {
         this.emit(UnleashEvents.Warn, error);
       });
+      this.eventSource.addEventListener('fetch-mode', this.handleModeChange.bind(this));
     }
   }
 
@@ -164,6 +170,20 @@ export default class Repository extends EventEmitter implements EventEmitter {
       await this.saveDelta(data);
     } catch (err) {
       this.emit(UnleashEvents.Error, err);
+    }
+  }
+
+  private async handleModeChange(event: { data: string }) {
+    try {
+      const newMode = event.data;
+
+      if (newMode === 'polling' && this.mode.type === 'streaming') {
+        await this.switchToPolling();
+      } else if (newMode === 'streaming' && this.mode.type === 'polling') {
+        await this.switchToStreaming();
+      }
+    } catch (err) {
+      this.emit(UnleashEvents.Error, new Error(`Failed to handle mode change: ${err}`));
     }
   }
 
@@ -197,6 +217,11 @@ export default class Repository extends EventEmitter implements EventEmitter {
   }
 
   async start(): Promise<void> {
+    if (this.mode.type === 'streaming' && !this.eventSource) {
+      this.eventSource = this.createEventSource();
+      this.setupEventSource();
+    }
+
     // the first fetch is used as a fallback even when streaming is enabled
     await Promise.all([
       this.mode.type === 'streaming' ? Promise.resolve() : this.fetch(),
@@ -448,6 +473,12 @@ Message: ${err.message}`,
             this.etag = undefined;
           }
 
+          const fetchingModeHeader = res.headers.get('fetch-mode');
+          if (fetchingModeHeader === 'streaming' && this.mode.type === 'polling') {
+            await this.switchToStreaming();
+            return;
+          }
+
           if (this.mode.type === 'polling' && this.mode.format === 'delta') {
             await this.saveDelta(parseClientFeaturesDelta(data));
           } else {
@@ -474,6 +505,63 @@ Message: ${err.message}`,
 
   mergeTagsToStringArray(tags: Array<TagFilter>): Array<string> {
     return tags.map((tag) => `${tag.name}:${tag.value}`);
+  }
+
+  private async switchToPolling() {
+    if (this.mode.type === 'polling') {
+      return;
+    }
+
+    this.emit(UnleashEvents.Mode, { from: 'streaming', to: 'polling' });
+
+    if (this.eventSource) {
+      this.eventSource.close();
+      this.eventSource = undefined;
+    }
+
+    this.mode = { type: 'polling', format: 'full' };
+
+    this.timedFetch(this.refreshInterval);
+  }
+
+  private createEventSource(): EventSource {
+    return new EventSource(resolveUrl(this.url, './client/streaming'), {
+      headers: buildHeaders({
+        appName: this.appName,
+        instanceId: this.instanceId,
+        etag: undefined,
+        contentType: undefined,
+        custom: this.headers,
+        specVersionSupported: SUPPORTED_SPEC_VERSION,
+        connectionId: this.connectionId,
+      }),
+      readTimeoutMillis: 60000,
+      initialRetryDelayMillis: 2000,
+      maxBackoffMillis: 30000,
+      retryResetIntervalMillis: 60000,
+      jitterRatio: 0.5,
+      errorFilter: function () {
+        return true;
+      },
+    });
+  }
+
+  private async switchToStreaming() {
+    if (this.mode.type === 'streaming') {
+      return;
+    }
+
+    this.emit(UnleashEvents.Mode, { from: 'polling', to: 'streaming' });
+
+    if (this.timer) {
+      clearTimeout(this.timer);
+      this.timer = undefined;
+    }
+
+    this.mode = { type: 'streaming' };
+
+    this.eventSource = this.createEventSource();
+    this.setupEventSource();
   }
 
   stop() {
@@ -506,6 +594,10 @@ Message: ${err.message}`,
 
       return { ...restOfToggle, strategies: this.enhanceStrategies(strategies) };
     });
+  }
+
+  getMode(): Mode {
+    return this.mode;
   }
 
   private enhanceStrategies = (
