@@ -217,7 +217,6 @@ export default class Repository extends EventEmitter implements EventEmitter {
   }
 
   async start(): Promise<void> {
-    // Create EventSource if streaming mode and none provided
     if (this.mode.type === 'streaming' && !this.eventSource) {
       this.eventSource = this.createEventSource();
       this.setupEventSource();
