@@ -379,6 +379,9 @@ export class Unleash extends EventEmitter {
    * @param mode The new mode to switch to ('polling' or 'streaming')
    */
   async setExperimentalMode(mode: 'polling' | 'streaming'): Promise<void> {
-    return this.repository.setMode(mode);
+    if (this.repository.setMode) {
+      return this.repository.setMode(mode);
+    }
+    throw new Error('setMode is not supported by this repository implementation');
   }
 }

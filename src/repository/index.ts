@@ -31,7 +31,7 @@ export interface RepositoryInterface extends EventEmitter {
   getSegment(id: number): Segment | undefined;
   stop(): void;
   start(): Promise<void>;
-  setMode(mode: 'polling' | 'streaming'): Promise<void>;
+  setMode?(mode: 'polling' | 'streaming'): Promise<void>;
 }
 
 export interface RepositoryOptions {
