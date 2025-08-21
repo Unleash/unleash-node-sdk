@@ -1706,7 +1706,7 @@ test('Switch from polling to streaming mode via HTTP header', async (t) => {
   nock(url)
     .persist()
     .get('/client/features')
-    .reply(200, { features: [feature] }, { 'fetching-mode': 'streaming' });
+    .reply(200, { features: [feature] }, { 'fetch-mode': 'streaming' });
 
   nock(url).persist().get('/client/streaming').reply(200);
 
@@ -1801,7 +1801,7 @@ test('Switch from streaming to polling mode via EventSource', async (t) => {
     });
   });
 
-  eventSource.emit('fetching-mode-change', {
+  eventSource.emit('fetch-mode', {
     data: 'polling',
   });
 

@@ -160,7 +160,7 @@ export default class Repository extends EventEmitter implements EventEmitter {
       this.eventSource.addEventListener('error', (error: unknown) => {
         this.emit(UnleashEvents.Warn, error);
       });
-      this.eventSource.addEventListener('fetching-mode-change', this.handleModeChange.bind(this));
+      this.eventSource.addEventListener('fetch-mode', this.handleModeChange.bind(this));
     }
   }
 
@@ -474,7 +474,7 @@ Message: ${err.message}`,
             this.etag = undefined;
           }
 
-          const fetchingModeHeader = res.headers.get('fetching-mode');
+          const fetchingModeHeader = res.headers.get('fetch-mode');
           if (fetchingModeHeader === 'streaming' && this.mode.type === 'polling') {
             await this.switchToStreaming();
             return;
