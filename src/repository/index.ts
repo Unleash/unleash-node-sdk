@@ -17,7 +17,7 @@ import {
   StrategyTransportInterface,
 } from '../strategy/strategy';
 import { Mode } from '../unleash-config';
-import AdaptiveFetchingStrategy from './adaptive-fetching-strategy';
+import { AdaptiveFetchingStrategy } from './adaptive-fetching-strategy';
 
 export const SUPPORTED_SPEC_VERSION = '5.2.0';
 
