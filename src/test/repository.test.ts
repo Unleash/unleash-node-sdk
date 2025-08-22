@@ -169,7 +169,6 @@ test('should store etag', (t) =>
 
     repo.once('unchanged', resolve);
     repo.once('changed', () => {
-      // @ts-expect-error
       t.true(repo.etag === '12345');
 
       resolve();
@@ -198,13 +197,11 @@ test('should request with etag', (t) =>
       mode: { type: 'polling', format: 'full' },
     });
 
-    // @ts-expect-error
     repo.etag = '12345-1';
     repo.once('unchanged', () => {
       resolve();
     });
     repo.once('changed', () => {
-      // @ts-expect-error
       t.true(repo.etag === '12345-2');
       resolve();
     });
@@ -242,13 +239,11 @@ test('should request with correct custom and unleash headers', (t) =>
       mode: { type: 'polling', format: 'full' },
     });
 
-    // @ts-expect-error
     repo.etag = '12345-1';
     repo.once('unchanged', () => {
       resolve();
     });
     repo.once('changed', () => {
-      // @ts-expect-error
       t.is(repo.etag, '12345-3');
       resolve();
     });
@@ -283,13 +278,11 @@ test('request with customHeadersFunction should take precedence over customHeade
       mode: { type: 'polling', format: 'full' },
     });
 
-    // @ts-expect-error
     repo.etag = '12345-1';
     repo.once('unchanged', () => {
       resolve();
     });
     repo.once('changed', () => {
-      // @ts-expect-error
       t.is(repo.etag, '12345-3');
       resolve();
     });
