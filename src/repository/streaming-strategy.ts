@@ -28,6 +28,9 @@ export class StreamingStrategy extends EventEmitter implements FetchingStrategyI
       this.eventSource.addEventListener('error', (error: unknown) => {
         this.emit(UnleashEvents.Warn, error);
       });
+      this.eventSource.addEventListener('end', (error: unknown) => {
+        this.emit(UnleashEvents.Warn, error);
+      });
       this.eventSource.addEventListener('fetch-mode', this.handleModeChange.bind(this));
     }
   }
