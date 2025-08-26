@@ -1,6 +1,6 @@
 {
   "name": "unleash-client",
-  "version": "6.7.0-beta.6",
+  "version": "6.7.0-beta.7",
   "description": "Unleash Client for Node",
   "license": "Apache-2.0",
   "main": "./lib/index.js",
@@ -33,7 +33,7 @@
     "http-proxy-agent": "^7.0.2",
     "https-proxy-agent": "^7.0.5",
     "ip-address": "^9.0.5",
-    "launchdarkly-eventsource": "2.0.3",
+    "launchdarkly-eventsource": "2.2.0",
     "make-fetch-happen": "^13.0.1",
     "murmurhash3js": "^3.0.1",
     "proxy-from-env": "^1.1.0",
