@@ -17,7 +17,7 @@ import {
   StrategyTransportInterface,
 } from '../strategy/strategy';
 import { Mode } from '../unleash-config';
-import { AdaptiveFetchingStrategy } from './adaptive-fetching-strategy';
+import { AdaptiveFetcher } from './adaptive-fetcher';
 
 export const SUPPORTED_SPEC_VERSION = '5.2.0';
 
@@ -74,7 +74,7 @@ export default class Repository extends EventEmitter implements EventEmitter {
 
   private segments: Map<number, Segment>;
 
-  private fetchingStrategy: AdaptiveFetchingStrategy;
+  private fetchingStrategy: AdaptiveFetcher;
 
   // Keep references for backward compatibility
   public readonly url: string;
@@ -118,7 +118,7 @@ export default class Repository extends EventEmitter implements EventEmitter {
     this.storageProvider = storageProvider;
     this.segments = new Map();
 
-    this.fetchingStrategy = new AdaptiveFetchingStrategy({
+    this.fetchingStrategy = new AdaptiveFetcher({
       url,
       appName,
       instanceId,

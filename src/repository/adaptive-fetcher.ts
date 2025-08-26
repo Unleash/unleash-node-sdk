@@ -1,27 +1,27 @@
 import { EventEmitter } from 'events';
 import { UnleashEvents } from '../events';
 import { Mode } from '../unleash-config';
-import { FetchingStrategyInterface, FetchingStrategyOptions } from './fetching-strategy';
-import { PollingStrategy } from './polling-strategy';
-import { StreamingStrategy } from './streaming-strategy';
+import { FetcherInterface, FetchingOptions } from './fetcher';
+import { PollingFetcher } from './polling-fetcher';
+import { StreamingFetcher } from './streaming-fetcher';
 
-export class AdaptiveFetchingStrategy extends EventEmitter implements FetchingStrategyInterface {
-  private currentStrategy: FetchingStrategyInterface;
+export class AdaptiveFetcher extends EventEmitter implements FetcherInterface {
+  private currentStrategy: FetcherInterface;
 
-  private pollingStrategy: PollingStrategy;
+  private pollingStrategy: PollingFetcher;
 
-  private streamingStrategy: StreamingStrategy;
+  private streamingStrategy: StreamingFetcher;
 
-  private options: FetchingStrategyOptions;
+  private options: FetchingOptions;
 
   private stopped = false;
 
-  constructor(options: FetchingStrategyOptions) {
+  constructor(options: FetchingOptions) {
     super();
     this.options = { ...options, onModeChange: this.handleModeChange.bind(this) };
 
-    this.pollingStrategy = new PollingStrategy(this.options);
-    this.streamingStrategy = new StreamingStrategy(this.options);
+    this.pollingStrategy = new PollingFetcher(this.options);
+    this.streamingStrategy = new StreamingFetcher(this.options);
 
     this.setupStrategyEventForwarding(this.pollingStrategy);
     this.setupStrategyEventForwarding(this.streamingStrategy);
@@ -30,7 +30,7 @@ export class AdaptiveFetchingStrategy extends EventEmitter implements FetchingSt
       this.options.mode.type === 'streaming' ? this.streamingStrategy : this.pollingStrategy;
   }
 
-  private setupStrategyEventForwarding(strategy: FetchingStrategyInterface) {
+  private setupStrategyEventForwarding(strategy: FetcherInterface) {
     strategy.on(UnleashEvents.Error, (err) => this.emit(UnleashEvents.Error, err));
     strategy.on(UnleashEvents.Warn, (msg) => this.emit(UnleashEvents.Warn, msg));
     strategy.on(UnleashEvents.Unchanged, () => this.emit(UnleashEvents.Unchanged));

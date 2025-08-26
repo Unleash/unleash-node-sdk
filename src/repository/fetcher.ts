@@ -2,15 +2,12 @@ import { EventEmitter } from 'events';
 import { ClientFeaturesDelta, ClientFeaturesResponse } from '../feature';
 import { Mode } from '../unleash-config';
 
-export interface FetchingStrategyInterface extends EventEmitter {
+export interface FetcherInterface extends EventEmitter {
   start(): Promise<void>;
   stop(): void;
-  setMode?(mode: 'polling' | 'streaming'): Promise<void>;
-  getEtag?(): string | undefined;
-  setEtag?(value: string | undefined): void;
 }
 
-export interface FetchingStrategyOptions {
+export interface FetchingOptions {
   url: string;
   appName: string;
   instanceId: string;

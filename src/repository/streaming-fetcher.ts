@@ -4,16 +4,16 @@ import { buildHeaders } from '../request';
 import { resolveUrl } from '../url-utils';
 import { UnleashEvents } from '../events';
 import { EventSource } from '../event-source';
-import { FetchingStrategyInterface, FetchingStrategyOptions } from './fetching-strategy';
+import { FetcherInterface, FetchingOptions } from './fetcher';
 
-export class StreamingStrategy extends EventEmitter implements FetchingStrategyInterface {
+export class StreamingFetcher extends EventEmitter implements FetcherInterface {
   private eventSource: EventSource | undefined;
 
   private stopped = false;
 
-  private options: FetchingStrategyOptions;
+  private options: FetchingOptions;
 
-  constructor(options: FetchingStrategyOptions) {
+  constructor(options: FetchingOptions) {
     super();
     this.options = options;
     this.eventSource = options.eventSource;

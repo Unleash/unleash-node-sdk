@@ -3,9 +3,9 @@ import { parseClientFeaturesDelta } from '../feature';
 import { get } from '../request';
 import getUrl from '../url-utils';
 import { UnleashEvents } from '../events';
-import { FetchingStrategyInterface, FetchingStrategyOptions } from './fetching-strategy';
+import { FetcherInterface, FetchingOptions } from './fetcher';
 
-export class PollingStrategy extends EventEmitter implements FetchingStrategyInterface {
+export class PollingFetcher extends EventEmitter implements FetcherInterface {
   private timer: NodeJS.Timeout | undefined;
 
   private stopped = false;
@@ -14,9 +14,9 @@ export class PollingStrategy extends EventEmitter implements FetchingStrategyInt
 
   private etag: string | undefined;
 
-  private options: FetchingStrategyOptions;
+  private options: FetchingOptions;
 
-  constructor(options: FetchingStrategyOptions) {
+  constructor(options: FetchingOptions) {
     super();
     this.options = options;
     this.etag = options.etag;
