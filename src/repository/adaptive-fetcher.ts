@@ -55,28 +55,26 @@ export class AdaptiveFetcher extends EventEmitter implements FetcherInterface {
   }
 
   private async switchToPolling() {
-    if (this.options.mode.type === 'polling') {
+    if (this.currentFetcher === this.pollingFetcher) {
       return;
     }
 
     this.emit(UnleashEvents.Mode, { from: 'streaming', to: 'polling' });
 
     this.currentFetcher.stop();
-    this.options.mode = { type: 'polling', format: 'full' };
     this.currentFetcher = this.pollingFetcher;
 
     await this.pollingFetcher.start();
   }
 
   private async switchToStreaming() {
-    if (this.options.mode.type === 'streaming') {
+    if (this.currentFetcher === this.streamingFetcher) {
       return;
     }
 
     this.emit(UnleashEvents.Mode, { from: 'polling', to: 'streaming' });
 
     this.currentFetcher.stop();
-    this.options.mode = { type: 'streaming' };
     this.currentFetcher = this.streamingFetcher;
 
     await this.streamingFetcher.start();
@@ -98,7 +96,8 @@ export class AdaptiveFetcher extends EventEmitter implements FetcherInterface {
   }
 
   getMode(): Mode {
-    return this.options.mode;
+    if (this.currentFetcher === this.streamingFetcher) return { type: 'streaming' };
+    return { type: 'polling', format: 'full' };
   }
 
   // Compatibility methods for accessing polling strategy internals
@@ -114,7 +113,6 @@ export class AdaptiveFetcher extends EventEmitter implements FetcherInterface {
     if (this.currentFetcher === this.pollingFetcher) {
       return this.pollingFetcher.fetch();
     }
-    return Promise.resolve();
   }
 
   getEtag(): string | undefined {
