@@ -74,7 +74,7 @@ export default class Repository extends EventEmitter implements EventEmitter {
 
   private segments: Map<number, Segment>;
 
-  private fetchingStrategy: AdaptiveFetcher;
+  private fetcher: AdaptiveFetcher;
 
   // Keep references for backward compatibility
   public readonly url: string;
@@ -83,11 +83,11 @@ export default class Repository extends EventEmitter implements EventEmitter {
 
   // Etag property for backward compatibility
   public get etag(): string | undefined {
-    return this.fetchingStrategy.getEtag?.() || undefined;
+    return this.fetcher.getEtag?.() || undefined;
   }
 
   public set etag(value: string | undefined) {
-    this.fetchingStrategy.setEtag?.(value);
+    this.fetcher.setEtag?.(value);
   }
 
   constructor({
@@ -118,7 +118,7 @@ export default class Repository extends EventEmitter implements EventEmitter {
     this.storageProvider = storageProvider;
     this.segments = new Map();
 
-    this.fetchingStrategy = new AdaptiveFetcher({
+    this.fetcher = new AdaptiveFetcher({
       url,
       appName,
       instanceId,
@@ -141,10 +141,10 @@ export default class Repository extends EventEmitter implements EventEmitter {
   }
 
   private setupFetchingStrategyEvents() {
-    this.fetchingStrategy.on(UnleashEvents.Error, (err) => this.emit(UnleashEvents.Error, err));
-    this.fetchingStrategy.on(UnleashEvents.Warn, (msg) => this.emit(UnleashEvents.Warn, msg));
-    this.fetchingStrategy.on(UnleashEvents.Unchanged, () => this.emit(UnleashEvents.Unchanged));
-    this.fetchingStrategy.on(UnleashEvents.Mode, (data) => this.emit(UnleashEvents.Mode, data));
+    this.fetcher.on(UnleashEvents.Error, (err) => this.emit(UnleashEvents.Error, err));
+    this.fetcher.on(UnleashEvents.Warn, (msg) => this.emit(UnleashEvents.Warn, msg));
+    this.fetcher.on(UnleashEvents.Unchanged, () => this.emit(UnleashEvents.Unchanged));
+    this.fetcher.on(UnleashEvents.Mode, (data) => this.emit(UnleashEvents.Mode, data));
   }
 
   validateFeature(feature: FeatureInterface) {
@@ -168,7 +168,7 @@ export default class Repository extends EventEmitter implements EventEmitter {
   }
 
   async start(): Promise<void> {
-    await Promise.all([this.fetchingStrategy.start(), this.loadBackup(), this.loadBootstrap()]);
+    await Promise.all([this.fetcher.start(), this.loadBackup(), this.loadBootstrap()]);
   }
 
   async loadBackup(): Promise<void> {
@@ -296,7 +296,7 @@ Message: ${err.message}`,
 
   stop() {
     this.stopped = true;
-    this.fetchingStrategy.stop();
+    this.fetcher.stop();
     this.removeAllListeners();
   }
 
@@ -322,24 +322,24 @@ Message: ${err.message}`,
   }
 
   getMode(): Mode {
-    return this.fetchingStrategy.getMode();
+    return this.fetcher.getMode();
   }
 
   async setMode(mode: 'polling' | 'streaming'): Promise<void> {
-    await this.fetchingStrategy.setMode(mode);
+    await this.fetcher.setMode(mode);
   }
 
   // Compatibility methods for tests - delegate to fetching strategy
   getFailures(): number {
-    return this.fetchingStrategy.getFailures();
+    return this.fetcher.getFailures();
   }
 
   nextFetch(): number {
-    return this.fetchingStrategy.nextFetch();
+    return this.fetcher.nextFetch();
   }
 
   async fetch(): Promise<void> {
-    return this.fetchingStrategy.fetch();
+    return this.fetcher.fetch();
   }
 
   private enhanceStrategies = (
