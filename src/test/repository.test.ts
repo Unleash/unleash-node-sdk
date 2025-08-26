@@ -1569,11 +1569,16 @@ test('Streaming deltas', async (t) => {
   const removedSegment = repo.getSegment(1);
   t.deepEqual(removedSegment, undefined);
 
-  // SSE error translated to repo warning
+  let recordedWarnings: string[] = [];
   repo.on('warn', (msg) => {
-    t.is(msg, 'some error');
+    recordedWarnings.push(msg);
   });
+  // SSE error translated to repo warning
   eventSource.emit('error', 'some error');
+
+  // SSE end connection translated to repo warning
+  eventSource.emit('end', 'server ended connection');
+  t.deepEqual(recordedWarnings, ['some error', 'server ended connection']);
 
   // re-connect simulation
   eventSource.emit('unleash-connected', {
