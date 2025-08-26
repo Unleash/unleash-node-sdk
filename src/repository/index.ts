@@ -160,6 +160,9 @@ export default class Repository extends EventEmitter implements EventEmitter {
       this.eventSource.addEventListener('error', (error: unknown) => {
         this.emit(UnleashEvents.Warn, error);
       });
+      this.eventSource.addEventListener('end', (error: unknown) => {
+        this.emit(UnleashEvents.Warn, error);
+      });
       this.eventSource.addEventListener('fetch-mode', this.handleModeChange.bind(this));
     }
   }
