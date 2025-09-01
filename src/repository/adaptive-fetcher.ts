@@ -90,7 +90,9 @@ export class AdaptiveFetcher extends EventEmitter implements FetcherInterface {
   }
 
   getMode(): Mode {
-    if (this.currentFetcher === this.streamingFetcher) return { type: 'streaming' };
+    if (this.currentFetcher === this.streamingFetcher) {
+      return { type: 'streaming' };
+    }
     return { type: 'polling', format: 'full' };
   }
 
