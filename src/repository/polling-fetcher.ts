@@ -156,11 +156,12 @@ export class PollingFetcher extends EventEmitter implements FetcherInterface {
             this.etag = undefined;
           }
 
-          const fetchingModeHeader = res.headers.get('fetch-mode');
-          if (fetchingModeHeader === 'streaming' && this.options.mode.type === 'polling') {
-            if (this.options.onModeChange) {
-              await this.options.onModeChange('streaming');
-            }
+          const fetchingModeHeader = res.headers.get('fetch-mode') as
+            | 'polling'
+            | 'streaming'
+            | null;
+          if (fetchingModeHeader && this.options.onModeChange) {
+            await this.options.onModeChange('streaming');
             return;
           }
 
