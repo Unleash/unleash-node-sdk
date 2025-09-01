@@ -41,12 +41,6 @@ export class AdaptiveFetcher extends EventEmitter implements FetcherInterface {
       return;
     }
 
-    const currentMode = this.options.mode;
-
-    if (currentMode.type === newMode) {
-      return;
-    }
-
     if (newMode === 'polling') {
       await this.switchToPolling();
     } else if (newMode === 'streaming') {
