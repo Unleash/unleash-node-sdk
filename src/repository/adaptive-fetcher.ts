@@ -47,9 +47,9 @@ export class AdaptiveFetcher extends EventEmitter implements FetcherInterface {
       return;
     }
 
-    if (newMode === 'polling' && currentMode.type === 'streaming') {
+    if (newMode === 'polling') {
       await this.switchToPolling();
-    } else if (newMode === 'streaming' && currentMode.type === 'polling') {
+    } else if (newMode === 'streaming') {
       await this.switchToStreaming();
     }
   }
@@ -64,7 +64,7 @@ export class AdaptiveFetcher extends EventEmitter implements FetcherInterface {
     this.currentFetcher.stop();
     this.currentFetcher = this.pollingFetcher;
 
-    await this.pollingFetcher.start();
+    await this.currentFetcher.start();
   }
 
   private async switchToStreaming() {
@@ -77,7 +77,7 @@ export class AdaptiveFetcher extends EventEmitter implements FetcherInterface {
     this.currentFetcher.stop();
     this.currentFetcher = this.streamingFetcher;
 
-    await this.streamingFetcher.start();
+    await this.currentFetcher.start();
   }
 
   async start(): Promise<void> {

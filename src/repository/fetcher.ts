@@ -7,23 +7,31 @@ export interface FetcherInterface extends EventEmitter {
   stop(): void;
 }
 
-export interface FetchingOptions {
+export interface FetchingOptions extends PollingFetchingOptions, StreamingFetchingOptions {}
+
+export interface CommonFetchingOptions {
   url: string;
   appName: string;
   instanceId: string;
-  connectionId: string;
-  refreshInterval: number;
-  timeout?: number;
   headers?: any;
-  customHeadersFunction?: any;
-  httpOptions?: any;
-  namePrefix?: string;
-  tags?: any[];
-  projectName?: string;
-  mode: Mode;
-  etag?: string;
-  eventSource?: EventSource;
+  connectionId: string;
   onSave: (response: ClientFeaturesResponse, fromApi: boolean) => Promise<void>;
   onSaveDelta: (delta: ClientFeaturesDelta) => Promise<void>;
   onModeChange?: (mode: 'polling' | 'streaming') => Promise<void>;
+}
+
+export interface PollingFetchingOptions extends CommonFetchingOptions {
+  refreshInterval: number;
+  tags?: any[];
+  customHeadersFunction?: any;
+  mode: Mode;
+  namePrefix?: string;
+  projectName?: string;
+  etag?: string;
+  timeout?: number;
+  httpOptions?: any;
+}
+
+export interface StreamingFetchingOptions extends CommonFetchingOptions {
+  eventSource?: EventSource;
 }

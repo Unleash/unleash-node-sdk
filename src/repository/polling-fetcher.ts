@@ -3,7 +3,7 @@ import { parseClientFeaturesDelta } from '../feature';
 import { get } from '../request';
 import getUrl from '../url-utils';
 import { UnleashEvents } from '../events';
-import { FetcherInterface, FetchingOptions } from './fetcher';
+import { FetcherInterface, PollingFetchingOptions } from './fetcher';
 
 export class PollingFetcher extends EventEmitter implements FetcherInterface {
   private timer: NodeJS.Timeout | undefined;
@@ -14,16 +14,16 @@ export class PollingFetcher extends EventEmitter implements FetcherInterface {
 
   private etag: string | undefined;
 
-  private options: FetchingOptions;
+  private options: PollingFetchingOptions;
 
-  constructor(options: FetchingOptions) {
+  constructor(options: PollingFetchingOptions) {
     super();
     this.options = options;
     this.etag = options.etag;
   }
 
   timedFetch(interval: number) {
-    if (interval > 0 && this.options.mode.type === 'polling') {
+    if (interval > 0) {
       this.timer = setTimeout(() => this.fetch(), interval);
       if (process.env.NODE_ENV !== 'test' && typeof this.timer.unref === 'function') {
         this.timer.unref();
@@ -32,9 +32,7 @@ export class PollingFetcher extends EventEmitter implements FetcherInterface {
   }
 
   async start(): Promise<void> {
-    if (this.options.mode.type === 'polling') {
-      await this.fetch();
-    }
+    await this.fetch();
   }
 
   nextFetch(): number {

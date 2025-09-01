@@ -4,16 +4,16 @@ import { buildHeaders } from '../request';
 import { resolveUrl } from '../url-utils';
 import { UnleashEvents } from '../events';
 import { EventSource } from '../event-source';
-import { FetcherInterface, FetchingOptions } from './fetcher';
+import { FetcherInterface, StreamingFetchingOptions } from './fetcher';
 
 export class StreamingFetcher extends EventEmitter implements FetcherInterface {
   private eventSource: EventSource | undefined;
 
   private stopped = false;
 
-  private options: FetchingOptions;
+  private options: StreamingFetchingOptions;
 
-  constructor(options: FetchingOptions) {
+  constructor(options: StreamingFetchingOptions) {
     super();
     this.options = options;
     this.eventSource = options.eventSource;
@@ -78,12 +78,10 @@ export class StreamingFetcher extends EventEmitter implements FetcherInterface {
   }
 
   async start(): Promise<void> {
-    if (this.options.mode.type === 'streaming') {
-      if (!this.eventSource) {
-        this.eventSource = this.createEventSource();
-      }
-      this.setupEventSource();
+    if (!this.eventSource) {
+      this.eventSource = this.createEventSource();
     }
+    this.setupEventSource();
   }
 
   stop() {
