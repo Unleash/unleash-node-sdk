@@ -519,7 +519,7 @@ Message: ${err.message}`,
 
     this.mode = { type: 'polling', format: 'full' };
 
-    this.timedFetch(this.refreshInterval);
+    await this.fetch();
   }
 
   private createEventSource(): EventSource {
