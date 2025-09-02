@@ -1,1 +1,5 @@
-{"name":"unleash-node-sdk","version":"6.7.0-beta.9","sdkVersion":"unleash-node-sdk:6.7.0-beta.9"}
+{
+  "name": "unleash-node-sdk",
+  "version": "6.7.0-beta.9",
+  "sdkVersion": "unleash-node-sdk:6.7.0-beta.9"
+}
