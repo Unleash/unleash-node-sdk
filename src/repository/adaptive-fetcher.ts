@@ -23,17 +23,17 @@ export class AdaptiveFetcher extends EventEmitter implements FetcherInterface {
     this.pollingFetcher = new PollingFetcher(this.options);
     this.streamingFetcher = new StreamingFetcher(this.options);
 
-    this.setupStrategyEventForwarding(this.pollingFetcher);
-    this.setupStrategyEventForwarding(this.streamingFetcher);
+    this.setupFetcherEventForwarding(this.pollingFetcher);
+    this.setupFetcherEventForwarding(this.streamingFetcher);
 
     this.currentFetcher =
       this.options.mode.type === 'streaming' ? this.streamingFetcher : this.pollingFetcher;
   }
 
-  private setupStrategyEventForwarding(strategy: FetcherInterface) {
-    strategy.on(UnleashEvents.Error, (err) => this.emit(UnleashEvents.Error, err));
-    strategy.on(UnleashEvents.Warn, (msg) => this.emit(UnleashEvents.Warn, msg));
-    strategy.on(UnleashEvents.Unchanged, () => this.emit(UnleashEvents.Unchanged));
+  private setupFetcherEventForwarding(fetcher: FetcherInterface) {
+    fetcher.on(UnleashEvents.Error, (err) => this.emit(UnleashEvents.Error, err));
+    fetcher.on(UnleashEvents.Warn, (msg) => this.emit(UnleashEvents.Warn, msg));
+    fetcher.on(UnleashEvents.Unchanged, () => this.emit(UnleashEvents.Unchanged));
   }
 
   private async handleModeChange(newMode: 'polling' | 'streaming'): Promise<void> {
@@ -96,7 +96,7 @@ export class AdaptiveFetcher extends EventEmitter implements FetcherInterface {
     return { type: 'polling', format: 'full' };
   }
 
-  // Compatibility methods for accessing polling strategy internals
+  // Compatibility methods for accessing polling fetcher internals
   getFailures(): number {
     return this.pollingFetcher.getFailures();
   }
