@@ -1,6 +1,5 @@
 import { EventEmitter } from 'events';
 import { UnleashEvents } from '../events';
-import { Mode } from '../unleash-config';
 import { FetcherInterface, FetchingOptions } from './fetcher';
 import { PollingFetcher } from './polling-fetcher';
 import { StreamingFetcher } from './streaming-fetcher';
@@ -89,11 +88,11 @@ export class AdaptiveFetcher extends EventEmitter implements FetcherInterface {
     this.streamingFetcher.stop();
   }
 
-  getMode(): Mode {
+  getMode(): 'streaming' | 'polling' {
     if (this.currentFetcher === this.streamingFetcher) {
-      return { type: 'streaming' };
+      return 'streaming';
     }
-    return { type: 'polling', format: 'full' };
+    return 'polling';
   }
 
   // Compatibility methods for accessing polling fetcher internals

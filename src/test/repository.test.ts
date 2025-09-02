@@ -1735,7 +1735,7 @@ test('Switch from polling to streaming mode via HTTP header', async (t) => {
 
   await modePromise;
 
-  t.is(repo.getMode().type, 'streaming');
+  t.is(repo.getMode(), 'streaming');
 
   repo.stop();
 });
@@ -1805,7 +1805,7 @@ test('Switch from streaming to polling mode via EventSource', async (t) => {
 
   await modePromise;
 
-  t.is(repo.getMode().type, 'polling');
+  t.is(repo.getMode(), 'polling');
   t.true(eventSource.closed);
 
   await repo.fetch();
@@ -1854,13 +1854,13 @@ test('setMode can switch from polling to streaming mode', async (t) => {
 
   await repo.start();
 
-  t.is(repo.getMode().type, 'polling');
+  t.is(repo.getMode(), 'polling');
 
   await repo.setMode('streaming');
 
   await modePromise;
 
-  t.is(repo.getMode().type, 'streaming');
+  t.is(repo.getMode(), 'streaming');
 
   repo.stop();
 });
@@ -1920,13 +1920,13 @@ test('setMode can switch from streaming to polling mode', async (t) => {
     });
   });
 
-  t.is(repo.getMode().type, 'streaming');
+  t.is(repo.getMode(), 'streaming');
 
   await repo.setMode('polling');
 
   await modePromise;
 
-  t.is(repo.getMode().type, 'polling');
+  t.is(repo.getMode(), 'polling');
   t.true(eventSource.closed);
 
   await repo.fetch();
@@ -1963,10 +1963,10 @@ test('setMode should be no-op when repository is stopped', async (t) => {
   });
 
   await repo.start();
-  t.is(repo.getMode().type, 'polling');
+  t.is(repo.getMode(), 'polling');
 
   repo.stop();
 
   await repo.setMode('streaming');
-  t.is(repo.getMode().type, 'polling');
+  t.is(repo.getMode(), 'polling');
 });

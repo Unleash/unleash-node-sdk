@@ -321,7 +321,7 @@ Message: ${err.message}`,
     });
   }
 
-  getMode(): Mode {
+  getMode(): 'streaming' | 'polling' {
     return this.fetcher.getMode();
   }
 

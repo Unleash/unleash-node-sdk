@@ -160,7 +160,7 @@ export class PollingFetcher extends EventEmitter implements FetcherInterface {
             | 'polling'
             | 'streaming'
             | null;
-          if (fetchingModeHeader && this.options.onModeChange) {
+          if (fetchingModeHeader === 'streaming' && this.options.onModeChange) {
             await this.options.onModeChange('streaming');
             return;
           }
