@@ -1938,8 +1938,6 @@ test('setMode can switch from streaming to polling mode', async (t) => {
   t.is(repo.getMode(), 'polling');
   t.true(eventSource.closed);
 
-  await repo.fetch();
-
   toggles = repo.getToggles();
   t.is(toggles[0].enabled, true);
 

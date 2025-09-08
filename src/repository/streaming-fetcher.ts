@@ -9,8 +9,6 @@ import { FetcherInterface, StreamingFetchingOptions } from './fetcher';
 export class StreamingFetcher extends EventEmitter implements FetcherInterface {
   private eventSource: EventSource | undefined;
 
-  private stopped = false;
-
   private options: StreamingFetchingOptions;
 
   constructor(options: StreamingFetchingOptions) {
@@ -85,7 +83,6 @@ export class StreamingFetcher extends EventEmitter implements FetcherInterface {
   }
 
   stop() {
-    this.stopped = true;
     if (this.eventSource) {
       this.eventSource.close();
       this.eventSource = undefined;
