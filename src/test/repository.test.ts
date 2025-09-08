@@ -43,6 +43,15 @@ function createMockEventSource() {
   return eventSource;
 }
 
+function createSSEResponse(events: Array<{ event: string; data: any }>) {
+  return events
+    .map((e) => {
+      const dataStr = typeof e.data === 'string' ? e.data : JSON.stringify(e.data);
+      return `event: ${e.event}\ndata: ${dataStr}\n\n`;
+    })
+    .join('');
+}
+
 test('should fetch from endpoint', (t) =>
   new Promise((resolve) => {
     const url = 'http://unleash-test-0.app';
@@ -1969,4 +1978,144 @@ test('setMode should be no-op when repository is stopped', async (t) => {
 
   await repo.setMode('streaming');
   t.is(repo.getMode(), 'polling');
+});
+
+test('SSE with HTTP mocking - should process unleash-connected event', async (t) => {
+  const url = 'http://unleash-test-sse-http.app';
+  const feature = {
+    name: 'test-feature',
+    enabled: true,
+    strategies: [
+      {
+        name: 'default',
+      },
+    ],
+  };
+
+  const sseResponse = createSSEResponse([
+    {
+      event: 'unleash-connected',
+      data: {
+        events: [
+          {
+            type: 'hydration',
+            eventId: 1,
+            features: [feature],
+            segments: [],
+          },
+        ],
+      },
+    },
+  ]);
+
+  nock(url)
+    .persist()
+    .get('/client/streaming')
+    .reply(200, sseResponse, { 'Content-Type': 'text/event-stream' });
+
+  const storageProvider: StorageProvider<ClientFeaturesResponse> = new InMemStorageProvider();
+
+  const repo = new Repository({
+    url,
+    appName,
+    instanceId,
+    connectionId,
+    refreshInterval: 10,
+    // @ts-expect-error
+    bootstrapProvider: new DefaultBootstrapProvider({}),
+    storageProvider,
+    mode: { type: 'streaming' },
+  });
+
+  const changedEvent = new Promise<void>((resolve) => {
+    repo.once('changed', resolve);
+  });
+
+  await repo.start();
+  await changedEvent;
+
+  const toggles = repo.getToggles();
+  t.is(toggles.length, 1);
+  t.is(toggles[0].name, 'test-feature');
+  t.is(toggles[0].enabled, true);
+
+  repo.stop();
+});
+
+test('SSE with HTTP mocking - should process unleash-updated event', async (t) => {
+  const url = 'http://unleash-test-sse-http-updated.app';
+  const feature = {
+    name: 'test-feature',
+    enabled: false,
+    strategies: [
+      {
+        name: 'default',
+      },
+    ],
+  };
+
+  const sseResponse = createSSEResponse([
+    {
+      event: 'unleash-connected',
+      data: {
+        events: [
+          {
+            type: 'hydration',
+            eventId: 1,
+            features: [feature],
+            segments: [],
+          },
+        ],
+      },
+    },
+    {
+      event: 'unleash-updated',
+      data: {
+        events: [
+          {
+            type: 'feature-updated',
+            eventId: 2,
+            feature: { ...feature, enabled: true },
+          },
+        ],
+      },
+    },
+  ]);
+
+  nock(url)
+    .persist()
+    .get('/client/streaming')
+    .reply(200, sseResponse, { 'Content-Type': 'text/event-stream' });
+
+  const storageProvider: StorageProvider<ClientFeaturesResponse> = new InMemStorageProvider();
+
+  const repo = new Repository({
+    url,
+    appName,
+    instanceId,
+    connectionId,
+    refreshInterval: 10,
+    // @ts-expect-error
+    bootstrapProvider: new DefaultBootstrapProvider({}),
+    storageProvider,
+    mode: { type: 'streaming' },
+  });
+
+  let changeCount = 0;
+  const changedEvents = new Promise<void>((resolve) => {
+    repo.on('changed', () => {
+      changeCount++;
+      if (changeCount === 2) {
+        resolve();
+      }
+    });
+  });
+
+  await repo.start();
+  await changedEvents;
+
+  const toggles = repo.getToggles();
+  t.is(toggles[0].enabled, true);
+
+  repo.stop();
 });
