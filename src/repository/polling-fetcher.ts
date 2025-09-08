@@ -32,6 +32,7 @@ export class PollingFetcher extends EventEmitter implements FetcherInterface {
   }
 
   async start(): Promise<void> {
+    this.stopped = false;
     await this.fetch();
   }
 
