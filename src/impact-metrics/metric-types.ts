@@ -139,7 +139,7 @@ class HistogramImpl implements Histogram {
     this.buckets = [...sortedBuckets, Infinity];
   }
 
-  restoreData(sample: BucketMetricSample): void {
+  restore(sample: BucketMetricSample): void {
     const key = getLabelKey(sample.labels);
     const data: HistogramData = {
       count: sample.count,
@@ -211,7 +211,7 @@ export interface Gauge {
 
 export interface Histogram {
   observe(value: number, labels?: MetricLabels): void;
-  restoreData(sample: BucketMetricSample): void;
+  restore(sample: BucketMetricSample): void;
 }
 
 export interface ImpactMetricsDataSource {
@@ -315,7 +315,7 @@ export class InMemoryMetricRegistry implements ImpactMetricsDataSource, ImpactMe
             });
 
             metric.samples.filter(isBucketMetricSample).forEach((sample) => {
-              histogram.restoreData(sample);
+              histogram.restore(sample);
             });
           }
           break;
