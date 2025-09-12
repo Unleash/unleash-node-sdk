@@ -156,48 +156,28 @@ class HistogramImpl implements Histogram {
       data = {
         count: 0,
         sum: 0,
-        buckets: new Map(),
+        buckets: new Map([...this.buckets, Infinity].map((bucket) => [bucket, 0])),
       };
-
-      for (const bucket of this.buckets) {
-        data.buckets.set(bucket, 0);
-      }
-      // Always track Infinity bucket internally
-      data.buckets.set(Infinity, 0);
       this.values.set(key, data);
     }
 
     data.count++;
     data.sum += value;
 
-    for (const bucket of this.buckets) {
+    for (const [bucket] of data.buckets) {
       if (value <= bucket) {
-        const current = data.buckets.get(bucket) || 0;
-        data.buckets.set(bucket, current + 1);
+        data.buckets.set(bucket, data.buckets.get(bucket)! + 1);
       }
     }
-    const infCount = data.buckets.get(Infinity) || 0;
-    data.buckets.set(Infinity, infCount + 1);
   }
 
   collect(): CollectedMetric {
-    const samples: BucketMetricSample[] = [];
-
-    for (const [key, data] of this.values.entries()) {
-      const labels = parseLabelKey(key);
-
-      const bucketArray: Array<{ le: number; count: number }> = [];
-      for (const [bucket, count] of data.buckets.entries()) {
-        bucketArray.push({ le: bucket, count });
-      }
-
-      samples.push({
-        labels,
-        count: data.count,
-        sum: data.sum,
-        buckets: bucketArray,
-      });
-    }
+    const samples: BucketMetricSample[] = Array.from(this.values.entries()).map(([key, data]) => ({
+      labels: parseLabelKey(key),
+      count: data.count,
+      sum: data.sum,
+      buckets: Array.from(data.buckets.entries()).map(([le, count]) => ({ le, count })),
+    }));
 
     this.values.clear();
 
@@ -318,17 +298,18 @@ export class InMemoryMetricRegistry implements ImpactMetricsDataSource, ImpactMe
         }
 
         case 'histogram': {
-          for (const sample of metric.samples) {
-            if (isBucketMetricSample(sample)) {
-              const buckets = sample.buckets.map((b) => b.le);
-              const histogram = this.histogram({
-                name: metric.name,
-                help: metric.help,
-                buckets,
-              });
+          const firstSample = metric.samples.find(isBucketMetricSample);
+          if (firstSample) {
+            const buckets = firstSample.buckets.map((b) => b.le);
+            const histogram = this.histogram({
+              name: metric.name,
+              help: metric.help,
+              buckets,
+            });
 
+            metric.samples.filter(isBucketMetricSample).forEach((sample) => {
               histogram.restoreData(sample);
-            }
+            });
           }
           break;
         }
