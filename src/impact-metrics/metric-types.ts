@@ -134,8 +134,9 @@ class HistogramImpl implements Histogram {
   private buckets: number[];
 
   constructor(private opts: BucketMetricOptions) {
-    this.buckets = opts.buckets || [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10];
-    this.buckets = [...new Set(this.buckets.filter((b) => b !== Infinity))].sort((a, b) => a - b);
+    const buckets = opts.buckets || [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10];
+    const sortedBuckets = [...new Set(buckets.filter((b) => b !== Infinity))].sort((a, b) => a - b);
+    this.buckets = [...sortedBuckets, Infinity];
   }
 
   restoreData(sample: BucketMetricSample): void {
@@ -153,10 +154,15 @@ class HistogramImpl implements Histogram {
     let data = this.values.get(key);
 
     if (!data) {
+      const buckets = new Map<number, number>();
+      for (const bucket of this.buckets) {
+        buckets.set(bucket, 0);
+      }
+
       data = {
         count: 0,
         sum: 0,
-        buckets: new Map([...this.buckets, Infinity].map((bucket) => [bucket, 0])),
+        buckets,
       };
       this.values.set(key, data);
     }
@@ -164,9 +170,10 @@ class HistogramImpl implements Histogram {
     data.count++;
     data.sum += value;
 
-    for (const [bucket] of data.buckets) {
+    for (const bucket of this.buckets) {
       if (value <= bucket) {
-        data.buckets.set(bucket, data.buckets.get(bucket)! + 1);
+        const currentCount = data.buckets.get(bucket)!;
+        data.buckets.set(bucket, currentCount + 1);
       }
     }
   }
