@@ -332,7 +332,7 @@ export interface MetricOptions {
 }
 
 export interface BucketMetricOptions extends MetricOptions {
-  buckets?: number[];
+  buckets: number[];
 }
 
 export interface MetricFlagContext {
