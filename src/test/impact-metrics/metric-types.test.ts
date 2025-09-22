@@ -197,7 +197,7 @@ test('Histogram observes values', (t) => {
             { le: 1, count: 2 },
             { le: 2.5, count: 2 },
             { le: 5, count: 3 },
-            { le: Infinity, count: 3 },
+            { le: '+Inf', count: 3 },
           ],
         },
       ],
@@ -232,7 +232,7 @@ test('Histogram tracks different label combinations separately', (t) => {
           buckets: [
             { le: 1, count: 1 },
             { le: 10, count: 1 },
-            { le: Infinity, count: 1 },
+            { le: '+Inf', count: 1 },
           ],
         },
         {
@@ -242,7 +242,7 @@ test('Histogram tracks different label combinations separately', (t) => {
           buckets: [
             { le: 1, count: 0 },
             { le: 10, count: 1 },
-            { le: Infinity, count: 1 },
+            { le: '+Inf', count: 1 },
           ],
         },
         {
@@ -252,7 +252,7 @@ test('Histogram tracks different label combinations separately', (t) => {
           buckets: [
             { le: 1, count: 0 },
             { le: 10, count: 0 },
-            { le: Infinity, count: 1 },
+            { le: '+Inf', count: 1 },
           ],
         },
       ],

@@ -30,7 +30,7 @@ export interface BucketMetricSample {
   labels: MetricLabels;
   count: number;
   sum: number;
-  buckets: Array<{ le: number; count: number }>;
+  buckets: Array<{ le: number | '+Inf'; count: number }>;
 }
 
 export type MetricSample = NumericMetricSample | BucketMetricSample;
@@ -144,7 +144,9 @@ class HistogramImpl implements Histogram {
     const data: HistogramData = {
       count: sample.count,
       sum: sample.sum,
-      buckets: new Map(sample.buckets.map((b) => [b.le, b.count])),
+      buckets: new Map(
+        sample.buckets.map((b) => [b.le === '+Inf' ? Infinity : (b.le as number), b.count]),
+      ),
     };
     this.values.set(key, data);
   }
@@ -183,7 +185,10 @@ class HistogramImpl implements Histogram {
       labels: parseLabelKey(key),
       count: data.count,
       sum: data.sum,
-      buckets: Array.from(data.buckets.entries()).map(([le, count]) => ({ le, count })),
+      buckets: Array.from(data.buckets.entries()).map(([le, count]) => ({
+        le: le === Infinity ? '+Inf' : le,
+        count,
+      })),
     }));
 
     this.values.clear();
@@ -307,7 +312,9 @@ export class InMemoryMetricRegistry implements ImpactMetricsDataSource, ImpactMe
         case 'histogram': {
           const firstSample = metric.samples.find(isBucketMetricSample);
           if (firstSample) {
-            const buckets = firstSample.buckets.map((b) => b.le);
+            const buckets = firstSample.buckets.map((b) =>
+              b.le === '+Inf' ? Infinity : (b.le as number),
+            );
             const histogram = this.histogram({
               name: metric.name,
               help: metric.help,
