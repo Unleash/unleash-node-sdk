@@ -173,3 +173,82 @@ test('defining a gauge automatically sets label names', (t) => {
   api.defineGauge('test_gauge', 'Test help text');
   t.true(gaugeRegistered, 'Gauge should be registered');
 });
+
+test('should not register a histogram with empty name or help', (t) => {
+  let histogramRegistered = false;
+
+  const fakeRegistry = {
+    histogram: () => {
+      histogramRegistered = true;
+    },
+  };
+
+  const staticContext = { appName: 'my-app', environment: 'dev' };
+  const api = new MetricsAPI(fakeRegistry as any, fakeVariantResolver(), staticContext);
+
+  api.defineHistogram('some_name', '');
+  t.false(histogramRegistered, 'Histogram should not be registered with empty help');
+
+  api.defineHistogram('', 'some_help');
+  t.false(histogramRegistered, 'Histogram should not be registered with empty name');
+});
+
+test('should register a histogram with valid name and help', (t) => {
+  let histogramRegistered = false;
+
+  const fakeRegistry = {
+    histogram: () => {
+      histogramRegistered = true;
+    },
+  };
+
+  const staticContext = { appName: 'my-app', environment: 'dev' };
+  const api = new MetricsAPI(fakeRegistry as any, fakeVariantResolver(), staticContext);
+
+  api.defineHistogram('valid_name', 'Valid help text');
+  t.true(histogramRegistered, 'Histogram should be registered with valid name and help');
+});
+
+test('should observe histogram with valid parameters', (t) => {
+  let histogramObserved = false;
+  let recordedLabels: MetricLabels = {};
+
+  const fakeHistogram = {
+    observe: (_value: number, labels: MetricLabels) => {
+      histogramObserved = true;
+      recordedLabels = labels;
+    },
+  };
+
+  const fakeRegistry = {
+    getHistogram: () => fakeHistogram,
+  };
+
+  const staticContext = { appName: 'my-app', environment: 'dev' };
+  const api = new MetricsAPI(fakeRegistry as any, fakeVariantResolver(), staticContext);
+
+  api.observeHistogram('valid_histogram', 1.5, { flagNames: ['featureX'], context: staticContext });
+  t.true(histogramObserved, 'Histogram should be observed with valid parameters');
+  t.deepEqual(recordedLabels, { appName: 'my-app', environment: 'dev', featureX: 'enabled' });
+});
+
+test('defining a histogram automatically sets label names', (t) => {
+  let histogramRegistered = false;
+
+  const fakeRegistry = {
+    histogram: (config: any) => {
+      histogramRegistered = true;
+      t.deepEqual(
+        config.labelNames,
+        ['featureName', 'appName', 'environment'],
+        'Label names should be set correctly',
+      );
+    },
+  };
+
+  const staticContext = { appName: 'my-app', environment: 'dev' };
+  const api = new MetricsAPI(fakeRegistry as any, fakeVariantResolver(), staticContext);
+
+  api.defineHistogram('test_histogram', 'Test help text');
+  t.true(histogramRegistered, 'Histogram should be registered');
+});

@@ -31,6 +31,15 @@ export class MetricsAPI extends EventEmitter {
     this.metricRegistry.gauge({ name, help, labelNames });
   }
 
+  defineHistogram(name: string, help: string, buckets?: number[]) {
+    if (!name || !help) {
+      this.emit(UnleashEvents.Warn, `Histogram name or help cannot be empty: ${name}, ${help}.`);
+      return;
+    }
+    const labelNames = ['featureName', 'appName', 'environment'];
+    this.metricRegistry.histogram({ name, help, labelNames, buckets: buckets || [] });
+  }
+
   private getFlagLabels(flagContext?: MetricFlagContext): MetricLabels {
     let flagLabels: MetricLabels = {};
     if (flagContext) {
@@ -84,6 +93,26 @@ export class MetricsAPI extends EventEmitter {
     };
 
     gauge.set(value, labels);
+  }
+
+  observeHistogram(name: string, value: number, flagContext?: MetricFlagContext): void {
+    const histogram = this.metricRegistry.getHistogram(name);
+    if (!histogram) {
+      this.emit(
+        UnleashEvents.Warn,
+        `Histogram ${name} not defined, this histogram will not be updated.`,
+      );
+      return;
+    }
+
+    const flagLabels = this.getFlagLabels(flagContext);
+
+    const labels = {
+      ...flagLabels,
+      ...this.staticContext,
+    };
+
+    histogram.observe(value, labels);
   }
 }
 
