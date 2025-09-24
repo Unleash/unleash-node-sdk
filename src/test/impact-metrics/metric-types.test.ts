@@ -166,3 +166,122 @@ test('restore reinserts collected metrics into the registry', (t) => {
     },
   ]);
 });
+
+test('Histogram observes values', (t) => {
+  const registry = new InMemoryMetricRegistry();
+  const histogram = registry.histogram({
+    name: 'test_histogram',
+    help: 'testing histogram',
+    buckets: [0.1, 0.5, 1, 2.5, 5],
+  });
+
+  histogram.observe(0.05, { env: 'prod' });
+  histogram.observe(0.75, { env: 'prod' });
+  histogram.observe(3, { env: 'prod' });
+
+  const result = registry.collect();
+
+  t.deepEqual(result, [
+    {
+      name: 'test_histogram',
+      help: 'testing histogram',
+      type: 'histogram',
+      samples: [
+        {
+          labels: { env: 'prod' },
+          count: 3,
+          sum: 3.8,
+          buckets: [
+            { le: 0.1, count: 1 },
+            { le: 0.5, count: 1 },
+            { le: 1, count: 2 },
+            { le: 2.5, count: 2 },
+            { le: 5, count: 3 },
+            { le: '+Inf', count: 3 },
+          ],
+        },
+      ],
+    },
+  ]);
+});
+
+test('Histogram tracks different label combinations separately', (t) => {
+  const registry = new InMemoryMetricRegistry();
+  const histogram = registry.histogram({
+    name: 'multi_label_histogram',
+    help: 'histogram with multiple labels',
+    buckets: [1, 10],
+  });
+
+  histogram.observe(0.5, { method: 'GET' });
+  histogram.observe(5, { method: 'POST' });
+  histogram.observe(15);
+
+  const result = registry.collect();
+
+  t.deepEqual(result, [
+    {
+      name: 'multi_label_histogram',
+      help: 'histogram with multiple labels',
+      type: 'histogram',
+      samples: [
+        {
+          labels: { method: 'GET' },
+          count: 1,
+          sum: 0.5,
+          buckets: [
+            { le: 1, count: 1 },
+            { le: 10, count: 1 },
+            { le: '+Inf', count: 1 },
+          ],
+        },
+        {
+          labels: { method: 'POST' },
+          count: 1,
+          sum: 5,
+          buckets: [
+            { le: 1, count: 0 },
+            { le: 10, count: 1 },
+            { le: '+Inf', count: 1 },
+          ],
+        },
+        {
+          labels: {},
+          count: 1,
+          sum: 15,
+          buckets: [
+            { le: 1, count: 0 },
+            { le: 10, count: 0 },
+            { le: '+Inf', count: 1 },
+          ],
+        },
+      ],
+    },
+  ]);
+});
+
+test('Histogram restoration preserves exact data', (t) => {
+  const registry = new InMemoryMetricRegistry();
+  const histogram = registry.histogram({
+    name: 'restore_histogram',
+    help: 'testing histogram restore',
+    buckets: [0.1, 1, 10],
+  });
+
+  histogram.observe(0.05, { method: 'GET' });
+  histogram.observe(0.5, { method: 'GET' });
+  histogram.observe(5, { method: 'POST' });
+  histogram.observe(15, { method: 'POST' });
+
+  const firstCollect = registry.collect();
+  t.is(firstCollect.length, 1);
+
+  const emptyCollect = registry.collect();
+  t.deepEqual(emptyCollect, []);
+
+  registry.restore(firstCollect);
+
+  const restoredCollect = registry.collect();
+
+  t.deepEqual(restoredCollect, firstCollect);
+});
