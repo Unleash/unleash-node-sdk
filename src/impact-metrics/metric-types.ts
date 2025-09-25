@@ -1,6 +1,5 @@
 import { Context } from '../context';
 
-type MetricType = 'counter' | 'gauge' | 'histogram';
 type LabelValuesKey = string;
 
 function getLabelKey(labels?: MetricLabels): LabelValuesKey {
@@ -41,12 +40,19 @@ const isNumericMetricSample = (sample: MetricSample): sample is NumericMetricSam
 const isBucketMetricSample = (sample: MetricSample): sample is BucketMetricSample =>
   'buckets' in sample;
 
-export interface CollectedMetric {
-  name: string;
-  help: string;
-  type: MetricType;
-  samples: MetricSample[];
-}
+export type CollectedMetric =
+  | {
+      name: string;
+      help: string;
+      type: 'counter' | 'gauge';
+      samples: NumericMetricSample[];
+    }
+  | {
+      name: string;
+      help: string;
+      type: 'histogram';
+      samples: BucketMetricSample[];
+    };
 
 interface CollectibleMetric {
   collect(): CollectedMetric;
