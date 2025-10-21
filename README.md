@@ -435,11 +435,48 @@ const client = initialize({
 });
 ```
 
-### 2. Custom store provider backed by Redis
+### 2. Use `RedisStorageProvider`
 
 ```js
-import { initialize, InMemStorageProvider } from 'unleash-client';
+import { initialize, RedisStorageProvider } from 'unleash-client';
 
+const client = initialize({
+  appName: 'my-application',
+  url: 'http://localhost:3000/api/',
+  customHeaders: { Authorization: '<YOUR_API_TOKEN>' },
+  storageProvider: new RedisStorageProvider({
+    url: 'redis://localhost:6379',
+    keyPrefix: 'unleash:backup',
+  }),
+});
+```
+
+If you already manage your own Redis connection you can pass it in:
+
+```js
+import { initialize, RedisStorageProvider } from 'unleash-client';
+import { createClient } from 'redis';
+
+const redisClient = createClient({ url: 'redis://localhost:6379' });
+
+const client = initialize({
+  appName: 'my-application',
+  url: 'http://localhost:3000/api/',
+  customHeaders: { Authorization: '<YOUR_API_TOKEN>' },
+  storageProvider: new RedisStorageProvider({ client: redisClient }),
+});
+```
+
+When the SDK is destroyed it will close the Redis connection if it created it internally. If you
+pass in your own Redis client, you stay in control of its lifecycle.
+
+> ℹ️ Make sure you add the [`redis`](https://www.npmjs.com/package/redis) package to your
+> application when using the `RedisStorageProvider`: `npm install redis` or `yarn add redis`.
+
+### 3. Provide your own storage provider backed by Redis
+
+```js
+import { initialize } from 'unleash-client';
 import { createClient } from 'redis';
 
 class CustomRedisStore {

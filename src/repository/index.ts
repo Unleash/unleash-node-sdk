@@ -298,6 +298,16 @@ Message: ${err.message}`,
     this.stopped = true;
     this.fetcher.stop();
     this.removeAllListeners();
+    if (typeof this.storageProvider.destroy === 'function') {
+      try {
+        const destroyResult = this.storageProvider.destroy();
+        if (destroyResult) {
+          void destroyResult.catch((error) => this.emit(UnleashEvents.Warn, error));
+        }
+      } catch (error) {
+        this.emit(UnleashEvents.Warn, error);
+      }
+    }
   }
 
   getSegment(segmentId: number): Segment | undefined {
