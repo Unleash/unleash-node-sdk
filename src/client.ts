@@ -17,6 +17,22 @@ interface BooleanMap {
   [key: string]: boolean;
 }
 
+/**
+ * Type for toggle name queries. Defaults to string but can be augmented by users.
+ * Users can extend this via module augmentation:
+ *
+ * declare module 'unleash-client' {
+ *   interface CustomTypeOptions {
+ *     key?: string;
+ *   }
+ * }
+ */
+export interface CustomTypeOptions {}
+
+type GetCustom<K extends PropertyKey, Fallback> =
+  CustomTypeOptions & Record<K, Fallback> extends Record<K, infer R> ? R : Fallback;
+export type Name = GetCustom<'name', string>;
+
 export default class UnleashClient extends EventEmitter {
   private repository: RepositoryInterface;
 
@@ -106,7 +122,7 @@ export default class UnleashClient extends EventEmitter {
     });
   }
 
-  isEnabled(name: string, context: Context, fallback: Function): boolean {
+  isEnabled(name: Name, context: Context, fallback: Function): boolean {
     const feature = this.repository.getToggle(name);
     const enabled = this.isFeatureEnabled(feature, context, fallback).enabled;
 
