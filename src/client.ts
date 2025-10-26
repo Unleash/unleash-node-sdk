@@ -23,7 +23,7 @@ interface BooleanMap {
  *
  * declare module 'unleash-client' {
  *   interface CustomTypeOptions {
- *     key?: string;
+ *     name: string;
  *   }
  * }
  */
