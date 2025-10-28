@@ -29,8 +29,9 @@ interface BooleanMap {
  */
 export interface CustomTypeOptions {}
 
-type GetCustom<K extends PropertyKey, Fallback> =
-  CustomTypeOptions & Record<K, Fallback> extends Record<K, infer R> ? R : Fallback;
+type GetCustom<K extends PropertyKey, Fallback> = K extends keyof CustomTypeOptions
+  ? CustomTypeOptions[K]
+  : Fallback;
 export type Name = GetCustom<'name', string>;
 
 export default class UnleashClient extends EventEmitter {
