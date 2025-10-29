@@ -147,6 +147,7 @@ export class PollingFetcher extends EventEmitter implements FetcherInterface {
       });
       if (res.status === 304) {
         this.emit(UnleashEvents.Unchanged);
+        nextFetch = this.countSuccess();
       } else if (res.ok) {
         nextFetch = this.countSuccess();
         try {
