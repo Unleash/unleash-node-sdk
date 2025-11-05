@@ -224,6 +224,28 @@ const unleashContext = {
 unleash.isEnabled('someToggle', unleashContext);
 ```
 
+## TypeScript: Custom Feature Toggle Names
+
+You can use TypeScript module augmentation to provide type safety for your feature toggle names.
+This ensures that only specific feature names can be used with `isEnabled` and related methods,
+catching typos at compile time.
+
+```typescript
+import { initialize } from 'unleash-client';
+
+declare module 'unleash-client' {
+  interface CustomTypeOptions {
+    name: 'aaa' | 'bbb';
+  }
+}
+
+const client = initialize({});
+
+client.isEnabled('aaa');
+client.isEnabled('bbb');
+client.isEnabled('ccc'); // Error
+```
+
 ## Advanced usage
 
 The initialize method takes the following arguments:

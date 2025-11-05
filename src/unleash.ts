@@ -1,6 +1,6 @@
 import { tmpdir } from 'os';
 import { EventEmitter } from 'events';
-import Client from './client';
+import Client, { Name } from './client';
 import Repository, { RepositoryInterface } from './repository';
 import Metrics from './metrics';
 import { Context } from './context';
@@ -270,9 +270,9 @@ export class Unleash extends EventEmitter {
     Unleash.instanceCount--;
   }
 
-  isEnabled(name: string, context?: Context, fallbackFunction?: FallbackFunction): boolean;
-  isEnabled(name: string, context?: Context, fallbackValue?: boolean): boolean;
-  isEnabled(name: string, context: Context = {}, fallback?: FallbackFunction | boolean): boolean {
+  isEnabled(name: Name, context?: Context, fallbackFunction?: FallbackFunction): boolean;
+  isEnabled(name: Name, context?: Context, fallbackValue?: boolean): boolean;
+  isEnabled(name: Name, context: Context = {}, fallback?: FallbackFunction | boolean): boolean {
     const enhancedContext = { ...this.staticContext, ...context };
     const fallbackFunc = createFallbackFunction(name, enhancedContext, fallback);
 
