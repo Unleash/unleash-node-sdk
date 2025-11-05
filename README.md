@@ -234,8 +234,8 @@ catching typos at compile time.
 import { initialize } from 'unleash-client';
 
 declare module 'unleash-client' {
-  interface CustomTypeOptions {
-    name: 'aaa' | 'bbb';
+  interface UnleashTypes {
+    flagNames: 'aaa' | 'bbb';
   }
 }
 
