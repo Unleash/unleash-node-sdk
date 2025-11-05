@@ -22,17 +22,17 @@ interface BooleanMap {
  * Users can extend this via module augmentation:
  *
  * declare module 'unleash-client' {
- *   interface CustomTypeOptions {
- *     name: string;
+ *   interface UnleashTypes {
+ *     flagNames: string;
  *   }
  * }
  */
-export interface CustomTypeOptions {}
+export interface UnleashTypes {}
 
-type GetCustom<K extends PropertyKey, Fallback> = K extends keyof CustomTypeOptions
-  ? CustomTypeOptions[K]
+type GetCustom<K extends PropertyKey, Fallback> = K extends keyof UnleashTypes
+  ? UnleashTypes[K]
   : Fallback;
-export type Name = GetCustom<'name', string>;
+export type Name = GetCustom<'flagNames', string>;
 
 export default class UnleashClient extends EventEmitter {
   private repository: RepositoryInterface;
