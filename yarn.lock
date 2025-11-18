@@ -621,14 +621,14 @@
   integrity sha512-sXXKG+uL9IrKqViTtao2Ws6dy0znu9sOaP1di/jKGW1M6VssO8vlpXCQcpZ+jisQ1tTFAC5Jo/EOzFbggBagFQ==
 
 "@tsconfig/node12@^12.0.0":
-  version "12.1.0"
-  resolved "https://registry.yarnpkg.com/@tsconfig/node12/-/node12-12.1.0.tgz#cec056d4fbcf4eab73e9ff06cad3755ea2f61178"
-  integrity sha512-kdeyUs2jy6iHVq8H27ymIE1a/ci7LjEw9VvXtvP8FKr0QptiEoM30oPy8XFfcWiPdcd2VzYdCGMYwow+K+guXA==
+  version "12.1.7"
+  resolved "https://registry.yarnpkg.com/@tsconfig/node12/-/node12-12.1.7.tgz#50c66a1c4481481c940a5a7290df39889be53eb0"
+  integrity sha512-xV9L85NANUIgJotIT7VJMSh8HaQPJF4cgr72bzgHS2xRcRBp9RCGyZvk7MOefH+lVnm+/lH7Vc6AefeF5IuOAQ==
 
 "@types/body-parser@*":
-  version "1.19.5"
-  resolved "https://registry.yarnpkg.com/@types/body-parser/-/body-parser-1.19.5.tgz#04ce9a3b677dc8bd681a17da1ab9835dc9d3ede4"
-  integrity sha512-fB3Zu92ucau0iQ0JMCFQE7b/dv8Ot07NI3KaZIkIUNXq82k4eBAqUaneXfleGY9JWskeS9y+u0nXMyspcuQrCg==
+  version "1.19.6"
+  resolved "https://registry.yarnpkg.com/@types/body-parser/-/body-parser-1.19.6.tgz#1859bebb8fd7dac9918a45d54c1971ab8b5af474"
+  integrity sha512-HLFeCYgz89uk22N5Qg3dvGvsv46B8GLvKKo1zKG4NybA8U2DiEO3w9lqGg29t/tfLRJpJ6iQxnVw4OnB7MoM9g==
   dependencies:
     "@types/connect" "*"
     "@types/node" "*"
