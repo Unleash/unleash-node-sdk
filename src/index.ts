@@ -6,13 +6,24 @@ import { TagFilter } from './tags';
 import { UnleashEvents } from './events';
 import { ClientFeaturesResponse } from './feature';
 import InMemStorageProvider from './repository/storage-provider-in-mem';
+import RedisStorageProvider from './repository/storage-provider-redis';
 import { UnleashConfig } from './unleash-config';
 import { UnleashTypes, Name } from './client';
 
 // exports
 export { Strategy } from './strategy/index';
-export { Context, Variant, PayloadType, Unleash, TagFilter, InMemStorageProvider, UnleashEvents };
+export {
+  Context,
+  Variant,
+  PayloadType,
+  Unleash,
+  TagFilter,
+  InMemStorageProvider,
+  RedisStorageProvider,
+  UnleashEvents,
+};
 export type { ClientFeaturesResponse, UnleashConfig };
+export type { RedisStorageProviderOptions } from './repository/storage-provider-redis';
 export { UnleashMetricClient } from './impact-metrics/metric-client';
 export { UnleashTypes, Name };
 
