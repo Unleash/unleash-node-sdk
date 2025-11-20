@@ -1,4 +1,4 @@
-import { MetricsAPI } from '../../impact-metrics/metric-client';
+import { MetricsAPI } from '../../impact-metrics/metric-api';
 
 import test from 'ava';
 import Client from '../../client';

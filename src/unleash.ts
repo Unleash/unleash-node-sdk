@@ -20,6 +20,8 @@ import { UnleashConfig } from './unleash-config';
 import FileStorageProvider from './repository/storage-provider-file';
 import { uuidv4 } from './uuidv4';
 import { InMemoryMetricRegistry } from './impact-metrics/metric-types';
+import { MetricsAPI } from './impact-metrics/metric-api';
+import { buildImpactMetricContext } from './impact-metrics/context';
 export { Strategy, UnleashEvents, UnleashConfig };
 
 const BACKUP_PATH: string = tmpdir();
@@ -51,6 +53,8 @@ export class Unleash extends EventEmitter {
   private started: boolean = false;
 
   protected metricRegistry = new InMemoryMetricRegistry();
+
+  public impactMetrics: MetricsAPI;
 
   constructor({
     appName,
@@ -184,6 +188,12 @@ export class Unleash extends EventEmitter {
       httpOptions,
       metricRegistry: this.metricRegistry,
     });
+
+    this.impactMetrics = new MetricsAPI(
+      this.metricRegistry,
+      this.client,
+      buildImpactMetricContext(customHeaders, this.staticContext),
+    );
 
     this.metrics.on(UnleashEvents.Error, (err) => {
       // eslint-disable-next-line no-param-reassign
