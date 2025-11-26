@@ -520,10 +520,10 @@
     "@nodelib/fs.scandir" "2.1.5"
     fastq "^1.6.0"
 
-"@npmcli/agent@^3.0.0":
-  version "3.0.0"
-  resolved "https://registry.yarnpkg.com/@npmcli/agent/-/agent-3.0.0.tgz#1685b1fbd4a1b7bb4f930cbb68ce801edfe7aa44"
-  integrity sha512-S79NdEgDQd/NGCay6TCoVzXSj74skRZIKJcpJjC5lOq34SZzyI6MqtiiWoiVWoVrTcGjNeC4ipbh1VIHlpfF5Q==
+"@npmcli/agent@^2.0.0":
+  version "2.2.2"
+  resolved "https://registry.yarnpkg.com/@npmcli/agent/-/agent-2.2.2.tgz#967604918e62f620a648c7975461c9c9e74fc5d5"
+  integrity sha512-OrcNPXdpSl9UX7qPVRWbmWMCSXrcDa2M9DvrbOTj7ao1S4PlqVFYv9/yLKMkrJKZ/V5A/kDBC690or307i26Og==
   dependencies:
     agent-base "^7.1.0"
     http-proxy-agent "^7.0.0"
@@ -3000,6 +3000,11 @@ is-inside-container@^1.0.0:
   dependencies:
     is-docker "^3.0.0"
 
+is-lambda@^1.0.1:
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/is-lambda/-/is-lambda-1.0.1.tgz#3d9877899e6a53efc0160504cde15f82e6f061d5"
+  integrity sha512-z7CMFGNrENq5iFB9Bqo64Xk6Y9sg+epq1myIcdHaGnbMTYOxvzsEtdYqQUylB7LxfkvgrrjP32T6Ywciio9UIQ==
+
 is-map@^2.0.3:
   version "2.0.3"
   resolved "https://registry.yarnpkg.com/is-map/-/is-map-2.0.3.tgz#ede96b7fe1e270b3c4465e3a465658764926d62e"
@@ -3497,22 +3502,23 @@ make-dir@^3.0.0, make-dir@^3.0.2:
   dependencies:
     semver "^6.0.0"
 
-make-fetch-happen@14.0.0:
-  version "14.0.0"
-  resolved "https://registry.yarnpkg.com/make-fetch-happen/-/make-fetch-happen-14.0.0.tgz#f8e163711991ea6994e65120cb6f9a969907cf25"
-  integrity sha512-/0z4kjybWroAwWuQJJgkA5yUKw/WGepJhjPdj6YW8+pn7lWs75zA9khVgvID/OMYAwRjq2MsLexKxttjIcfD4w==
+make-fetch-happen@^13.0.1:
+  version "13.0.1"
+  resolved "https://registry.yarnpkg.com/make-fetch-happen/-/make-fetch-happen-13.0.1.tgz#273ba2f78f45e1f3a6dca91cede87d9fa4821e36"
+  integrity sha512-cKTUFc/rbKUd/9meOvgrpJ2WrNzymt6jfRDdwg5UCnVzv9dTpEj9JS5m3wtziXVCjluIXyL8pcaukYqezIzZQA==
   dependencies:
-    "@npmcli/agent" "^3.0.0"
+    "@npmcli/agent" "^2.0.0"
     cacache "^18.0.0"
     http-cache-semantics "^4.1.1"
+    is-lambda "^1.0.1"
     minipass "^7.0.2"
-    minipass-fetch "^4.0.0"
+    minipass-fetch "^3.0.0"
     minipass-flush "^1.0.5"
     minipass-pipeline "^1.2.4"
     negotiator "^0.6.3"
-    proc-log "^5.0.0"
+    proc-log "^4.2.0"
     promise-retry "^2.0.1"
-    ssri "^12.0.0"
+    ssri "^10.0.0"
 
 map-age-cleaner@^0.1.3:
   version "0.1.3"
@@ -3644,14 +3650,14 @@ minipass-collect@^2.0.1:
   dependencies:
     minipass "^7.0.3"
 
-minipass-fetch@^4.0.0:
-  version "4.0.1"
-  resolved "https://registry.yarnpkg.com/minipass-fetch/-/minipass-fetch-4.0.1.tgz#f2d717d5a418ad0b1a7274f9b913515d3e78f9e5"
-  integrity sha512-j7U11C5HXigVuutxebFadoYBbd7VSdZWggSe64NVdvWNBqGAiXPL2QVCehjmw7lY1oF9gOllYbORh+hiNgfPgQ==
+minipass-fetch@^3.0.0:
+  version "3.0.5"
+  resolved "https://registry.yarnpkg.com/minipass-fetch/-/minipass-fetch-3.0.5.tgz#f0f97e40580affc4a35cc4a1349f05ae36cb1e4c"
+  integrity sha512-2N8elDQAtSnFV0Dk7gt15KHsS0Fyz6CbYZ360h0WTYV1Ty46li3rAXVOQj1THMNLdmrD9Vt5pBPtWtVkpwGBqg==
   dependencies:
     minipass "^7.0.3"
     minipass-sized "^1.0.3"
-    minizlib "^3.0.1"
+    minizlib "^2.1.2"
   optionalDependencies:
     encoding "^0.1.13"
 
@@ -3698,20 +3704,13 @@ minipass@^7.1.2:
   resolved "https://registry.yarnpkg.com/minipass/-/minipass-7.1.2.tgz#93a9626ce5e5e66bd4db86849e7515e92340a707"
   integrity sha512-qOOzS1cBTWYF4BH8fVePDBOO9iptMnGUEZwNc/cMWnTV2nVLZ7VoNWEPHkYczZA0pdoA7dl6e7FL659nX9S2aw==
 
-minizlib@^2.1.1:
+minizlib@^2.1.1, minizlib@^2.1.2:
   version "2.1.2"
   resolved "https://registry.yarnpkg.com/minizlib/-/minizlib-2.1.2.tgz#e90d3466ba209b932451508a11ce3d3632145931"
   integrity sha512-bAxsR8BVfj60DWXHE3u30oHzfl4G7khkSuPW+qvpd7jFRHm7dLxOjUk1EHACJ/hxLY8phGJ0YhYHZo7jil7Qdg==
   dependencies:
     minipass "^3.0.0"
     yallist "^4.0.0"
-
-minizlib@^3.0.1:
-  version "3.1.0"
-  resolved "https://registry.yarnpkg.com/minizlib/-/minizlib-3.1.0.tgz#6ad76c3a8f10227c9b51d1c9ac8e30b27f5a251c"
-  integrity sha512-KZxYo1BUkWD2TVFLr0MQoM8vUUigWD3LlD83a/75BqC+4qE0Hb1Vo5v1FgcfaNXvfXzr+5EhQ6ing/CaBijTlw==
-  dependencies:
-    minipass "^7.1.2"
 
 mkdirp@^1.0.3:
   version "1.0.4"
@@ -4254,10 +4253,10 @@ pretty-ms@^8.0.0:
   dependencies:
     parse-ms "^3.0.0"
 
-proc-log@^5.0.0:
-  version "5.0.0"
-  resolved "https://registry.yarnpkg.com/proc-log/-/proc-log-5.0.0.tgz#e6c93cf37aef33f835c53485f314f50ea906a9d8"
-  integrity sha512-Azwzvl90HaF0aCz1JrDdXQykFakSSNPaPoiZ9fm5qJIMHioDZEi7OAdRwSm6rSoPtY3Qutnm3L7ogmg3dc+wbQ==
+proc-log@^4.2.0:
+  version "4.2.0"
+  resolved "https://registry.yarnpkg.com/proc-log/-/proc-log-4.2.0.tgz#b6f461e4026e75fdfe228b265e9f7a00779d7034"
+  integrity sha512-g8+OnU/L2v+wyiVK+D5fA34J7EH8jZ8DDlvwhRCMxmMj7UCBvxiO1mGeN+36JXIKF4zevU4kRBd8lVgG9vLelA==
 
 process-on-spawn@^1.0.0:
   version "1.0.0"
@@ -4758,13 +4757,6 @@ ssri@^10.0.0:
   version "10.0.6"
   resolved "https://registry.yarnpkg.com/ssri/-/ssri-10.0.6.tgz#a8aade2de60ba2bce8688e3fa349bad05c7dc1e5"
   integrity sha512-MGrFH9Z4NP9Iyhqn16sDtBpRRNJ0Y2hNa6D65h736fVSaPCHr4DM4sWUNvVaSuC+0OBGhwsrydQwmgfg5LncqQ==
-  dependencies:
-    minipass "^7.0.3"
-
-ssri@^12.0.0:
-  version "12.0.0"
-  resolved "https://registry.yarnpkg.com/ssri/-/ssri-12.0.0.tgz#bcb4258417c702472f8191981d3c8a771fee6832"
-  integrity sha512-S7iGNosepx9RadX82oimUkvr0Ct7IjJbEbs4mJcTxst8um95J3sDYU1RBEOvdu6oL1Wek2ODI5i4MAw+dZ6cAQ==
   dependencies:
     minipass "^7.0.3"
 
