@@ -559,6 +559,7 @@ test('should emit errors on invalid features', (t) =>
 
     repo.once('error', (err) => {
       t.truthy(err);
+      repo.stop();
       resolve();
     });
 
@@ -594,6 +595,7 @@ test('should emit errors on invalid variant', (t) =>
     repo.once('error', (err) => {
       t.truthy(err);
       t.is(err.message, 'feature.variants should be an array, but was string');
+      repo.stop();
       resolve();
     });
 
