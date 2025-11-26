@@ -5,16 +5,20 @@ import { resolveUrl } from '../url-utils';
 import { UnleashEvents } from '../events';
 import { EventSource } from '../event-source';
 import { FetcherInterface, StreamingFetchingOptions } from './fetcher';
+import { FailEvent, FailoverStrategy } from './streaming-fail-over';
 
 export class StreamingFetcher extends EventEmitter implements FetcherInterface {
   private eventSource: EventSource | undefined;
 
   private options: StreamingFetchingOptions;
 
+  private readonly failoverStrategy: FailoverStrategy;
+
   constructor(options: StreamingFetchingOptions) {
     super();
     this.options = options;
     this.eventSource = options.eventSource;
+    this.failoverStrategy = new FailoverStrategy(5, 60_000);
   }
 
   private setupEventSource() {
@@ -23,13 +27,54 @@ export class StreamingFetcher extends EventEmitter implements FetcherInterface {
         await this.handleFlagsFromStream(event);
       });
       this.eventSource.addEventListener('unleash-updated', this.handleFlagsFromStream.bind(this));
-      this.eventSource.addEventListener('error', (error: unknown) => {
-        this.emit(UnleashEvents.Warn, error);
-      });
-      this.eventSource.addEventListener('end', (error: unknown) => {
-        this.emit(UnleashEvents.Warn, error);
-      });
+      this.eventSource.addEventListener('error', this.handleErrorEvent.bind(this));
+      this.eventSource.addEventListener('end', this.handleServerDisconnect.bind(this));
       this.eventSource.addEventListener('fetch-mode', this.handleModeChange.bind(this));
+    }
+  }
+
+  private async handleErrorEvent(error: any): Promise<void> {
+    const now = new Date();
+
+    const failEvent: FailEvent =
+      typeof error?.status === 'number'
+        ? {
+            type: 'http-status-error',
+            message: error.message ?? `Stream failed with http status code ${error.status}`,
+            statusCode: error.status,
+            occurredAt: now,
+          }
+        : {
+            type: 'network-error',
+            message: error.message ?? 'Network error occurred in streaming',
+            occurredAt: now,
+          };
+
+    await this.handleFailoverDecision(failEvent);
+  }
+
+  private async handleServerDisconnect(): Promise<void> {
+    const failEvent: FailEvent = {
+      type: 'network-error',
+      message: 'Server closed the streaming connection',
+      occurredAt: new Date(),
+    };
+
+    await this.handleFailoverDecision(failEvent);
+  }
+
+  private async handleFailoverDecision(event: FailEvent): Promise<void> {
+    const now = new Date();
+    const shouldFailover = this.failoverStrategy.shouldFailover(event, now);
+
+    if (!shouldFailover) {
+      return;
+    }
+
+    this.emit(UnleashEvents.Warn, event.message);
+
+    if (this.options.onModeChange) {
+      await this.options.onModeChange('polling');
     }
   }
 
@@ -43,13 +88,15 @@ export class StreamingFetcher extends EventEmitter implements FetcherInterface {
   }
 
   private async handleModeChange(event: { data: string }) {
-    try {
-      const newMode = event.data as 'polling' | 'streaming';
-      if (this.options.onModeChange) {
-        await this.options.onModeChange(newMode);
-      }
-    } catch (err) {
-      this.emit(UnleashEvents.Error, new Error(`Failed to handle mode change: ${err}`));
+    const newMode = event.data as 'polling' | 'streaming';
+
+    if (newMode === 'polling') {
+      await this.handleFailoverDecision({
+        type: 'server-hint',
+        event: `polling`,
+        message: 'Server has explicitly requested switching to polling mode',
+        occurredAt: new Date(),
+      });
     }
   }
 
