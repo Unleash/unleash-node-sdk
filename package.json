@@ -13,8 +13,7 @@
     "prebuild": "del-cli --force lib",
     "build": "tsc -p .",
     "prepare": "husky install && yarn run build",
-    "test": "cross-env NODE_ENV=test yarn run build && ava",
-    "coverage": "nyc --reporter=lcov yarn test"
+    "test": "cross-env NODE_ENV=test yarn run build && ava"
   },
   "repository": {
     "type": "git",
@@ -78,7 +77,6 @@
     "lint-staged": "^14.0.0",
     "mkdirp": "^3.0.1",
     "nock": "^13.3.1",
-    "nyc": "^15.1.0",
     "prettier": "^3.0.0",
     "redis": "^4.6.7",
     "sinon": "^18.0.0",
@@ -95,18 +93,6 @@
     "minimatch": "^3.0.5",
     "semver": "^7.5.3",
     "glob": "^10.5.0"
-  },
-  "nyc": {
-    "lines": 95,
-    "statements": 95,
-    "functions": 95,
-    "branches": 80,
-    "include": [
-      "lib/**.js",
-      "lib/**/*.js"
-    ],
-    "all": true,
-    "exclude-after-remap": false
   },
   "prettier": {
     "printWidth": 100,
