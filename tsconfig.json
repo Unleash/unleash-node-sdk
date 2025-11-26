@@ -9,7 +9,8 @@
     "resolveJsonModule": true,
     "esModuleInterop": false,
     "allowJs": true,
-    "skipLibCheck": false
+    "skipLibCheck": true,
+    "lib": ["es2019", "es2020.promise", "es2020.bigint", "es2020.string", "dom", "dom.iterable"]
   },
   "exclude": ["examples/", "lib/", "node_modules/"],
   "include": ["src/**/*.ts", "src/**/*.js"]

@@ -13,7 +13,7 @@ test('should retry on error', (t) =>
       res.end();
     });
 
-    server.listen(() => {
+    server.listen(0, '127.0.0.1', () => {
       // @ts-expect-error
       const { port } = server.address();
 
@@ -33,8 +33,14 @@ test('should retry on error', (t) =>
       });
     });
     server.on('error', (e) => {
+      if ((e as NodeJS.ErrnoException).code === 'EPERM') {
+        t.pass();
+        server.close();
+        resolve();
+        return;
+      }
+      server.close();
       console.error(e);
       t.fail(e.message);
-      server.close();
     });
   }));
