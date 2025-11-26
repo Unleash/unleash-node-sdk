@@ -1,9 +1,9 @@
-import { promises } from 'node:fs';
-import fetch from 'make-fetch-happen';
-import type { ClientFeaturesResponse, FeatureInterface } from '../feature';
-import type { CustomHeaders } from '../headers';
-import { buildHeaders } from '../request';
-import type { Segment } from '../strategy/strategy';
+import { promises } from 'fs';
+import { ClientFeaturesResponse, FeatureInterface } from '../feature';
+import { CustomHeaders } from '../headers';
+import { buildHeaders, getDefaultAgent } from '../request';
+import { getKyClient } from '../http-client';
+import { Segment } from '../strategy/strategy';
 
 export interface BootstrapProvider {
   readBootstrap(): Promise<ClientFeaturesResponse | undefined>;
@@ -45,8 +45,8 @@ export class DefaultBootstrapProvider implements BootstrapProvider {
   }
 
   private async loadFromUrl(bootstrapUrl: string): Promise<ClientFeaturesResponse | undefined> {
-    const response = await fetch(bootstrapUrl, {
-      method: 'GET',
+    const ky = await getKyClient();
+    const response = await ky.get(bootstrapUrl, {
       timeout: 10_000,
       headers: buildHeaders({
         appName: this.appName,
@@ -55,11 +55,8 @@ export class DefaultBootstrapProvider implements BootstrapProvider {
         contentType: undefined,
         custom: this.urlHeaders,
       }),
-      retry: {
-        retries: 2,
-        maxTimeout: 10_000,
-      },
-    });
+      agent: getDefaultAgent,
+    } as any);
     if (response.ok) {
       return response.json();
     }

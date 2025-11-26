@@ -1,6 +1,5 @@
-import { EventEmitter } from 'node:events';
-import { UnleashEvents } from '../events';
-import { parseClientFeaturesDelta } from '../feature';
+import { EventEmitter } from 'events';
+import { ClientFeaturesDelta, ClientFeaturesResponse, parseClientFeaturesDelta } from '../feature';
 import { get } from '../request';
 import type { TagFilter } from '../tags';
 import getUrl from '../url-utils';
@@ -151,7 +150,7 @@ export class PollingFetcher extends EventEmitter implements FetcherInterface {
       } else if (res.ok) {
         nextFetch = this.countSuccess();
         try {
-          const data = await res.json();
+          const data = (await res.json()) as ClientFeaturesResponse | ClientFeaturesDelta;
           if (res.headers.get('etag') !== null) {
             this.etag = res.headers.get('etag') as string;
           } else {
@@ -168,9 +167,9 @@ export class PollingFetcher extends EventEmitter implements FetcherInterface {
           }
 
           if (this.options.mode.type === 'polling' && this.options.mode.format === 'delta') {
-            await this.options.onSaveDelta(parseClientFeaturesDelta(data));
+            await this.options.onSaveDelta(parseClientFeaturesDelta(data as ClientFeaturesDelta));
           } else {
-            await this.options.onSave(data, true);
+            await this.options.onSave(data as ClientFeaturesResponse, true);
           }
         } catch (err) {
           this.emit(UnleashEvents.Error, err);

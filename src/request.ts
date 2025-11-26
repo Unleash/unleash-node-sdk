@@ -1,13 +1,13 @@
-import http from 'node:http';
-import https from 'node:https';
-import type { URL } from 'node:url';
 import { HttpProxyAgent } from 'http-proxy-agent';
 import { HttpsProxyAgent } from 'https-proxy-agent';
-import fetch from 'make-fetch-happen';
+import * as http from 'http';
+import * as https from 'https';
+import { URL } from 'url';
 import { getProxyForUrl } from 'proxy-from-env';
-import details from './details.json';
-import type { CustomHeaders } from './headers';
-import type { HttpOptions } from './http-options';
+import { CustomHeaders } from './headers';
+import { HttpOptions } from './http-options';
+import { defaultRetry, getKyClient } from './http-client';
+const details = require('./details.json');
 
 export interface RequestOptions {
   url: string;
@@ -38,7 +38,9 @@ export interface PostRequestOptions extends RequestOptions {
   httpOptions?: HttpOptions;
 }
 
-const httpAgentOptions: http.AgentOptions = {
+type AgentOptions = http.AgentOptions & https.AgentOptions;
+
+const httpAgentOptions: AgentOptions = {
   keepAlive: true,
   keepAliveMsecs: 30 * 1000,
   timeout: 10 * 1000,
@@ -47,17 +49,24 @@ const httpAgentOptions: http.AgentOptions = {
 const httpNoProxyAgent = new http.Agent(httpAgentOptions);
 const httpsNoProxyAgent = new https.Agent(httpAgentOptions);
 
-export const getDefaultAgent = (url: URL) => {
+export const getDefaultAgent = (url: URL, rejectUnauthorized?: boolean) => {
   const proxy = getProxyForUrl(url.href);
   const isHttps = url.protocol === 'https:';
+  const agentOptions =
+    rejectUnauthorized === undefined
+      ? httpAgentOptions
+      : { ...httpAgentOptions, rejectUnauthorized };
 
   if (!proxy || proxy === '') {
+    if (isHttps && rejectUnauthorized !== undefined) {
+      return new https.Agent(agentOptions);
+    }
     return isHttps ? httpsNoProxyAgent : httpNoProxyAgent;
   }
 
   return isHttps
-    ? new HttpsProxyAgent(proxy, httpAgentOptions)
-    : new HttpProxyAgent(proxy, httpAgentOptions);
+    ? new HttpsProxyAgent(proxy, agentOptions)
+    : new HttpProxyAgent(proxy, agentOptions);
 };
 
 type HeaderOptions = {
@@ -119,7 +128,11 @@ export const buildHeaders = ({
   return head;
 };
 
-export const post = ({
+const resolveAgent = (httpOptions?: HttpOptions) =>
+  httpOptions?.agent ||
+  ((targetUrl: URL) => getDefaultAgent(targetUrl, httpOptions?.rejectUnauthorized));
+
+export const post = async ({
   url,
   appName,
   timeout,
@@ -129,11 +142,10 @@ export const post = ({
   headers,
   json,
   httpOptions,
-}: PostRequestOptions) =>
-  fetch(url, {
-    timeout: timeout || 10000,
-    method: 'POST',
-    agent: httpOptions?.agent || getDefaultAgent,
+}: PostRequestOptions) => {
+  const ky = await getKyClient();
+  const requestOptions = {
+    timeout: timeout || 10_000,
     headers: buildHeaders({
       appName,
       instanceId,
@@ -143,11 +155,21 @@ export const post = ({
       contentType: 'application/json',
       custom: headers,
     }),
-    body: JSON.stringify(json),
-    strictSSL: httpOptions?.rejectUnauthorized,
-  });
+    json,
+    // ky's types are browser-centric; agent is supported by the underlying fetch in Node.
+    agent: resolveAgent(httpOptions),
+    retry: defaultRetry,
+  } as const;
 
-export const get = ({
+  return ky.post(url, requestOptions as any).catch((err: any) => {
+    if (err?.response) {
+      return err.response;
+    }
+    throw err;
+  });
+};
+
+export const get = async ({
   url,
   etag,
   appName,
@@ -158,11 +180,10 @@ export const get = ({
   headers,
   httpOptions,
   supportedSpecVersion,
-}: GetRequestOptions) =>
-  fetch(url, {
-    method: 'GET',
+}: GetRequestOptions) => {
+  const ky = await getKyClient();
+  const requestOptions = {
     timeout: timeout || 10_000,
-    agent: httpOptions?.agent || getDefaultAgent,
     headers: buildHeaders({
       appName,
       instanceId,
@@ -173,9 +194,14 @@ export const get = ({
       specVersionSupported: supportedSpecVersion,
       connectionId,
     }),
-    retry: {
-      retries: 2,
-      maxTimeout: timeout || 10_000,
-    },
-    strictSSL: httpOptions?.rejectUnauthorized,
+    agent: resolveAgent(httpOptions),
+    retry: defaultRetry,
+  } as const;
+
+  return ky.get(url, requestOptions as any).catch((err: any) => {
+    if (err?.response) {
+      return err.response;
+    }
+    throw err;
   });
+};
