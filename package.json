@@ -34,7 +34,7 @@
     "https-proxy-agent": "^7.0.5",
     "ip-address": "^9.0.5",
     "launchdarkly-eventsource": "2.2.0",
-    "make-fetch-happen": "^14",
+    "make-fetch-happen": "^13",
     "murmurhash3js": "^3.0.1",
     "proxy-from-env": "^1.1.0",
     "semver": "^7.6.2"
