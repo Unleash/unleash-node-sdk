@@ -65,7 +65,6 @@
     "@typescript-eslint/parser": "^6.0.0",
     "@unleash/client-specification": "^5.1.6",
     "ava": "^5.3.0",
-    "coveralls": "^3.1.1",
     "cross-env": "^7.0.3",
     "del-cli": "^5.0.0",
     "eslint": "^8.44.0",
