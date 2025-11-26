@@ -4,12 +4,12 @@ import { writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 
-import InMemStorageProvider from '../repository/storage-provider-in-mem';
-import FileStorageProvider from '../repository/storage-provider-file';
-import Repository from '../repository';
-import { DefaultBootstrapProvider } from '../repository/bootstrap-provider';
-import { StorageProvider } from '../repository/storage-provider';
-import { ClientFeaturesResponse, DeltaEvent } from '../feature';
+import InMemStorageProvider from '../../repository/storage-provider-in-mem';
+import FileStorageProvider from '../../repository/storage-provider-file';
+import Repository from '../../repository';
+import { DefaultBootstrapProvider } from '../../repository/bootstrap-provider';
+import { StorageProvider } from '../../repository/storage-provider';
+import { ClientFeaturesResponse, DeltaEvent } from '../../feature';
 import { EventEmitter } from 'events';
 
 const appName = 'foo';
