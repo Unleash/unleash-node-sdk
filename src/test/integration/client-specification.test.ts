@@ -1,9 +1,9 @@
-import test from 'ava';
-import * as nock from 'nock';
+import test from '../ava-shim';
+import nock from 'nock';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { mkdirp } from 'mkdirp';
-import * as specs from '@unleash/client-specification/specifications/index.json';
+import specsJson from '@unleash/client-specification/specifications/index.json';
 
 import { Unleash } from '../../unleash';
 
@@ -23,7 +23,9 @@ function mockNetwork(toggles, url = getUrl()) {
   return url;
 }
 
-specs.forEach((testName) => {
+const specs = (specsJson as any).default ?? (specsJson as any);
+
+(specs as string[]).forEach((testName) => {
   // eslint-disable-next-line
   const definition = require(`@unleash/client-specification/specifications/${testName}`);
 

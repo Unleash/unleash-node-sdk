@@ -1,6 +1,6 @@
 import { MetricsAPI } from '../../impact-metrics/metric-api';
 
-import test from 'ava';
+import test from '../ava-shim';
 import Client from '../../client';
 import { MetricLabels } from '../../impact-metrics/metric-types';
 

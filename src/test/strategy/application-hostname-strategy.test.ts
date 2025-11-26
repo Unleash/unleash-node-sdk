@@ -1,4 +1,4 @@
-import test from 'ava';
+import test from '../ava-shim';
 import { hostname } from 'os';
 
 import ApplicationHostnameStrategy from '../../strategy/application-hostname-strategy';

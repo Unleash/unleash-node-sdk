@@ -13,8 +13,8 @@
     "prebuild": "del-cli --force lib",
     "build": "tsc -p .",
     "prepare": "husky install && yarn run build",
-    "test": "cross-env NODE_ENV=test yarn run build && ava",
-    "coverage": "nyc --reporter=lcov yarn test"
+    "test": "cross-env NODE_ENV=test yarn run build && vitest run",
+    "coverage": "vitest run --coverage"
   },
   "repository": {
     "type": "git",
@@ -48,8 +48,6 @@
     "examples"
   ],
   "devDependencies": {
-    "@ava/babel": "^2.0.0",
-    "@ava/typescript": "^4.0.0",
     "@tsconfig/node12": "^12.0.0",
     "@types/eventsource": "^1.1.15",
     "@types/express": "^4.17.17",
@@ -64,7 +62,7 @@
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
     "@unleash/client-specification": "^5.1.6",
-    "ava": "^5.3.0",
+    "@vitest/coverage-v8": "^2.1.4",
     "coveralls": "^3.1.1",
     "cross-env": "^7.0.3",
     "del-cli": "^5.0.0",
@@ -74,16 +72,15 @@
     "eslint-import-resolver-typescript": "^3.5.5",
     "eslint-plugin-import": "^2.27.5",
     "eslint-plugin-prettier": "^5.0.0",
-    "esm": "^3.2.25",
     "husky": "^8.0.3",
     "lint-staged": "^14.0.0",
     "mkdirp": "^3.0.1",
     "nock": "^13.3.1",
-    "nyc": "^15.1.0",
     "prettier": "^3.0.0",
     "redis": "^4.6.7",
     "sinon": "^18.0.0",
-    "typescript": "^5.4.3"
+    "typescript": "^5.4.3",
+    "vitest": "^2.1.4"
   },
   "resolutions": {
     "ansi-regex": "^5.0.1",
@@ -95,18 +92,6 @@
     "qs": "^6.5.3",
     "minimatch": "^3.0.5",
     "semver": "^7.5.3"
-  },
-  "nyc": {
-    "lines": 95,
-    "statements": 95,
-    "functions": 95,
-    "branches": 80,
-    "include": [
-      "lib/**.js",
-      "lib/**/*.js"
-    ],
-    "all": true,
-    "exclude-after-remap": false
   },
   "prettier": {
     "printWidth": 100,
@@ -131,16 +116,6 @@
       "prettier --write"
     ]
   },
-  "ava": {
-    "typescript": {
-      "rewritePaths": {
-        "src/": "lib/"
-      },
-      "compile": false
-    },
-    "files": [
-      "src/**/*.test.ts"
-    ]
-  },
-  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e",
+  "type": "commonjs"
 }

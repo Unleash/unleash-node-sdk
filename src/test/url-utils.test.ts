@@ -1,4 +1,4 @@
-import test from 'ava';
+import test from './ava-shim';
 import getUrl, { suffixSlash } from '../url-utils';
 
 test('geturl should return url with project query parameter if projectname is provided', (t) => {

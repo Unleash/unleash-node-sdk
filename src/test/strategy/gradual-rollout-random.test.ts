@@ -1,4 +1,4 @@
-import test from 'ava';
+import test from '../ava-shim';
 
 import GradualRolloutRandomStrategy from '../../strategy/gradual-rollout-random';
 

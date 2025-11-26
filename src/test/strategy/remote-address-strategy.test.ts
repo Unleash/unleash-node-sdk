@@ -1,4 +1,4 @@
-import test from 'ava';
+import test from '../ava-shim';
 
 import RemoteAddressStrategy from '../../strategy/remote-addresss-strategy';
 

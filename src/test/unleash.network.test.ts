@@ -1,5 +1,5 @@
-import test from 'ava';
-import * as nock from 'nock';
+import test from './ava-shim';
+import nock from 'nock';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { Unleash } from '../unleash';

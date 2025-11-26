@@ -1,4 +1,4 @@
-import test from 'ava';
+import test from '../ava-shim';
 
 import GradualRolloutUserIdStrategy from '../../strategy/gradual-rollout-user-id';
 import { normalizedStrategyValue } from '../../strategy/util';

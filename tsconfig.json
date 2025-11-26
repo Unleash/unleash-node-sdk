@@ -7,9 +7,14 @@
     "declaration": true,
     "declarationMap": true,
     "resolveJsonModule": true,
-    "esModuleInterop": false,
+    "esModuleInterop": true,
     "allowJs": true,
-    "skipLibCheck": false
+    "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "ava": ["./src/test/ava-shim"]
+    }
   },
   "exclude": ["examples/", "lib/", "node_modules/"],
   "include": ["src/**/*.ts", "src/**/*.js"]

@@ -1,5 +1,5 @@
 /* eslint-disable import/no-extraneous-dependencies */
-import test from 'ava';
+import test from '../ava-shim';
 import * as sinon from 'sinon';
 
 import FlexibleRolloutStrategy from '../../strategy/flexible-rollout-strategy';
