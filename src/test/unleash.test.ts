@@ -327,7 +327,9 @@ test('should call fallback function for unknown feature-toggle', (t) =>
     });
   }));
 
-test('should not throw when os.userInfo throws', (_t) => {
+test('should not throw when os.userInfo throws', (t) => {
+  t.plan(0);
+
   return new Promise((resolve, reject) => {
     // eslint-disable-next-line global-require
     require('os').userInfo = () => {
@@ -343,7 +345,6 @@ test('should not throw when os.userInfo throws', (_t) => {
     }).on('error', reject);
 
     instance.on('synchronized', () => {
-      _t.pass();
       resolve();
     });
   });

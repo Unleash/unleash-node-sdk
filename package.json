@@ -13,8 +13,8 @@
     "prebuild": "del-cli --force lib",
     "build": "tsc -p .",
     "prepare": "husky install && yarn run build",
-    "test": "cross-env NODE_ENV=test TS_NODE_TRANSPILE_ONLY=1 NODE_OPTIONS=--unhandled-rejections=none ava --timeout=20s --require ts-node/register --extensions ts",
-    "coverage": "cross-env NODE_ENV=test TS_NODE_TRANSPILE_ONLY=1 NODE_OPTIONS=--unhandled-rejections=none c8 ava --timeout=20s --require ts-node/register --extensions ts"
+    "test": "cross-env NODE_ENV=test yarn run build && ava",
+    "coverage": "nyc --reporter=lcov yarn test"
   },
   "repository": {
     "type": "git",
@@ -48,6 +48,8 @@
     "examples"
   ],
   "devDependencies": {
+    "@ava/babel": "^2.0.0",
+    "@ava/typescript": "^4.0.0",
     "@tsconfig/node12": "^12.0.0",
     "@types/eventsource": "^1.1.15",
     "@types/express": "^4.17.17",
@@ -62,9 +64,7 @@
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
     "@unleash/client-specification": "^5.1.6",
-    "ava": "^6.1.2",
-    "c8": "^9.1.0",
-    "coveralls": "^3.1.1",
+    "ava": "^5.3.0",
     "cross-env": "^7.0.3",
     "del-cli": "^5.0.0",
     "eslint": "^8.44.0",
@@ -73,15 +73,15 @@
     "eslint-import-resolver-typescript": "^3.5.5",
     "eslint-plugin-import": "^2.27.5",
     "eslint-plugin-prettier": "^5.0.0",
+    "esm": "^3.2.25",
     "husky": "^8.0.3",
     "lint-staged": "^14.0.0",
     "mkdirp": "^3.0.1",
     "nock": "^13.3.1",
+    "nyc": "^15.1.0",
     "prettier": "^3.0.0",
     "redis": "^4.6.7",
     "sinon": "^18.0.0",
-    "minimatch": "^3.1.2",
-    "ts-node": "^10.9.2",
     "typescript": "^5.4.3"
   },
   "resolutions": {
@@ -92,8 +92,20 @@
     "json-schema": "^0.4.0",
     "json5": "^2.0.0",
     "qs": "^6.5.3",
-    "minimatch": "^3.1.2",
+    "minimatch": "^3.0.5",
     "semver": "^7.5.3"
+  },
+  "nyc": {
+    "lines": 95,
+    "statements": 95,
+    "functions": 95,
+    "branches": 80,
+    "include": [
+      "lib/**.js",
+      "lib/**/*.js"
+    ],
+    "all": true,
+    "exclude-after-remap": false
   },
   "prettier": {
     "printWidth": 100,
@@ -119,18 +131,15 @@
     ]
   },
   "ava": {
-    "extensions": [
-      "ts"
-    ],
-    "require": [
-      "ts-node/register",
-      "./src/test/setup"
-    ],
+    "typescript": {
+      "rewritePaths": {
+        "src/": "lib/"
+      },
+      "compile": false
+    },
     "files": [
-      "src/test/**/*.test.ts"
-    ],
-    "timeout": "20s"
+      "src/**/*.test.ts"
+    ]
   },
-  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e",
-  "type": "commonjs"
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }
