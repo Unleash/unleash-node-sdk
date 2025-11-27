@@ -3,7 +3,7 @@ import * as nock from 'nock';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { mkdirp } from 'mkdirp';
-import specsJson from '@unleash/client-specification/specifications/index.json';
+import * as specs from '@unleash/client-specification/specifications/index.json';
 
 import { Unleash } from '../../unleash';
 
@@ -23,9 +23,7 @@ function mockNetwork(toggles, url = getUrl()) {
   return url;
 }
 
-const specs = (specsJson as any).default ?? (specsJson as any);
-
-(specs as string[]).forEach((testName) => {
+specs.forEach((testName) => {
   // eslint-disable-next-line
   const definition = require(`@unleash/client-specification/specifications/${testName}`);
 
