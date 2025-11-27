@@ -34,4 +34,6 @@ export interface PollingFetchingOptions extends CommonFetchingOptions {
 
 export interface StreamingFetchingOptions extends CommonFetchingOptions {
   eventSource?: EventSource;
+  maxFailuresUntilFailover?: number;
+  failureWindowMs?: number;
 }

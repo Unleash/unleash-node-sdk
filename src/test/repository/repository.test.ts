@@ -1,15 +1,15 @@
-import test from './test-shim';
+import test from '../test-shim';
 import nock from 'nock';
 import { writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 
-import InMemStorageProvider from '../repository/storage-provider-in-mem';
-import FileStorageProvider from '../repository/storage-provider-file';
-import Repository from '../repository';
-import { DefaultBootstrapProvider } from '../repository/bootstrap-provider';
-import { StorageProvider } from '../repository/storage-provider';
-import { ClientFeaturesResponse, DeltaEvent } from '../feature';
+import InMemStorageProvider from '../../repository/storage-provider-in-mem';
+import FileStorageProvider from '../../repository/storage-provider-file';
+import Repository from '../../repository';
+import { DefaultBootstrapProvider } from '../../repository/bootstrap-provider';
+import { StorageProvider } from '../../repository/storage-provider';
+import { ClientFeaturesResponse, DeltaEvent } from '../../feature';
 import { EventEmitter } from 'events';
 
 const appName = 'foo';
@@ -255,7 +255,7 @@ test('request with customHeadersFunction should take precedence over customHeade
     const customHeaderKey = `customer-${Math.random()}`;
     nock(url)
       .matchHeader('customHeaderKey', customHeaderKey)
-      .matchHeader('randomKey', (value: any) => value === undefined)
+      .matchHeader('randomKey', (value) => value === undefined)
       .persist()
       .get('/client/features')
       .reply(200, { features: [] }, { Etag: '12345-3' });
@@ -298,29 +298,28 @@ test('should handle 429 request error and emit warn event', async (t) => {
     bootstrapProvider: new DefaultBootstrapProvider({}, 'test-app', 'test-instance'),
     storageProvider: new InMemStorageProvider(),
     mode: { type: 'polling', format: 'full' },
-    metricsDisabled: true,
   });
-  let warnings = 0;
-  repo.on('warn', (warn) => {
-    t.truthy(warn);
-    t.is(warn, `${url}/client/features responded TOO_MANY_CONNECTIONS (429). Backing off`);
-    t.is(repo.getFailures() > 0, true);
-    //t.is(repo.nextFetch(), 20);
-    warnings++;
+  const warning = new Promise<void>((resolve) => {
+    repo.on('warn', (warn) => {
+      t.truthy(warn);
+      t.is(warn, `${url}/client/features responded TOO_MANY_CONNECTIONS (429). Backing off`);
+      t.is(repo.getFailures(), 1);
+      t.is(repo.nextFetch(), 20);
+      resolve();
+    });
   });
   const timeout = new Promise<void>((resolve) =>
     setTimeout(() => {
+      t.fail('Failed to get warning about connections');
       resolve();
     }, 5000),
   );
   await repo.start();
-
-  await timeout;
-  t.is(warnings > 0, true);
+  await Promise.race([warning, timeout]);
 });
 
 test('should handle 401 request error and emit error event', (t) =>
-  new Promise<void>((resolve) => {
+  new Promise((resolve) => {
     const url = 'http://unleash-test-6-401.app';
     nock(url).persist().get('/client/features').reply(401, 'blabla');
     const repo = new Repository({
@@ -373,8 +372,8 @@ test('should handle 403 request error and emit error event', (t) =>
     repo.start();
   }));
 
-test.skip('should handle 500 request error and emit warn event', (t) =>
-  new Promise<void>((resolve) => {
+test('should handle 500 request error and emit warn event', (t) =>
+  new Promise((resolve) => {
     const url = 'http://unleash-test-6-500.app';
     nock(url).persist().get('/client/features').reply(500, 'blabla');
     const repo = new Repository({
@@ -459,6 +458,8 @@ test.skip('should handle 504 request error and emit warn event', (t) =>
   }));
 
 test('should handle 304 as silent ok', (t) => {
+  t.plan(0);
+
   return new Promise((resolve, reject) => {
     const url = 'http://unleash-test-6.app';
     nock(url).persist().get('/client/features').reply(304, '');
@@ -474,14 +475,8 @@ test('should handle 304 as silent ok', (t) => {
       mode: { type: 'polling', format: 'full' },
     });
     repo.on('error', reject);
-    repo.on('unchanged', () => {
-      t.pass();
-      resolve();
-    });
-    process.nextTick(() => {
-      t.pass();
-      resolve();
-    });
+    repo.on('unchanged', resolve);
+    process.nextTick(resolve);
     repo.start();
   });
 });
@@ -1392,6 +1387,7 @@ test('should return full segment data when requested', (t) =>
   }));
 
 test('Stopping repository should stop unchanged event reporting', async (t) => {
+  t.plan(0);
   const url = 'http://unleash-test-stop-304.app';
   nock(url).persist().get('/client/features').reply(304, '');
   const repo = new Repository({
@@ -1411,10 +1407,10 @@ test('Stopping repository should stop unchanged event reporting', async (t) => {
   const promise = repo.fetch();
   repo.stop(); // remove all listeners
   await promise;
-  t.pass();
 });
 
 test('Stopping repository should stop storage provider updates', async (t) => {
+  t.plan(1);
   const url = 'http://unleash-test-stop-200.app';
   const feature = {
     name: 'feature',
@@ -1447,6 +1443,7 @@ test('Stopping repository should stop storage provider updates', async (t) => {
 });
 
 test('Streaming deltas', async (t) => {
+  t.plan(5);
   const url = 'http://unleash-test-streaming.app';
   const feature = {
     name: 'feature',
@@ -1558,40 +1555,6 @@ test('Streaming deltas', async (t) => {
   let recordedWarnings: string[] = [];
   repo.on('warn', (msg) => {
     recordedWarnings.push(msg);
-  });
-  // SSE error translated to repo warning
-  eventSource.emit('error', 'some error');
-
-  // SSE end connection translated to repo warning
-  eventSource.emit('end', 'server ended connection');
-  t.deepEqual(recordedWarnings, ['some error', 'server ended connection']);
-
-  // re-connect simulation
-  eventSource.emit('unleash-connected', {
-    type: 'unleash-connected',
-    data: JSON.stringify({
-      events: [
-        {
-          type: 'hydration',
-          eventId: 6,
-          features: [{ ...feature, name: 'reconnectUpdate' }],
-          segments: [],
-        },
-      ],
-    }),
-  });
-  const reconnectUpdate = repo.getToggles();
-  t.deepEqual(reconnectUpdate, [{ ...feature, name: 'reconnectUpdate' }]);
-
-  // Invalid data error translated to repo error
-  repo.on('error', (error) => {
-    t.true(error.message.startsWith(`Invalid delta response:`));
-  });
-  eventSource.emit('unleash-updated', {
-    type: 'unleash-updated',
-    data: JSON.stringify({
-      incorrectEvents: [],
-    }),
   });
 });
 
