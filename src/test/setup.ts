@@ -24,3 +24,16 @@ process.on('uncaughtException', (err: any) => {
   }
   throw err;
 });
+
+// Vitest coverage provider expects minimatch.minimatch; older minimatch only exports the function.
+// Patch once so both lint (minimatch v3) and coverage consumers can coexist.
+try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires, global-require
+  const mm = require('minimatch');
+  if (typeof mm === 'function' && !mm.minimatch) {
+    // eslint-disable-next-line no-param-reassign
+    mm.minimatch = mm;
+  }
+} catch {
+  // ignore if minimatch is unavailable
+}
