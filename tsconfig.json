@@ -7,10 +7,12 @@
     "declaration": true,
     "declarationMap": true,
     "resolveJsonModule": true,
-    "esModuleInterop": false,
+    "esModuleInterop": true,
     "allowJs": true,
-    "skipLibCheck": false
+    "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true,
+    "baseUrl": "."
   },
-  "exclude": ["examples/", "lib/", "node_modules/"],
+  "exclude": ["examples/", "lib/", "node_modules/", "src/test/**/*"],
   "include": ["src/**/*.ts", "src/**/*.js"]
 }

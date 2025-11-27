@@ -1,4 +1,4 @@
-import * as fetch from 'make-fetch-happen';
+import fetch from 'make-fetch-happen';
 import { HttpProxyAgent } from 'http-proxy-agent';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 import * as http from 'http';

@@ -1,4 +1,4 @@
-import test from 'ava';
+import { test } from 'vitest';
 import { extractEnvironmentFromCustomHeaders } from '../../impact-metrics/environment-resolver';
 
 test('valid headers', (t) => {

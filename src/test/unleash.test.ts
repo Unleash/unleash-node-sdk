@@ -1,5 +1,5 @@
-import test from 'ava';
-import * as nock from 'nock';
+import { test } from 'vitest';
+import nock from 'nock';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { mkdirp } from 'mkdirp';
@@ -327,9 +327,7 @@ test('should call fallback function for unknown feature-toggle', (t) =>
     });
   }));
 
-test('should not throw when os.userInfo throws', (t) => {
-  t.plan(0);
-
+test('should not throw when os.userInfo throws', (_t) => {
   return new Promise((resolve, reject) => {
     // eslint-disable-next-line global-require
     require('os').userInfo = () => {

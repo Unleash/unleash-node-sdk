@@ -1,5 +1,5 @@
-import test from 'ava';
-import * as nock from 'nock';
+import { test } from 'vitest';
+import nock from 'nock';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { Unleash } from '../unleash';
@@ -7,7 +7,6 @@ import { Unleash } from '../unleash';
 test('should emit network errors', (t) =>
   new Promise((resolve) => {
     nock.disableNetConnect();
-    t.plan(3);
     const backupPath = join(tmpdir(), `test-tmp-${Math.round(Math.random() * 100000)}`);
     const unleash = new Unleash({
       appName: 'network',

@@ -1,4 +1,4 @@
-import test from 'ava';
+import { test } from 'vitest';
 
 import DefaultStrategy from '../../strategy/default-strategy';
 

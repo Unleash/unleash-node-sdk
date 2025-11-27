@@ -1,4 +1,4 @@
-import test from 'ava';
+import { test } from 'vitest';
 import { InMemoryMetricRegistry } from '../../impact-metrics/metric-types';
 
 test('Counter increments by default value', (t) => {
