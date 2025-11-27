@@ -21,7 +21,7 @@ test('should be disabled by flag disableMetrics', (t) => {
 });
 
 test('registerInstance, sendMetrics, startTimer and count should respect disabled', (t) =>
-  new Promise((resolve) => {
+  new Promise<void>((resolve) => {
     const url = getUrl();
     // @ts-expect-error
     const metrics = new Metrics({
@@ -37,7 +37,7 @@ test('registerInstance, sendMetrics, startTimer and count should respect disable
       t.true(!registerInstance);
       // @ts-expect-error
       t.true(!sendMetrics);
-      resolve(true);
+      resolve();
     });
   }));
 
@@ -53,11 +53,10 @@ test('should not start fetch/register when metricsInterval is 0', (t) => {
   t.true(metrics.timer === undefined);
 });
 
-test('should sendMetrics and register when metricsInterval > 0', async (t) => {
+test('should sendMetrics and register when metricsInterval is a positive number', async (t) => {
   const url = getUrl();
   const regEP = nockRegister(url);
   const metricsEP = nockMetrics(url);
-
   // @ts-expect-error
   const metrics = new Metrics({
     url,
