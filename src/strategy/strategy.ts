@@ -1,11 +1,11 @@
-import { gt as semverGt, lt as semverLt, eq as semverEq, valid as validSemver } from 'semver';
-import { Context } from '../context';
+import { eq as semverEq, gt as semverGt, lt as semverLt, valid as validSemver } from 'semver';
+import type { Context } from '../context';
 import { resolveContextValue } from '../helpers';
-import { selectVariantDefinition, Variant, VariantDefinition } from '../variant';
+import { selectVariantDefinition, type Variant, type VariantDefinition } from '../variant';
 
 export interface StrategyTransportInterface {
   name: string;
-  parameters: any;
+  parameters: Record<string, unknown>;
   constraints: Constraint[];
   segments?: number[];
   variants?: VariantDefinition[];
@@ -111,7 +111,7 @@ const SemverOperator = (constraint: Constraint, context: Context) => {
     if (operator === Operator.SEMVER_GT) {
       return semverGt(contextValue, value);
     }
-  } catch (e) {
+  } catch (_e) {
     return false;
   }
   return false;
@@ -216,12 +216,12 @@ export class Strategy {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  isEnabled(parameters: any, context: Context): boolean {
+  isEnabled(_parameters: Record<string, unknown>, _context: Context): boolean {
     return this.returnValue;
   }
 
   isEnabledWithConstraints(
-    parameters: any,
+    parameters: Record<string, unknown>,
     context: Context,
     constraints: IterableIterator<Constraint | undefined>,
   ) {
@@ -229,7 +229,7 @@ export class Strategy {
   }
 
   getResult(
-    parameters: any,
+    parameters: Record<string, unknown>,
     context: Context,
     constraints: IterableIterator<Constraint | undefined>,
     variants?: VariantDefinition[],

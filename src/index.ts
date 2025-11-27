@@ -1,13 +1,13 @@
-import { once } from 'events';
-import { Unleash } from './unleash';
-import { Variant, defaultVariant, PayloadType } from './variant';
+import { once } from 'node:events';
+import { Name, UnleashTypes } from './client';
 import { Context } from './context';
-import { TagFilter } from './tags';
 import { UnleashEvents } from './events';
-import { ClientFeaturesResponse } from './feature';
+import type { ClientFeaturesResponse } from './feature';
 import InMemStorageProvider from './repository/storage-provider-in-mem';
-import { UnleashConfig } from './unleash-config';
-import { UnleashTypes, Name } from './client';
+import { TagFilter } from './tags';
+import { Unleash } from './unleash';
+import type { UnleashConfig } from './unleash-config';
+import { defaultVariant, PayloadType, Variant } from './variant';
 
 // exports
 export { Strategy } from './strategy/index';
@@ -44,11 +44,11 @@ export function destroy() {
 }
 
 export function getFeatureToggleDefinition(toggleName: string) {
-  return instance && instance.getFeatureToggleDefinition(toggleName);
+  return instance?.getFeatureToggleDefinition(toggleName);
 }
 
 export function getFeatureToggleDefinitions(withFullSegments: boolean = false) {
-  return instance && instance.getFeatureToggleDefinitions(withFullSegments as any);
+  return instance?.getFeatureToggleDefinitions(withFullSegments);
 }
 
 export function getVariant(
@@ -70,17 +70,17 @@ export function forceGetVariant(
 }
 
 export function count(toggleName: string, enabled: boolean) {
-  return instance && instance.count(toggleName, enabled);
+  return instance?.count(toggleName, enabled);
 }
 
 export function countVariant(toggleName: string, variantName: string) {
-  return instance && instance.countVariant(toggleName, variantName);
+  return instance?.countVariant(toggleName, variantName);
 }
 
 export async function flushMetrics(): Promise<void> {
-  return instance && instance.flushMetrics();
+  return instance?.flushMetrics();
 }
 
 export async function destroyWithFlush(): Promise<void> {
-  return instance && instance.destroyWithFlush();
+  return instance?.destroyWithFlush();
 }

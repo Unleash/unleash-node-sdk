@@ -1,7 +1,7 @@
 import test from 'ava';
 import * as nock from 'nock';
-import Metrics from '../metrics';
 import type { CollectedMetric } from '../impact-metrics/metric-types';
+import Metrics from '../metrics';
 import { SUPPORTED_SPEC_VERSION } from '../repository';
 
 let counter = 1;
@@ -661,7 +661,7 @@ test('sendMetrics should include impactMetrics in the payload', async (t) => {
     .reply(200);
 
   await metrics.sendMetrics();
-  t.deepEqual(capturedBody!.impactMetrics, [impactMetricSample]);
+  t.deepEqual(capturedBody?.impactMetrics, [impactMetricSample]);
   t.true(scope.isDone());
 });
 

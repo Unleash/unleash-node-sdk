@@ -1,5 +1,5 @@
+import { createServer } from 'node:http';
 import test from 'ava';
-import { createServer } from 'http';
 import { Unleash } from '../unleash';
 
 test('should retry on error', (t) =>
@@ -7,7 +7,7 @@ test('should retry on error', (t) =>
     t.plan(1);
 
     let calls = 0;
-    const server = createServer((req, res) => {
+    const server = createServer((_req, res) => {
       calls++;
       res.writeHead(408);
       res.end();

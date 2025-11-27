@@ -22,12 +22,7 @@ const client = initialize({
   },
 });
 
-
 setInterval(() => {
   const enabled = client.isEnabled('BootstrapDemo');
-  console.log(
-    `BootstrapDemo: `, 
-    `${enabled ? '\x1b[32m' : '\x1b[31m'}`,`${enabled}`,
-    '\x1b[0m',
-  );
-}, 100)
+  console.log(`BootstrapDemo: `, `${enabled ? '\x1b[32m' : '\x1b[31m'}`, `${enabled}`, '\x1b[0m');
+}, 100);

@@ -1,10 +1,10 @@
-import { EventEmitter } from 'events';
+import { EventEmitter } from 'node:events';
+import { EventSource } from '../event-source';
+import { UnleashEvents } from '../events';
 import { parseClientFeaturesDelta } from '../feature';
 import { buildHeaders } from '../request';
 import { resolveUrl } from '../url-utils';
-import { UnleashEvents } from '../events';
-import { EventSource } from '../event-source';
-import { FetcherInterface, StreamingFetchingOptions } from './fetcher';
+import type { FetcherInterface, StreamingFetchingOptions } from './fetcher';
 
 export class StreamingFetcher extends EventEmitter implements FetcherInterface {
   private eventSource: EventSource | undefined;
@@ -69,9 +69,7 @@ export class StreamingFetcher extends EventEmitter implements FetcherInterface {
       maxBackoffMillis: 30000,
       retryResetIntervalMillis: 60000,
       jitterRatio: 0.5,
-      errorFilter: function () {
-        return true;
-      },
+      errorFilter: () => true,
     });
   }
 

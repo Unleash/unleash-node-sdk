@@ -1,6 +1,6 @@
-import { userInfo, hostname } from 'os';
+import { hostname, type UserInfo, userInfo } from 'node:os';
 import * as murmurHash3 from 'murmurhash3js';
-import { Context } from './context';
+import type { Context } from './context';
 
 export type FallbackFunction = (name: string, context: Context) => boolean;
 
@@ -8,7 +8,7 @@ export function createFallbackFunction(
   name: string,
   context: Context,
   fallback?: FallbackFunction | boolean,
-): Function {
+): () => boolean {
   if (typeof fallback === 'function') {
     return () => fallback(name, context);
   }
@@ -31,10 +31,10 @@ export function generateInstanceId(instanceId?: string): string {
   if (instanceId) {
     return instanceId;
   }
-  let info;
+  let info: UserInfo<string> | undefined;
   try {
     info = userInfo();
-  } catch (e) {
+  } catch (_e) {
     // unable to read info;
   }
 
@@ -44,7 +44,7 @@ export function generateInstanceId(instanceId?: string): string {
   return `${prefix}-${hostname()}`;
 }
 
-export function generateHashOfConfig(o: Object): string {
+export function generateHashOfConfig(o: unknown): string {
   const oAsString = JSON.stringify(o);
   return murmurHash3.x86.hash128(oAsString);
 }

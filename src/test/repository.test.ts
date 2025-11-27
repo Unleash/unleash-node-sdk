@@ -1,16 +1,15 @@
+import { EventEmitter } from 'node:events';
+import { writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import test from 'ava';
 import * as nock from 'nock';
-import { writeFileSync } from 'fs';
-import { tmpdir } from 'os';
-import { join } from 'path';
-
-import InMemStorageProvider from '../repository/storage-provider-in-mem';
-import FileStorageProvider from '../repository/storage-provider-file';
+import type { ClientFeaturesResponse, DeltaEvent } from '../feature';
 import Repository from '../repository';
 import { DefaultBootstrapProvider } from '../repository/bootstrap-provider';
-import { StorageProvider } from '../repository/storage-provider';
-import { ClientFeaturesResponse, DeltaEvent } from '../feature';
-import { EventEmitter } from 'events';
+import type { StorageProvider } from '../repository/storage-provider';
+import FileStorageProvider from '../repository/storage-provider-file';
+import InMemStorageProvider from '../repository/storage-provider-in-mem';
 
 const appName = 'foo';
 const instanceId = 'bar';
@@ -79,7 +78,7 @@ test('should fetch from endpoint', (t) =>
     repo.once('changed', () => {
       const savedFeature = repo.getToggle(feature.name)!;
       t.is(savedFeature.enabled, feature.enabled);
-      t.is(savedFeature.strategies![0].name, feature.strategies[0].name);
+      t.is(savedFeature.strategies?.[0].name, feature.strategies[0].name);
 
       const featureToggles = repo.getToggles();
       t.is(featureToggles[0].name, 'feature');
@@ -665,7 +664,7 @@ test('should load bootstrap first if faster than unleash-api', (t) =>
     repo.on('changed', () => {
       counter++;
       if (counter === 2) {
-        t.is(repo.getToggle('feature')!.enabled, true);
+        t.is(repo.getToggle('feature')?.enabled, true);
         resolve();
       }
     });
@@ -735,7 +734,7 @@ test('bootstrap should not override actual data', (t) =>
     repo.on('changed', () => {
       counter++;
       if (counter === 2) {
-        t.is(repo.getToggle('feature')!.enabled, true);
+        t.is(repo.getToggle('feature')?.enabled, true);
         resolve();
       }
     });
@@ -784,7 +783,7 @@ test('should load bootstrap first from file', (t) =>
     });
 
     repo.on('changed', () => {
-      t.is(repo.getToggle('feature-bootstrap')!.enabled, true);
+      t.is(repo.getToggle('feature-bootstrap')?.enabled, true);
       resolve();
     });
     repo.start();
@@ -860,7 +859,7 @@ test('should load backup-file', (t) =>
     });
 
     repo.on('ready', () => {
-      t.is(repo.getToggle('feature-backup')!.enabled, true);
+      t.is(repo.getToggle('feature-backup')?.enabled, true);
       resolve();
     });
     repo.start();
@@ -929,7 +928,7 @@ test('bootstrap should override load backup-file', (t) =>
     });
 
     repo.on('changed', () => {
-      t.is(repo.getToggle('feature-backup')!.enabled, false);
+      t.is(repo.getToggle('feature-backup')?.enabled, false);
       resolve();
     });
     repo.on('error', () => {});
@@ -1007,7 +1006,7 @@ test('bootstrap should not override load backup-file', async (t) => {
 
   await repo.start();
 
-  t.is(repo.getToggle('feature-backup')!.enabled, true);
+  t.is(repo.getToggle('feature-backup')?.enabled, true);
 });
 
 // Skipped because make-fetch-happens actually automatically retries two extra times on 404
@@ -1226,7 +1225,7 @@ test('should handle not finding a given segment id', (t) =>
         ),
         false,
       );
-      t.deepEqual(toggles![0]?.strategies![0]?.segments, [undefined]);
+      t.deepEqual(toggles?.[0]?.strategies?.[0]?.segments, [undefined]);
       resolve();
     });
     repo.on('error', () => {});
@@ -1278,8 +1277,8 @@ test('should handle not having segments to read from', (t) =>
 
     repo.on('ready', () => {
       const toggles = repo.getTogglesWithSegmentData();
-      t.deepEqual(toggles![0]?.strategies![0]?.segments, [undefined]);
-      t.deepEqual(toggles![0]?.strategies![1]?.segments, [undefined, undefined]);
+      t.deepEqual(toggles?.[0]?.strategies?.[0]?.segments, [undefined]);
+      t.deepEqual(toggles?.[0]?.strategies?.[1]?.segments, [undefined, undefined]);
       resolve();
     });
     repo.on('error', () => {});
@@ -1552,7 +1551,7 @@ test('Streaming deltas', async (t) => {
   const removedSegment = repo.getSegment(1);
   t.deepEqual(removedSegment, undefined);
 
-  let recordedWarnings: string[] = [];
+  const recordedWarnings: string[] = [];
   repo.on('warn', (msg) => {
     recordedWarnings.push(msg);
   });

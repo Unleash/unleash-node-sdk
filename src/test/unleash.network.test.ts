@@ -1,7 +1,7 @@
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import test from 'ava';
 import * as nock from 'nock';
-import { tmpdir } from 'os';
-import { join } from 'path';
 import { Unleash } from '../unleash';
 
 test('should emit network errors', (t) =>

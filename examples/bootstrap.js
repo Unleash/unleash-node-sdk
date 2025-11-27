@@ -1,7 +1,7 @@
 /* eslint-disable */
 const { initialize } = require('../lib');
 
-const data = [
+const _data = [
   {
     enabled: false,
     name: 'BootstrapDemo',
@@ -23,25 +23,20 @@ const client = initialize({
   refreshInterval: 2000,
   bootstrap: {
     // data,
-   url: 'http://localhost:3000/proxy/client/features',
+    url: 'http://localhost:3000/proxy/client/features',
     urlHeaders: {
-    Authorization: 'bootstrap',
-   }
+      Authorization: 'bootstrap',
+    },
   },
 });
 
-client.on('error', () => console.log("\x1b[31m", 'Unable to fetch feature toggles', "\x1b[0m"));
+client.on('error', () => console.log('\x1b[31m', 'Unable to fetch feature toggles', '\x1b[0m'));
 client.on('synchronized', () => {
-  console.log('synchronized')
+  console.log('synchronized');
 });
 client.on('ready', () => console.log('ready'));
 
-
 setInterval(() => {
   const enabled = client.isEnabled('BootstrapDemo');
-  console.log(
-    `BootstrapDemo: `, 
-    `${enabled ? '\x1b[32m' : '\x1b[31m'}`,`${enabled}`,
-    '\x1b[0m',
-  );
-}, 100)
+  console.log(`BootstrapDemo: `, `${enabled ? '\x1b[32m' : '\x1b[31m'}`, `${enabled}`, '\x1b[0m');
+}, 100);

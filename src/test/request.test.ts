@@ -1,8 +1,7 @@
+import * as http from 'node:http';
+import * as https from 'node:https';
 import test from 'ava';
-
-import * as http from 'http';
-import * as https from 'https';
-import { getDefaultAgent, buildHeaders } from '../request';
+import { buildHeaders, getDefaultAgent } from '../request';
 
 test('http URLs should yield http.Agent', (t) => {
   const agent = getDefaultAgent(new URL('http://unleash-host1.com'));

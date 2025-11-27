@@ -1,6 +1,9 @@
-import { EventEmitter } from 'events';
-import { ClientFeaturesDelta, ClientFeaturesResponse } from '../feature';
-import { Mode } from '../unleash-config';
+import type { EventEmitter } from 'node:events';
+import type { ClientFeaturesDelta, ClientFeaturesResponse } from '../feature';
+import type { CustomHeaders, CustomHeadersFunction } from '../headers';
+import type { HttpOptions } from '../http-options';
+import type { TagFilter } from '../tags';
+import type { Mode } from '../unleash-config';
 
 export interface FetcherInterface extends EventEmitter {
   start(): Promise<void>;
@@ -13,23 +16,23 @@ export interface CommonFetchingOptions {
   url: string;
   appName: string;
   instanceId: string;
-  headers?: any;
+  headers?: CustomHeaders;
   connectionId: string;
   onSave: (response: ClientFeaturesResponse, fromApi: boolean) => Promise<void>;
   onSaveDelta: (delta: ClientFeaturesDelta) => Promise<void>;
-  onModeChange?: (mode: 'polling' | 'streaming') => Promise<void>;
+  onModeChange?: (mode: Mode['type']) => Promise<void>;
 }
 
 export interface PollingFetchingOptions extends CommonFetchingOptions {
   refreshInterval: number;
-  tags?: any[];
-  customHeadersFunction?: any;
+  tags?: Array<TagFilter>;
+  customHeadersFunction?: CustomHeadersFunction;
   mode: Mode;
   namePrefix?: string;
   projectName?: string;
   etag?: string;
   timeout?: number;
-  httpOptions?: any;
+  httpOptions?: HttpOptions;
 }
 
 export interface StreamingFetchingOptions extends CommonFetchingOptions {

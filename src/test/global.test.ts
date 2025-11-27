@@ -1,12 +1,11 @@
+import { writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import test from 'ava';
-import * as nock from 'nock';
-import { tmpdir } from 'os';
-import { join } from 'path';
 import { mkdirp } from 'mkdirp';
-import { writeFileSync } from 'fs';
+import * as nock from 'nock';
+import { destroy, initialize, isEnabled } from '../index';
 import { Unleash } from '../unleash';
-
-import { initialize, isEnabled, destroy } from '../index';
 
 function getRandomBackupPath() {
   const path = join(tmpdir(), `test-tmp-${Math.round(Math.random() * 100000)}`);

@@ -1,15 +1,15 @@
 import test from 'ava';
 import * as nock from 'nock';
 import {
-  initialize,
-  isEnabled,
-  Strategy,
+  count,
+  countVariant,
   destroy,
   getFeatureToggleDefinition,
   getFeatureToggleDefinitions,
-  count,
-  countVariant,
   getVariant,
+  initialize,
+  isEnabled,
+  Strategy,
   startUnleash,
 } from '../index';
 

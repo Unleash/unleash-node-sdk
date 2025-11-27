@@ -3,7 +3,7 @@ import test from 'ava';
 import { selectVariant } from '../variant';
 
 function genVariants(n) {
-  return Array.from(new Array(n)).map((v, i) => ({
+  return Array.from(new Array(n)).map((_v, i) => ({
     name: `variant${i + 1}`,
     payload: {
       type: 'string',

@@ -1,4 +1,4 @@
-import { Context } from './context';
+import type { Context } from './context';
 
 // eslint-disable-next-line import/prefer-default-export
 export enum UnleashEvents {

@@ -1,9 +1,9 @@
-import test from 'ava';
-import * as nock from 'nock';
-import { tmpdir } from 'os';
-import { join } from 'path';
-import { mkdirp } from 'mkdirp';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import * as specs from '@unleash/client-specification/specifications/index.json';
+import test from 'ava';
+import { mkdirp } from 'mkdirp';
+import * as nock from 'nock';
 
 import { Unleash } from '../../unleash';
 
