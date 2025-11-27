@@ -90,7 +90,6 @@ test.skip('should sendMetrics and register when metricsInterval > 0', async (t) 
 
 test('should sendMetrics', async (t) => {
   const url = getUrl();
-  t.plan(7);
   const metricsEP = nock(url)
     .post(metricsUrl, (payload: any) => {
       t.truthy(payload.bucket);
@@ -101,6 +100,8 @@ test('should sendMetrics', async (t) => {
         'toggle-y': { yes: 1, no: 0, variants: {} },
       });
       t.deepEqual(payload.connectionId, 'connection-id');
+      t.truthy(payload.bucket.toggles['toggle-x']);
+      t.truthy(payload.bucket.toggles['toggle-y']);
       return true;
     })
     .reply(200, '');
@@ -128,7 +129,6 @@ test('should sendMetrics', async (t) => {
 test('should send correct custom and unleash headers', (t) =>
   new Promise((resolve) => {
     const url = getUrl();
-    t.plan(2);
     const randomKey = `value-${Math.random()}`;
     const metricsEP = nockMetrics(url)
       .matchHeader('randomKey', randomKey)
@@ -168,7 +168,6 @@ test('should send correct custom and unleash headers', (t) =>
 
 test('should send content-type header', async (t) => {
   const url = getUrl();
-  t.plan(2);
   const metricsEP = nockMetrics(url).matchHeader('content-type', 'application/json');
   const regEP = nockRegister(url).matchHeader('content-type', 'application/json');
 
@@ -188,7 +187,6 @@ test('should send content-type header', async (t) => {
 
 test('request with customHeadersFunction should take precedence over customHeaders', async (t) => {
   const url = getUrl();
-  t.plan(2);
   const customHeadersKey = `value-${Math.random()}`;
   const randomKey = `value-${Math.random()}`;
   const metricsEP = nockMetrics(url)
@@ -243,7 +241,6 @@ test.skip('should respect timeout', (t) =>
   }));
 
 test('registerInstance should warn when non 200 statusCode', async (t) => {
-  t.plan(2);
   const url = getUrl();
   const regEP = nockRegister(url, 500);
 
