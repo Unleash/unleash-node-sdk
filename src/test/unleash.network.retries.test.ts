@@ -2,10 +2,8 @@ import { test } from 'vitest';
 import { createServer } from 'http';
 import { Unleash } from '../unleash';
 
-test.skip('should retry on error', (t) =>
+test('should retry on error', (t) =>
   new Promise((resolve) => {
-    t.plan(1);
-
     let calls = 0;
     const server = createServer((req, res) => {
       calls++;
@@ -29,7 +27,7 @@ test.skip('should retry on error', (t) =>
         t.is(calls, 3);
         unleash.destroy();
         server.close();
-        resolve();
+        resolve(1);
       });
     });
     server.on('error', (e) => {

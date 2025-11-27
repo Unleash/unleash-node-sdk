@@ -37,7 +37,7 @@ test('registerInstance, sendMetrics, startTimer and count should respect disable
       t.true(!registerInstance);
       // @ts-expect-error
       t.true(!sendMetrics);
-      resolve();
+      resolve(true);
     });
   }));
 
@@ -53,26 +53,27 @@ test('should not start fetch/register when metricsInterval is 0', (t) => {
   t.true(metrics.timer === undefined);
 });
 
-test.skip('should sendMetrics and register when metricsInterval > 0', async (t) => {
+test('should sendMetrics and register when metricsInterval > 0', async (t) => {
   const url = getUrl();
   const regEP = nockRegister(url);
   const metricsEP = nockMetrics(url);
-  t.plan(2);
+
   // @ts-expect-error
   const metrics = new Metrics({
     url,
     metricsInterval: 50,
   });
 
-  const validator = new Promise<void>((resolve) => {
-    metrics.on('registered', () => {
-      t.true(regEP.isDone());
-    });
-    metrics.on('sent', () => {
-      t.true(metricsEP.isDone());
-      metrics.stop();
-      resolve();
-    });
+  let metricsSent = 0;
+  let registered = 0;
+  metrics.on('registered', () => {
+    registered++;
+    t.true(regEP.isDone());
+  });
+  metrics.on('sent', () => {
+    t.true(metricsEP.isDone());
+    metrics.stop();
+    metricsSent++;
   });
 
   metrics.count('toggle-x', true);
@@ -81,11 +82,12 @@ test.skip('should sendMetrics and register when metricsInterval > 0', async (t) 
   metrics.start();
   const timeout = new Promise<void>((resolve) =>
     setTimeout(() => {
-      t.fail('Failed to successfully both send and register');
       resolve();
     }, 1000),
   );
-  await Promise.race([validator, timeout]);
+  await timeout;
+  t.is(registered, 1);
+  t.is(metricsSent, 1);
 });
 
 test('should sendMetrics', async (t) => {
