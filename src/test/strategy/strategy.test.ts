@@ -1,5 +1,5 @@
 /* eslint-disable import/no-extraneous-dependencies */
-import test from '../ava-shim';
+import { test } from 'vitest';
 
 import { Strategy } from '../../strategy/strategy';
 

@@ -1,4 +1,3 @@
-import { resolve } from 'path';
 import { defineConfig } from 'vitest/config';
 
 // Patch minimatch so both eslint-plugin-import (expects v3 default export)
@@ -28,11 +27,6 @@ export default defineConfig({
       threads: {
         singleThread: true,
       },
-    },
-  },
-  resolve: {
-    alias: {
-      ava: resolve(__dirname, './src/test/ava-shim.ts'),
     },
   },
 });

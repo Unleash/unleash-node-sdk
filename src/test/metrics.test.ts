@@ -1,4 +1,4 @@
-import test from './ava-shim';
+import { test } from 'vitest';
 import nock from 'nock';
 import Metrics from '../metrics';
 import type { CollectedMetric } from '../impact-metrics/metric-types';

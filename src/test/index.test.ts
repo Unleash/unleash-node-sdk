@@ -1,4 +1,4 @@
-import test from './ava-shim';
+import { test } from 'vitest';
 import nock from 'nock';
 import {
   initialize,
@@ -65,7 +65,7 @@ test('should not return feature-toggle definition if there is no instance', (t) 
   t.is(getFeatureToggleDefinition(), undefined);
 });
 
-test.serial('should start unleash with promise', async (t) => {
+test.sequential('should start unleash with promise', async (t) => {
   const url = getUrl();
   nockFeatures(url);
   nockMetrics(url);
@@ -75,7 +75,7 @@ test.serial('should start unleash with promise', async (t) => {
   destroy();
 });
 
-test.serial('should start unleash with promise multiple times', async (t) => {
+test.sequential('should start unleash with promise multiple times', async (t) => {
   const url = getUrl();
   nockFeatures(url);
   nockMetrics(url);

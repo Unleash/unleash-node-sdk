@@ -1,4 +1,4 @@
-import test from './ava-shim';
+import { test } from 'vitest';
 import nock from 'nock';
 import { tmpdir } from 'os';
 import { join } from 'path';

@@ -1,5 +1,5 @@
 // @ts-nocheck
-import test from './ava-shim';
+import { test } from 'vitest';
 import { selectVariant } from '../variant';
 
 function genVariants(n) {

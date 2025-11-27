@@ -1,4 +1,4 @@
-import test from '../ava-shim';
+import { test } from 'vitest';
 import { writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';

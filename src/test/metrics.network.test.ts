@@ -1,9 +1,9 @@
-import test from './ava-shim';
+import { test, beforeAll, afterAll } from 'vitest';
 import nock from 'nock';
 import Metrics from '../metrics';
 
-test.before(() => nock.disableNetConnect());
-test.after(() => nock.enableNetConnect());
+beforeAll(() => nock.disableNetConnect());
+afterAll(() => nock.enableNetConnect());
 
 test('registerInstance should emit error when request error', (t) =>
   new Promise((resolve) => {

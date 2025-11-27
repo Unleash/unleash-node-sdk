@@ -1,4 +1,4 @@
-import test from '../ava-shim';
+import { test } from 'vitest';
 
 import UserWithIdStrategy from '../../strategy/user-with-id-strategy';
 

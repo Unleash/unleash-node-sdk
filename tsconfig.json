@@ -11,11 +11,8 @@
     "allowJs": true,
     "allowSyntheticDefaultImports": true,
     "skipLibCheck": true,
-    "baseUrl": ".",
-    "paths": {
-      "ava": ["./src/test/ava-shim"]
-    }
+    "baseUrl": "."
   },
-  "exclude": ["examples/", "lib/", "node_modules/"],
+  "exclude": ["examples/", "lib/", "node_modules/", "src/test/**/*"],
   "include": ["src/**/*.ts", "src/**/*.js"]
 }
