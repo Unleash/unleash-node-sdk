@@ -90,7 +90,7 @@
     "json-schema": "^0.4.0",
     "json5": "^2.0.0",
     "qs": "^6.5.3",
-    "minimatch": "^3.0.5",
+    "minimatch": "^9.0.0",
     "semver": "^7.5.3"
   },
   "prettier": {

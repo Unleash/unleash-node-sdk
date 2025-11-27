@@ -34,16 +34,17 @@ jobs:
       - name: Setup node
         uses: actions/setup-node@v4
         with:
-          node-version: 18.x
+          node-version: 20.x
           cache: yarn
       - name: Yarn
         run: yarn
-      - name: Test
+      - name: Coverage
         run: yarn coverage
       - name: Coveralls
         uses: coverallsapp/github-action@master
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          path-to-lcov: ./coverage/lcov.info
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
