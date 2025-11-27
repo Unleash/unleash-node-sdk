@@ -236,7 +236,6 @@ export default class Metrics extends EventEmitter {
 
   backoff(url: string, statusCode: number): void {
     this.failures = Math.min(10, this.failures + 1);
-    // eslint-disable-next-line max-len
     this.emit(
       UnleashEvents.Warn,
       `${url} returning ${statusCode}. Backing off to ${this.failures} times normal interval`,

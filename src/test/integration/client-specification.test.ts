@@ -24,7 +24,6 @@ function mockNetwork(toggles, url = getUrl()) {
 }
 
 specs.forEach((testName) => {
-  // eslint-disable-next-line
   const definition = require(`@unleash/client-specification/specifications/${testName}`);
 
   if (definition.tests) {

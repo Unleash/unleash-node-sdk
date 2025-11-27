@@ -1,4 +1,4 @@
-import * as express from 'express'; // eslint-disable-line import/no-unresolved
+import * as express from 'express';
 import { Strategy, Unleash } from '../lib/unleash';
 
 const fixture = require('./fixtures/format-0.json');

@@ -145,7 +145,6 @@ export class Unleash extends EventEmitter {
     });
 
     this.repository.on(UnleashEvents.Error, (err) => {
-      // eslint-disable-next-line no-param-reassign
       err.message = `Unleash Repository error: ${err.message}`;
       this.emit(UnleashEvents.Error, err);
     });
@@ -195,7 +194,6 @@ export class Unleash extends EventEmitter {
     );
 
     this.metrics.on(UnleashEvents.Error, (err) => {
-      // eslint-disable-next-line no-param-reassign
       err.message = `Unleash Metrics error: ${err.message}`;
       this.emit(UnleashEvents.Error, err);
     });

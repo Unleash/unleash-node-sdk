@@ -1,6 +1,5 @@
 import type { StrategyTransportInterface } from './strategy';
 import type { EnhancedStrategyTransportInterface, Segment } from './strategy/strategy';
-// eslint-disable-next-line import/no-cycle
 import type { VariantDefinition } from './variant';
 
 export interface Dependency {

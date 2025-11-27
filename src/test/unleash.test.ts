@@ -308,7 +308,7 @@ test('should call fallback function for unknown feature-toggle', (t) =>
     }).on('error', reject);
 
     instance.on('synchronized', () => {
-      const fallbackFunc = sinon.spy(() => false); // eslint-disable-line import/namespace
+      const fallbackFunc = sinon.spy(() => false);
       const name = 'unknown';
       const result = instance.isEnabled(name, { userId: '123' }, fallbackFunc);
       t.true(result === false);
@@ -330,7 +330,6 @@ test('should not throw when os.userInfo throws', (t) => {
   t.plan(0);
 
   return new Promise((resolve, reject) => {
-    // eslint-disable-next-line global-require
     require('node:os').userInfo = () => {
       throw new Error('Test exception');
     };

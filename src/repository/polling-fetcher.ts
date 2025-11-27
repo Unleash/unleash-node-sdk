@@ -69,7 +69,6 @@ export class PollingFetcher extends EventEmitter implements FetcherInterface {
       this.emit(
         UnleashEvents.Error,
         new Error(
-          // eslint-disable-next-line max-len
           `${url} responded ${statusCode} which means your API key is not allowed to connect. Stopping refresh of toggles`,
         ),
       );

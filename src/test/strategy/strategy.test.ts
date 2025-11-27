@@ -1,4 +1,3 @@
-/* eslint-disable import/no-extraneous-dependencies */
 import test from 'ava';
 
 import { Strategy } from '../../strategy/strategy';

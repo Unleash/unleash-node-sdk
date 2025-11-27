@@ -1,4 +1,3 @@
-/* eslint-disable */
 const { initialize } = require('../lib');
 
 const { createClient } = require('redis');

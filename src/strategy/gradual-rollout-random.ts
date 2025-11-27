@@ -9,7 +9,6 @@ export default class GradualRolloutRandomStrategy extends Strategy {
     this.randomGenerator = randomGenerator || this.randomGenerator;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   isEnabled(parameters: { percentage?: number }, _context: Context) {
     const percentage: number = Number(parameters.percentage);
     const random: number = this.randomGenerator();
