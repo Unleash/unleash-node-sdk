@@ -63,7 +63,6 @@ test('should not register a gauge with empty name or help', (t) => {
   const fakeRegistry = {
     gauge: () => {
       gaugeRegistered = true;
-      return { inc: () => {}, dec: () => {}, set: () => {} } as Gauge;
     },
   } as unknown as ImpactMetricRegistry;
 

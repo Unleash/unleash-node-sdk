@@ -4,12 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'ava';
 import * as nock from 'nock';
-import type {
-  ClientFeaturesResponse,
-  DeltaEvent,
-  EnhancedFeatureInterface,
-  FeatureInterface,
-} from '../../feature';
+import type { ClientFeaturesResponse, DeltaEvent, EnhancedFeatureInterface } from '../../feature';
 import Repository from '../../repository';
 import { DefaultBootstrapProvider } from '../../repository/bootstrap-provider';
 import type { StorageProvider } from '../../repository/storage-provider';
@@ -20,23 +15,15 @@ const appName = 'foo';
 const instanceId = 'bar';
 const connectionId = 'baz';
 
-interface MockEventSource extends EventSource {
-  eventEmitter: EventEmitter;
-  listeners: Set<string>;
-  close: () => void;
-  closed: boolean;
-  emit: (eventName: string, data: unknown) => void;
-}
-
-function setup(url: string, toggles: FeatureInterface[], headers: Record<string, string> = {}) {
+// biome-ignore lint/suspicious/noExplicitAny: be relaxed in tests
+function setup(url: string, toggles: any[], headers: Record<string, string> = {}) {
   return nock(url).persist().get('/client/features').reply(200, { features: toggles }, headers);
 }
 
-function createMockEventSource(): MockEventSource {
-  const eventSource: MockEventSource = {
+function createMockEventSource() {
+  const eventSource = {
     eventEmitter: new EventEmitter(),
     listeners: new Set<string>(),
-    // @ts-expect-error function type does not match EventSource
     addEventListener(eventName: string, handler: () => void) {
       eventSource.listeners.add(eventName);
       eventSource.eventEmitter.on(eventName, handler);
@@ -52,7 +39,10 @@ function createMockEventSource(): MockEventSource {
       eventSource.eventEmitter.emit(eventName, data);
     },
   };
-  return eventSource;
+  return eventSource as unknown as EventSource & {
+    closed: boolean;
+    emit: (eventName: string, data: unknown) => void;
+  };
 }
 
 function createSSEResponse(events: Array<{ event: string; data: unknown }>) {
@@ -73,8 +63,6 @@ test('should fetch from endpoint', (t) =>
       strategies: [
         {
           name: 'default',
-          parameters: {},
-          constraints: [],
         },
       ],
     };
@@ -553,9 +541,7 @@ test('should emit errors on invalid features', (t) =>
     setup(url, [
       {
         name: 'feature',
-        // @ts-expect-error invalid enabled
         enabled: null,
-        // @ts-expect-error invalid strategies
         strategies: false,
       },
     ]);
@@ -589,11 +575,8 @@ test('should emit errors on invalid variant', (t) =>
         strategies: [
           {
             name: 'default',
-            parameters: {},
-            constraints: [],
           },
         ],
-        // @ts-expect-error invalid variants
         variants: 'not legal',
       },
     ]);
