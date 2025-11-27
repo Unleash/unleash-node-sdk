@@ -699,7 +699,7 @@ test('sendMetrics should restore impactMetrics on failure', async (t) => {
 
 test('sendMetrics should not include impactMetrics field when empty', async (t) => {
   const url = getUrl();
-  let capturedBody = null;
+  let capturedBody: Record<string, unknown> | null = null;
 
   const fakeMetricRegistry = {
     collect: () => [],
@@ -724,6 +724,6 @@ test('sendMetrics should not include impactMetrics field when empty', async (t) 
     .reply(200);
 
   await metrics.sendMetrics();
-  t.false('impactMetrics' in capturedBody!);
+  t.false(Boolean(capturedBody && 'impactMetrics' in capturedBody));
   t.true(scope.isDone());
 });

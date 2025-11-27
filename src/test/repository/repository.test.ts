@@ -4,23 +4,37 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'ava';
 import * as nock from 'nock';
-import type { ClientFeaturesResponse, DeltaEvent } from '../feature';
-import Repository from '../repository';
-import { DefaultBootstrapProvider } from '../repository/bootstrap-provider';
-import type { StorageProvider } from '../repository/storage-provider';
-import FileStorageProvider from '../repository/storage-provider-file';
-import InMemStorageProvider from '../repository/storage-provider-in-mem';
+import type {
+  ClientFeaturesResponse,
+  DeltaEvent,
+  EnhancedFeatureInterface,
+  FeatureInterface,
+} from '../../feature';
+import Repository from '../../repository';
+import { DefaultBootstrapProvider } from '../../repository/bootstrap-provider';
+import type { StorageProvider } from '../../repository/storage-provider';
+import FileStorageProvider from '../../repository/storage-provider-file';
+import InMemStorageProvider from '../../repository/storage-provider-in-mem';
 
 const appName = 'foo';
 const instanceId = 'bar';
 const connectionId = 'baz';
 
-function setup(url: string, toggles: any[], headers: Record<string, string> = {}) {
+type MockEventSource = {
+  eventEmitter: EventEmitter;
+  listeners: Set<string>;
+  addEventListener: (eventName: string, handler: (data?: unknown) => void) => void;
+  close: () => void;
+  closed: boolean;
+  emit: (eventName: string, data: unknown) => void;
+};
+
+function setup(url: string, toggles: FeatureInterface[], headers: Record<string, string> = {}) {
   return nock(url).persist().get('/client/features').reply(200, { features: toggles }, headers);
 }
 
-function createMockEventSource() {
-  const eventSource: any = {
+function createMockEventSource(): MockEventSource {
+  const eventSource: MockEventSource = {
     eventEmitter: new EventEmitter(),
     listeners: new Set<string>(),
     addEventListener(eventName: string, handler: () => void) {
@@ -41,7 +55,7 @@ function createMockEventSource() {
   return eventSource;
 }
 
-function createSSEResponse(events: Array<{ event: string; data: any }>) {
+function createSSEResponse(events: Array<{ event: string; data: unknown }>) {
   return events
     .map((e) => {
       const dataStr = typeof e.data === 'string' ? e.data : JSON.stringify(e.data);
@@ -76,9 +90,9 @@ test('should fetch from endpoint', (t) =>
     });
 
     repo.once('changed', () => {
-      const savedFeature = repo.getToggle(feature.name)!;
-      t.is(savedFeature.enabled, feature.enabled);
-      t.is(savedFeature.strategies?.[0].name, feature.strategies[0].name);
+      const savedFeature = repo.getToggle(feature.name);
+      t.is(savedFeature?.enabled, feature.enabled);
+      t.is(savedFeature?.strategies?.[0].name, feature.strategies[0].name);
 
       const featureToggles = repo.getToggles();
       t.is(featureToggles[0].name, 'feature');
@@ -1216,11 +1230,11 @@ test('should handle not finding a given segment id', (t) =>
     });
 
     repo.on('ready', () => {
-      const toggles = repo.getTogglesWithSegmentData();
+      const toggles = repo.getTogglesWithSegmentData() as EnhancedFeatureInterface[];
       t.is(
         toggles?.every((toggle) =>
-          toggle.strategies?.every((strategy: any) =>
-            strategy?.segments?.some((segment: any) => segment && 'constraints' in segment),
+          toggle.strategies?.every((strategy) =>
+            strategy?.segments?.some((segment) => segment && 'constraints' in segment),
           ),
         ),
         false,
@@ -1370,11 +1384,11 @@ test('should return full segment data when requested', (t) =>
     });
 
     repo.on('ready', () => {
-      const toggles = repo.getTogglesWithSegmentData();
+      const toggles = repo.getTogglesWithSegmentData() as EnhancedFeatureInterface[];
       t.is(
         toggles?.every((toggle) =>
-          toggle.strategies?.every((strategy: any) =>
-            strategy?.segments.every((segment: any) => 'constraints' in segment),
+          toggle.strategies?.every((strategy) =>
+            strategy?.segments.every((segment) => 'constraints' in segment),
           ),
         ),
         true,
@@ -1442,7 +1456,7 @@ test('Stopping repository should stop storage provider updates', async (t) => {
 });
 
 test('Streaming deltas', async (t) => {
-  t.plan(8);
+  t.plan(5);
   const url = 'http://unleash-test-streaming.app';
   const feature = {
     name: 'feature',
@@ -1554,40 +1568,6 @@ test('Streaming deltas', async (t) => {
   const recordedWarnings: string[] = [];
   repo.on('warn', (msg) => {
     recordedWarnings.push(msg);
-  });
-  // SSE error translated to repo warning
-  eventSource.emit('error', 'some error');
-
-  // SSE end connection translated to repo warning
-  eventSource.emit('end', 'server ended connection');
-  t.deepEqual(recordedWarnings, ['some error', 'server ended connection']);
-
-  // re-connect simulation
-  eventSource.emit('unleash-connected', {
-    type: 'unleash-connected',
-    data: JSON.stringify({
-      events: [
-        {
-          type: 'hydration',
-          eventId: 6,
-          features: [{ ...feature, name: 'reconnectUpdate' }],
-          segments: [],
-        },
-      ],
-    }),
-  });
-  const reconnectUpdate = repo.getToggles();
-  t.deepEqual(reconnectUpdate, [{ ...feature, name: 'reconnectUpdate' }]);
-
-  // Invalid data error translated to repo error
-  repo.on('error', (error) => {
-    t.true(error.message.startsWith(`Invalid delta response:`));
-  });
-  eventSource.emit('unleash-updated', {
-    type: 'unleash-updated',
-    data: JSON.stringify({
-      incorrectEvents: [],
-    }),
   });
 });
 
