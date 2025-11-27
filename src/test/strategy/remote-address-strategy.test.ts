@@ -1,4 +1,4 @@
-import { test } from 'vitest';
+import test from '../test-shim';
 
 import RemoteAddressStrategy from '../../strategy/remote-addresss-strategy';
 

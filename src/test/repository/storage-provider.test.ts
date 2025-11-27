@@ -1,4 +1,4 @@
-import { test } from 'vitest';
+import test from '../test-shim';
 import { writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';

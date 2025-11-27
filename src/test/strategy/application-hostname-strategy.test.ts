@@ -1,4 +1,4 @@
-import { test } from 'vitest';
+import test from '../test-shim';
 import { hostname } from 'os';
 
 import ApplicationHostnameStrategy from '../../strategy/application-hostname-strategy';

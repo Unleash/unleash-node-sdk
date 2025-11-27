@@ -1,4 +1,4 @@
-import { test } from 'vitest';
+import test from './test-shim';
 import nock from 'nock';
 import { tmpdir } from 'os';
 import { join } from 'path';

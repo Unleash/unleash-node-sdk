@@ -1,4 +1,4 @@
-import { test } from 'vitest';
+import test from './test-shim';
 import nock from 'nock';
 import { writeFileSync } from 'fs';
 import { tmpdir } from 'os';
@@ -458,7 +458,7 @@ test.skip('should handle 504 request error and emit warn event', (t) =>
     repo.start();
   }));
 
-test('should handle 304 as silent ok', (_t) => {
+test('should handle 304 as silent ok', (t) => {
   return new Promise((resolve, reject) => {
     const url = 'http://unleash-test-6.app';
     nock(url).persist().get('/client/features').reply(304, '');
@@ -474,8 +474,14 @@ test('should handle 304 as silent ok', (_t) => {
       mode: { type: 'polling', format: 'full' },
     });
     repo.on('error', reject);
-    repo.on('unchanged', resolve);
-    process.nextTick(resolve);
+    repo.on('unchanged', () => {
+      t.pass();
+      resolve();
+    });
+    process.nextTick(() => {
+      t.pass();
+      resolve();
+    });
     repo.start();
   });
 });
@@ -1405,6 +1411,7 @@ test('Stopping repository should stop unchanged event reporting', async (t) => {
   const promise = repo.fetch();
   repo.stop(); // remove all listeners
   await promise;
+  t.pass();
 });
 
 test('Stopping repository should stop storage provider updates', async (t) => {

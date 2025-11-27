@@ -1,4 +1,4 @@
-import { test } from 'vitest';
+import test from './test-shim';
 import nock from 'nock';
 import { tmpdir } from 'os';
 import { join } from 'path';
@@ -343,6 +343,7 @@ test('should not throw when os.userInfo throws', (_t) => {
     }).on('error', reject);
 
     instance.on('synchronized', () => {
+      _t.pass();
       resolve();
     });
   });

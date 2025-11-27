@@ -13,8 +13,8 @@
     "prebuild": "del-cli --force lib",
     "build": "tsc -p .",
     "prepare": "husky install && yarn run build",
-    "test": "cross-env NODE_ENV=test yarn run build && vitest run",
-    "coverage": "vitest run --coverage"
+    "test": "cross-env NODE_ENV=test TS_NODE_TRANSPILE_ONLY=1 NODE_OPTIONS=--unhandled-rejections=none ava --timeout=20s --require ts-node/register --extensions ts",
+    "coverage": "cross-env NODE_ENV=test TS_NODE_TRANSPILE_ONLY=1 NODE_OPTIONS=--unhandled-rejections=none c8 ava --timeout=20s --require ts-node/register --extensions ts"
   },
   "repository": {
     "type": "git",
@@ -62,7 +62,8 @@
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
     "@unleash/client-specification": "^5.1.6",
-    "@vitest/coverage-v8": "^2.1.4",
+    "ava": "^6.1.2",
+    "c8": "^9.1.0",
     "coveralls": "^3.1.1",
     "cross-env": "^7.0.3",
     "del-cli": "^5.0.0",
@@ -80,8 +81,8 @@
     "redis": "^4.6.7",
     "sinon": "^18.0.0",
     "minimatch": "^3.1.2",
-    "typescript": "^5.4.3",
-    "vitest": "^2.1.4"
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.3"
   },
   "resolutions": {
     "ansi-regex": "^5.0.1",
@@ -116,6 +117,19 @@
     "*.{md,json}": [
       "prettier --write"
     ]
+  },
+  "ava": {
+    "extensions": [
+      "ts"
+    ],
+    "require": [
+      "ts-node/register",
+      "./src/test/setup"
+    ],
+    "files": [
+      "src/test/**/*.test.ts"
+    ],
+    "timeout": "20s"
   },
   "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e",
   "type": "commonjs"

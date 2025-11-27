@@ -1,4 +1,4 @@
-import { test } from 'vitest';
+import test from './test-shim';
 
 import * as http from 'http';
 import * as https from 'https';

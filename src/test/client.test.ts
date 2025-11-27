@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { test } from 'vitest';
+import test from './test-shim';
 import Client from '../client';
 import { defaultStrategies, Strategy } from '../strategy';
 
