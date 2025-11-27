@@ -208,7 +208,7 @@ export default class Metrics extends EventEmitter {
     try {
       const res = await post({
         url,
-        json: payload,
+        json: payload as unknown as Record<string, unknown>,
         appName: this.appName,
         instanceId: this.instanceId,
         connectionId: this.connectionId,
@@ -263,7 +263,7 @@ export default class Metrics extends EventEmitter {
     try {
       const res = await post({
         url,
-        json: payload,
+        json: payload as unknown as Record<string, unknown>,
         appName: this.appName,
         instanceId: this.instanceId,
         connectionId: this.connectionId,

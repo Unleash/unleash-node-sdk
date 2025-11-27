@@ -30,7 +30,7 @@ export default class FlexibleRolloutStrategy extends Strategy {
   }
 
   isEnabled(
-    parameters: { groupId?: string; rollout?: number; stickiness?: string },
+    parameters: { groupId?: string; rollout?: number | string; stickiness?: string },
     context: Context,
   ) {
     const groupId = parameters.groupId || context.featureToggle || '';
@@ -41,7 +41,7 @@ export default class FlexibleRolloutStrategy extends Strategy {
     if (!stickinessId) {
       return false;
     }
-    const normalizedUserId = normalizedStrategyValue(stickinessId, groupId);
+    const normalizedUserId = normalizedStrategyValue(stickinessId, groupId as string);
     return percentage > 0 && normalizedUserId <= percentage;
   }
 }

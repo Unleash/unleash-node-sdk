@@ -20,14 +20,13 @@ const appName = 'foo';
 const instanceId = 'bar';
 const connectionId = 'baz';
 
-type MockEventSource = {
+interface MockEventSource extends EventSource {
   eventEmitter: EventEmitter;
   listeners: Set<string>;
-  addEventListener: (eventName: string, handler: (data?: unknown) => void) => void;
   close: () => void;
   closed: boolean;
   emit: (eventName: string, data: unknown) => void;
-};
+}
 
 function setup(url: string, toggles: FeatureInterface[], headers: Record<string, string> = {}) {
   return nock(url).persist().get('/client/features').reply(200, { features: toggles }, headers);
@@ -37,6 +36,7 @@ function createMockEventSource(): MockEventSource {
   const eventSource: MockEventSource = {
     eventEmitter: new EventEmitter(),
     listeners: new Set<string>(),
+    // @ts-expect-error function type does not match EventSource
     addEventListener(eventName: string, handler: () => void) {
       eventSource.listeners.add(eventName);
       eventSource.eventEmitter.on(eventName, handler);
@@ -73,6 +73,8 @@ test('should fetch from endpoint', (t) =>
       strategies: [
         {
           name: 'default',
+          parameters: {},
+          constraints: [],
         },
       ],
     };
@@ -551,7 +553,9 @@ test('should emit errors on invalid features', (t) =>
     setup(url, [
       {
         name: 'feature',
+        // @ts-expect-error invalid enabled
         enabled: null,
+        // @ts-expect-error invalid strategies
         strategies: false,
       },
     ]);
@@ -585,8 +589,11 @@ test('should emit errors on invalid variant', (t) =>
         strategies: [
           {
             name: 'default',
+            parameters: {},
+            constraints: [],
           },
         ],
+        // @ts-expect-error invalid variants
         variants: 'not legal',
       },
     ]);
@@ -1381,7 +1388,7 @@ test('should return full segment data when requested', (t) =>
       t.is(
         toggles?.every((toggle) =>
           toggle.strategies?.every((strategy) =>
-            strategy?.segments.every((segment) => 'constraints' in segment),
+            strategy?.segments?.every((segment) => segment && 'constraints' in segment),
           ),
         ),
         true,
@@ -1424,6 +1431,8 @@ test('Stopping repository should stop storage provider updates', async (t) => {
     strategies: [
       {
         name: 'default',
+        parameters: {},
+        constraints: [],
       },
     ],
   };
@@ -1457,6 +1466,8 @@ test('Streaming deltas', async (t) => {
     strategies: [
       {
         name: 'default',
+        parameters: {},
+        constraints: [],
       },
     ],
   };
@@ -1783,6 +1794,8 @@ test('setMode can switch from polling to streaming mode', async (t) => {
     strategies: [
       {
         name: 'default',
+        parameters: {},
+        constraints: [],
       },
     ],
   };
@@ -1832,6 +1845,8 @@ test('setMode can switch from streaming to polling mode', async (t) => {
     strategies: [
       {
         name: 'default',
+        parameters: {},
+        constraints: [],
       },
     ],
   };
@@ -1902,6 +1917,8 @@ test('setMode should be no-op when repository is stopped', async (t) => {
     strategies: [
       {
         name: 'default',
+        parameters: {},
+        constraints: [],
       },
     ],
   };

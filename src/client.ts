@@ -23,18 +23,15 @@ interface BooleanMap {
  *
  * declare module 'unleash-client' {
  *   interface UnleashTypes {
- *     flagNames: string;
+ *     flagNames: 'foo' | 'bar';
  *   }
  * }
  */
 export interface UnleashTypes {
-  [key: string]: unknown;
+  flagNames: string;
 }
 
-type GetCustom<K extends PropertyKey, Fallback> = K extends keyof UnleashTypes
-  ? UnleashTypes[K]
-  : Fallback;
-export type Name = GetCustom<'flagNames', string>;
+export type Name = UnleashTypes['flagNames'];
 
 export default class UnleashClient extends EventEmitter {
   private repository: RepositoryInterface;

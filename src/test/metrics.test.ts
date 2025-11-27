@@ -632,7 +632,7 @@ test('createMetricsData should include impactMetrics if provided', (t) => {
 
 test('sendMetrics should include impactMetrics in the payload', async (t) => {
   const url = getUrl();
-  let capturedBody = null;
+  let capturedBody: { impactMetrics?: CollectedMetric[] } | undefined;
 
   const impactMetricSample: CollectedMetric = {
     name: 'feature_toggle_used',

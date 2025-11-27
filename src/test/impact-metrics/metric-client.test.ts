@@ -1,4 +1,5 @@
 import test from 'ava';
+import { inc } from 'semver';
 import type Client from '../../client';
 import { MetricsAPI } from '../../impact-metrics/metric-api';
 import type {
@@ -142,6 +143,8 @@ test('should set gauge with valid parameters', (t) => {
       gaugeSet = true;
       recordedLabels = labels;
     },
+    inc: () => {},
+    dec: () => {},
   };
 
   const fakeRegistry = createRegistry({
@@ -246,6 +249,7 @@ test('should observe histogram with valid parameters', (t) => {
       histogramObserved = true;
       recordedLabels = labels;
     },
+    restore: () => {},
   };
 
   const fakeRegistry = createRegistry({

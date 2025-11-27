@@ -2,10 +2,10 @@ import { hostname, type UserInfo, userInfo } from 'node:os';
 import * as murmurHash3 from 'murmurhash3js';
 import type { Context } from './context';
 
-export type FallbackFunction = (name: string, context: Context) => boolean;
+export type FallbackFunction = (name: unknown, context: Context) => boolean;
 
 export function createFallbackFunction(
-  name: string,
+  name: unknown,
   context: Context,
   fallback?: FallbackFunction | boolean,
 ): () => boolean {

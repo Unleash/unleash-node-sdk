@@ -13,6 +13,7 @@ function makeOptions(overrides: Partial<StreamingFetchingOptions> = {}): Streami
     connectionId: 'conn-1',
     onSaveDelta: async () => {},
     onModeChange: async () => {},
+    onSave: async () => {},
     eventSource: undefined,
     failureWindowMs: 60_000,
     maxFailuresUntilFailover: 5,
@@ -20,7 +21,10 @@ function makeOptions(overrides: Partial<StreamingFetchingOptions> = {}): Streami
   };
 }
 
-type StreamingFetcherTestSubject = StreamingFetcher & {
+type StreamingFetcherTestSubject = Omit<
+  StreamingFetcher,
+  'failoverStrategy' | 'handleErrorEvent'
+> & {
   failoverStrategy: {
     shouldFailover: (event: FailEvent, now: Date) => boolean;
   };
@@ -34,7 +38,7 @@ test('emits Warn on SSE when failover is triggered', async (t) => {
   });
 
   const fetcher = new StreamingFetcher(options);
-  const testFetcher = fetcher as StreamingFetcherTestSubject;
+  const testFetcher = fetcher as unknown as StreamingFetcherTestSubject;
 
   testFetcher.failoverStrategy.shouldFailover = () => true;
 
@@ -57,7 +61,7 @@ test('does not emit Warn on SSE when failover is not triggered', async (t) => {
   });
 
   const fetcher = new StreamingFetcher(options);
-  const testFetcher = fetcher as StreamingFetcherTestSubject;
+  const testFetcher = fetcher as unknown as StreamingFetcherTestSubject;
 
   testFetcher.failoverStrategy.shouldFailover = () => false;
 
@@ -79,7 +83,7 @@ test('transient errors that cause failover report the last error', async (t) => 
   });
 
   const fetcher = new StreamingFetcher(options);
-  const testFetcher = fetcher as StreamingFetcherTestSubject;
+  const testFetcher = fetcher as unknown as StreamingFetcherTestSubject;
 
   testFetcher.failoverStrategy.shouldFailover = (() => {
     const currentErrors: unknown[] = [];

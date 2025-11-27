@@ -67,17 +67,33 @@ export class StreamingFetcher extends EventEmitter implements FetcherInterface {
   private async handleErrorEvent(error: unknown): Promise<void> {
     const now = new Date();
 
+    const statusCode =
+      typeof error === 'object' &&
+      error !== null &&
+      typeof (error as { status?: unknown }).status === 'number'
+        ? (error as { status: number }).status
+        : undefined;
+
+    const message =
+      typeof error === 'string'
+        ? error
+        : typeof error === 'object' &&
+            error !== null &&
+            typeof (error as { message?: unknown }).message === 'string'
+          ? (error as { message: string }).message
+          : undefined;
+
     const failEvent: FailEvent =
-      typeof error?.status === 'number'
+      typeof statusCode === 'number'
         ? {
             type: 'http-status-error',
-            message: error.message ?? `Stream failed with http status code ${error.status}`,
-            statusCode: error.status,
+            message: message ?? `Stream failed with http status code ${statusCode}`,
+            statusCode,
             occurredAt: now,
           }
         : {
             type: 'network-error',
-            message: error.message ?? 'Network error occurred in streaming',
+            message: message ?? 'Network error occurred in streaming',
             occurredAt: now,
           };
 

@@ -354,7 +354,7 @@ export class Unleash extends EventEmitter {
   }
 
   getFeatureToggleDefinitions(): Array<FeatureInterface>;
-  getFeatureToggleDefinitions(withFullSegments: true): Array<EnhancedFeatureInterface>;
+  getFeatureToggleDefinitions(withFullSegments: boolean): Array<EnhancedFeatureInterface>;
   getFeatureToggleDefinitions(
     withFullSegments?: boolean,
   ): Array<FeatureInterface | EnhancedFeatureInterface> {
