@@ -23,21 +23,6 @@
     "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
     "class-methods-use-this": "off"
   },
-  "overrides": [
-    {
-      "files": ["src/test/**"],
-      "rules": {
-        "import/no-extraneous-dependencies": ["error", { "devDependencies": true }],
-        "import/no-named-as-default-member": "off"
-      }
-    },
-    {
-      "files": ["vitest.config.ts"],
-      "rules": {
-        "import/no-extraneous-dependencies": ["error", { "devDependencies": true }]
-      }
-    }
-  ],
   "settings": {
     "import/resolver": {
       "typescript": true
