@@ -1,5 +1,5 @@
 import test from './test-shim';
-import nock from 'nock';
+import * as nock from 'nock';
 import Metrics from '../metrics';
 import type { CollectedMetric } from '../impact-metrics/metric-types';
 import { SUPPORTED_SPEC_VERSION } from '../repository';

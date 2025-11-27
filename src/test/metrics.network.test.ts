@@ -1,5 +1,5 @@
 import test from './test-shim';
-import nock from 'nock';
+import * as nock from 'nock';
 import Metrics from '../metrics';
 
 test.before(() => nock.disableNetConnect());

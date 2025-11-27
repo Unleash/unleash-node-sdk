@@ -1,5 +1,5 @@
 import test from '../test-shim';
-import nock from 'nock';
+import * as nock from 'nock';
 import { writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
