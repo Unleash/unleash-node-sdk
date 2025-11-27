@@ -10,15 +10,46 @@ import { FailEvent, FailoverStrategy } from './streaming-fail-over';
 export class StreamingFetcher extends EventEmitter implements FetcherInterface {
   private eventSource: EventSource | undefined;
 
-  private options: StreamingFetchingOptions;
+  private readonly url: string;
+
+  private readonly appName: string;
+
+  private readonly instanceId: string;
+
+  private readonly headers?: Record<string, string>;
+
+  private readonly connectionId?: string;
+
+  private readonly onSaveDelta: StreamingFetchingOptions['onSaveDelta'];
+
+  private readonly onModeChange?: StreamingFetchingOptions['onModeChange'];
 
   private readonly failoverStrategy: FailoverStrategy;
 
-  constructor(options: StreamingFetchingOptions) {
+  constructor({
+    url,
+    appName,
+    instanceId,
+    headers,
+    connectionId,
+    eventSource,
+    maxFailuresUntilFailover = 5,
+    failureWindowMs = 60_000,
+    onSaveDelta,
+    onModeChange,
+  }: StreamingFetchingOptions) {
     super();
-    this.options = options;
-    this.eventSource = options.eventSource;
-    this.failoverStrategy = new FailoverStrategy(5, 60_000);
+
+    this.url = url;
+    this.appName = appName;
+    this.instanceId = instanceId;
+    this.headers = headers;
+    this.connectionId = connectionId;
+    this.onSaveDelta = onSaveDelta;
+    this.onModeChange = onModeChange;
+
+    this.eventSource = eventSource;
+    this.failoverStrategy = new FailoverStrategy(maxFailuresUntilFailover, failureWindowMs);
   }
 
   private setupEventSource() {
@@ -73,15 +104,15 @@ export class StreamingFetcher extends EventEmitter implements FetcherInterface {
 
     this.emit(UnleashEvents.Warn, event.message);
 
-    if (this.options.onModeChange) {
-      await this.options.onModeChange('polling');
+    if (this.onModeChange) {
+      await this.onModeChange('polling');
     }
   }
 
   private async handleFlagsFromStream(event: { data: string }) {
     try {
       const data = parseClientFeaturesDelta(JSON.parse(event.data));
-      await this.options.onSaveDelta(data);
+      await this.onSaveDelta(data);
     } catch (err) {
       this.emit(UnleashEvents.Error, err);
     }
@@ -101,15 +132,15 @@ export class StreamingFetcher extends EventEmitter implements FetcherInterface {
   }
 
   private createEventSource(): EventSource {
-    return new EventSource(resolveUrl(this.options.url, './client/streaming'), {
+    return new EventSource(resolveUrl(this.url, './client/streaming'), {
       headers: buildHeaders({
-        appName: this.options.appName,
-        instanceId: this.options.instanceId,
+        appName: this.appName,
+        instanceId: this.instanceId,
         etag: undefined,
         contentType: undefined,
-        custom: this.options.headers,
+        custom: this.headers,
         specVersionSupported: '5.2.0',
-        connectionId: this.options.connectionId,
+        connectionId: this.connectionId,
       }),
       readTimeoutMillis: 60000,
       initialRetryDelayMillis: 2000,
