@@ -57,22 +57,22 @@ test('should sendMetrics and register when metricsInterval is a positive number'
   const url = getUrl();
   const regEP = nockRegister(url);
   const metricsEP = nockMetrics(url);
+  t.plan(2);
   // @ts-expect-error
   const metrics = new Metrics({
     url,
     metricsInterval: 50,
   });
 
-  let metricsSent = 0;
-  let registered = 0;
-  metrics.on('registered', () => {
-    registered++;
-    t.true(regEP.isDone());
-  });
-  metrics.on('sent', () => {
-    t.true(metricsEP.isDone());
-    metrics.stop();
-    metricsSent++;
+  const validator = new Promise<void>((resolve) => {
+    metrics.on('registered', () => {
+      t.true(regEP.isDone());
+    });
+    metrics.on('sent', () => {
+      t.true(metricsEP.isDone());
+      metrics.stop();
+      resolve();
+    });
   });
 
   metrics.count('toggle-x', true);
@@ -81,18 +81,18 @@ test('should sendMetrics and register when metricsInterval is a positive number'
   metrics.start();
   const timeout = new Promise<void>((resolve) =>
     setTimeout(() => {
+      t.fail('Failed to successfully both send and register');
       resolve();
     }, 1000),
   );
-  await timeout;
-  t.is(registered, 1);
-  t.is(metricsSent, 1);
+  await Promise.race([validator, timeout]);
 });
 
 test('should sendMetrics', async (t) => {
   const url = getUrl();
+  t.plan(7);
   const metricsEP = nock(url)
-    .post(metricsUrl, (payload: any) => {
+    .post(metricsUrl, (payload) => {
       t.truthy(payload.bucket);
       t.truthy(payload.bucket.start);
       t.truthy(payload.bucket.stop);
@@ -101,8 +101,6 @@ test('should sendMetrics', async (t) => {
         'toggle-y': { yes: 1, no: 0, variants: {} },
       });
       t.deepEqual(payload.connectionId, 'connection-id');
-      t.truthy(payload.bucket.toggles['toggle-x']);
-      t.truthy(payload.bucket.toggles['toggle-y']);
       return true;
     })
     .reply(200, '');
@@ -130,6 +128,7 @@ test('should sendMetrics', async (t) => {
 test('should send correct custom and unleash headers', (t) =>
   new Promise((resolve) => {
     const url = getUrl();
+    t.plan(2);
     const randomKey = `value-${Math.random()}`;
     const metricsEP = nockMetrics(url)
       .matchHeader('randomKey', randomKey)
@@ -169,6 +168,7 @@ test('should send correct custom and unleash headers', (t) =>
 
 test('should send content-type header', async (t) => {
   const url = getUrl();
+  t.plan(2);
   const metricsEP = nockMetrics(url).matchHeader('content-type', 'application/json');
   const regEP = nockRegister(url).matchHeader('content-type', 'application/json');
 
@@ -188,14 +188,15 @@ test('should send content-type header', async (t) => {
 
 test('request with customHeadersFunction should take precedence over customHeaders', async (t) => {
   const url = getUrl();
+  t.plan(2);
   const customHeadersKey = `value-${Math.random()}`;
   const randomKey = `value-${Math.random()}`;
   const metricsEP = nockMetrics(url)
-    .matchHeader('randomKey', (value: any) => value === undefined)
+    .matchHeader('randomKey', (value) => value === undefined)
     .matchHeader('customHeadersKey', customHeadersKey);
 
   const regEP = nockRegister(url)
-    .matchHeader('randomKey', (value: any) => value === undefined)
+    .matchHeader('randomKey', (value) => value === undefined)
     .matchHeader('customHeadersKey', customHeadersKey);
 
   // @ts-expect-error
@@ -221,7 +222,10 @@ test.skip('should respect timeout', (t) =>
   new Promise((resolve, reject) => {
     t.plan(2);
     const url = getUrl();
+    // @ts-expect-error
     nock(url).post(metricsUrl).socketDelay(100).reply(200, '');
+
+    // @ts-expect-error
     nock(url).post(registerUrl).socketDelay(100).reply(200, '');
 
     // @ts-expect-error
@@ -242,6 +246,7 @@ test.skip('should respect timeout', (t) =>
   }));
 
 test('registerInstance should warn when non 200 statusCode', async (t) => {
+  t.plan(2);
   const url = getUrl();
   const regEP = nockRegister(url, 500);
 
@@ -649,7 +654,7 @@ test('sendMetrics should include impactMetrics in the payload', async (t) => {
   });
 
   const scope = nock(url)
-    .post('/client/metrics', (body: any) => {
+    .post('/client/metrics', (body) => {
       capturedBody = body;
       return true;
     })
@@ -712,7 +717,7 @@ test('sendMetrics should not include impactMetrics field when empty', async (t) 
   metrics.count('toggle-x', true);
 
   const scope = nock(url)
-    .post('/client/metrics', (body: any) => {
+    .post('/client/metrics', (body) => {
       capturedBody = body;
       return true;
     })
