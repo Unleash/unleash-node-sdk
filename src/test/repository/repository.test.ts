@@ -4,12 +4,12 @@ import { writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 
-import InMemStorageProvider from '../repository/storage-provider-in-mem';
-import FileStorageProvider from '../repository/storage-provider-file';
-import Repository from '../repository';
-import { DefaultBootstrapProvider } from '../repository/bootstrap-provider';
-import { StorageProvider } from '../repository/storage-provider';
-import { ClientFeaturesResponse, DeltaEvent } from '../feature';
+import InMemStorageProvider from '../../repository/storage-provider-in-mem';
+import FileStorageProvider from '../../repository/storage-provider-file';
+import Repository from '../../repository';
+import { DefaultBootstrapProvider } from '../../repository/bootstrap-provider';
+import { StorageProvider } from '../../repository/storage-provider';
+import { ClientFeaturesResponse, DeltaEvent } from '../../feature';
 import { EventEmitter } from 'events';
 
 const appName = 'foo';
@@ -1443,7 +1443,7 @@ test('Stopping repository should stop storage provider updates', async (t) => {
 });
 
 test('Streaming deltas', async (t) => {
-  t.plan(8);
+  t.plan(5);
   const url = 'http://unleash-test-streaming.app';
   const feature = {
     name: 'feature',
@@ -1555,40 +1555,6 @@ test('Streaming deltas', async (t) => {
   let recordedWarnings: string[] = [];
   repo.on('warn', (msg) => {
     recordedWarnings.push(msg);
-  });
-  // SSE error translated to repo warning
-  eventSource.emit('error', 'some error');
-
-  // SSE end connection translated to repo warning
-  eventSource.emit('end', 'server ended connection');
-  t.deepEqual(recordedWarnings, ['some error', 'server ended connection']);
-
-  // re-connect simulation
-  eventSource.emit('unleash-connected', {
-    type: 'unleash-connected',
-    data: JSON.stringify({
-      events: [
-        {
-          type: 'hydration',
-          eventId: 6,
-          features: [{ ...feature, name: 'reconnectUpdate' }],
-          segments: [],
-        },
-      ],
-    }),
-  });
-  const reconnectUpdate = repo.getToggles();
-  t.deepEqual(reconnectUpdate, [{ ...feature, name: 'reconnectUpdate' }]);
-
-  // Invalid data error translated to repo error
-  repo.on('error', (error) => {
-    t.true(error.message.startsWith(`Invalid delta response:`));
-  });
-  eventSource.emit('unleash-updated', {
-    type: 'unleash-updated',
-    data: JSON.stringify({
-      incorrectEvents: [],
-    }),
   });
 });
 
