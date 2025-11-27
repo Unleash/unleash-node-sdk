@@ -1,11 +1,10 @@
-import test from 'ava';
+import test from './test-shim';
 import { createServer } from 'http';
 import { Unleash } from '../unleash';
 
 test('should retry on error', (t) =>
-  new Promise((resolve) => {
+  new Promise<void>((resolve) => {
     t.plan(1);
-
     let calls = 0;
     const server = createServer((req, res) => {
       calls++;

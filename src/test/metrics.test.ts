@@ -1,4 +1,4 @@
-import test from 'ava';
+import test from './test-shim';
 import * as nock from 'nock';
 import Metrics from '../metrics';
 import type { CollectedMetric } from '../impact-metrics/metric-types';
@@ -21,7 +21,7 @@ test('should be disabled by flag disableMetrics', (t) => {
 });
 
 test('registerInstance, sendMetrics, startTimer and count should respect disabled', (t) =>
-  new Promise((resolve) => {
+  new Promise<void>((resolve) => {
     const url = getUrl();
     // @ts-expect-error
     const metrics = new Metrics({

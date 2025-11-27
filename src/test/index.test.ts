@@ -1,4 +1,4 @@
-import test from 'ava';
+import test from './test-shim';
 import * as nock from 'nock';
 import {
   initialize,

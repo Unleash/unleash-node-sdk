@@ -1,4 +1,4 @@
-import test from 'ava';
+import test from '../test-shim';
 import * as nock from 'nock';
 import { writeFileSync } from 'fs';
 import { tmpdir } from 'os';
@@ -52,7 +52,7 @@ function createSSEResponse(events: Array<{ event: string; data: any }>) {
 }
 
 test('should fetch from endpoint', (t) =>
-  new Promise((resolve) => {
+  new Promise<void>((resolve) => {
     const url = 'http://unleash-test-0.app';
     const feature = {
       name: 'feature',
@@ -90,7 +90,7 @@ test('should fetch from endpoint', (t) =>
   }));
 
 test('should poll for changes', (t) =>
-  new Promise((resolve, reject) => {
+  new Promise<void>((resolve, reject) => {
     const url = 'http://unleash-test-2.app';
     setup(url, []);
     const repo = new Repository({
@@ -121,7 +121,7 @@ test('should poll for changes', (t) =>
   }));
 
 test('should retry even if custom header function fails', (t) =>
-  new Promise((resolve) => {
+  new Promise<void>((resolve) => {
     const url = 'http://unleash-test-2-custom-headers.app';
     setup(url, []);
     const repo = new Repository({
@@ -153,7 +153,7 @@ test('should retry even if custom header function fails', (t) =>
   }));
 
 test('should store etag', (t) =>
-  new Promise((resolve) => {
+  new Promise<void>((resolve) => {
     const url = 'http://unleash-test-3.app';
     setup(url, [], { Etag: '12345' });
     const repo = new Repository({
@@ -177,7 +177,7 @@ test('should store etag', (t) =>
   }));
 
 test('should request with etag', (t) =>
-  new Promise((resolve) => {
+  new Promise<void>((resolve) => {
     const url = 'http://unleash-test-4.app';
     nock(url)
       .matchHeader('If-None-Match', '12345-1')
@@ -208,7 +208,7 @@ test('should request with etag', (t) =>
   }));
 
 test('should request with correct custom and unleash headers', (t) =>
-  new Promise((resolve) => {
+  new Promise<void>((resolve) => {
     const url = 'http://unleash-test-4-x.app';
     const randomKey = `random-${Math.random()}`;
     nock(url)
@@ -249,7 +249,7 @@ test('should request with correct custom and unleash headers', (t) =>
   }));
 
 test('request with customHeadersFunction should take precedence over customHeaders', (t) =>
-  new Promise((resolve) => {
+  new Promise<void>((resolve) => {
     const url = 'http://unleash-test-4-x.app';
     const randomKey = `random-${Math.random()}`;
     const customHeaderKey = `customer-${Math.random()}`;
@@ -346,7 +346,7 @@ test('should handle 401 request error and emit error event', (t) =>
   }));
 
 test('should handle 403 request error and emit error event', (t) =>
-  new Promise((resolve) => {
+  new Promise<void>((resolve) => {
     const url = 'http://unleash-test-6-403.app';
     nock(url).persist().get('/client/features').reply(403, 'blabla');
     const repo = new Repository({
@@ -394,7 +394,7 @@ test('should handle 500 request error and emit warn event', (t) =>
     repo.start();
   }));
 test.skip('should handle 502 request error and emit warn event', (t) =>
-  new Promise((resolve) => {
+  new Promise<void>((resolve) => {
     const url = 'http://unleash-test-6-502.app';
     nock(url).persist().get('/client/features').reply(502, 'blabla');
     const repo = new Repository({
@@ -415,7 +415,7 @@ test.skip('should handle 502 request error and emit warn event', (t) =>
     repo.start();
   }));
 test.skip('should handle 503 request error and emit warn event', (t) =>
-  new Promise((resolve) => {
+  new Promise<void>((resolve) => {
     const url = 'http://unleash-test-6-503.app';
     nock(url).persist().get('/client/features').reply(503, 'blabla');
     const repo = new Repository({
@@ -436,7 +436,7 @@ test.skip('should handle 503 request error and emit warn event', (t) =>
     repo.start();
   }));
 test.skip('should handle 504 request error and emit warn event', (t) =>
-  new Promise((resolve) => {
+  new Promise<void>((resolve) => {
     const url = 'http://unleash-test-6-504.app';
     nock(url).persist().get('/client/features').reply(504, 'blabla');
     const repo = new Repository({
@@ -482,7 +482,7 @@ test('should handle 304 as silent ok', (t) => {
 });
 
 test('should handle invalid JSON response', (t) =>
-  new Promise((resolve, reject) => {
+  new Promise<void>((resolve, reject) => {
     const url = 'http://unleash-test-7.app';
     nock(url).persist().get('/client/features').reply(200, '{"Invalid payload');
 
@@ -537,7 +537,7 @@ test('should respect timeout', t =>
 */
 
 test('should emit errors on invalid features', (t) =>
-  new Promise((resolve) => {
+  new Promise<void>((resolve) => {
     const url = 'http://unleash-test-1.app';
     setup(url, [
       {
@@ -567,7 +567,7 @@ test('should emit errors on invalid features', (t) =>
   }));
 
 test('should emit errors on invalid variant', (t) =>
-  new Promise((resolve) => {
+  new Promise<void>((resolve) => {
     const url = 'http://unleash-test-1-invalid-bariant.app';
     setup(url, [
       {
@@ -603,7 +603,7 @@ test('should emit errors on invalid variant', (t) =>
   }));
 
 test('should load bootstrap first if faster than unleash-api', (t) =>
-  new Promise((resolve) => {
+  new Promise<void>((resolve) => {
     const url = 'http://unleash-test-2-api-url.app';
     const bootstrap = 'http://unleash-test-2-boostrap-url.app';
     nock(url)
@@ -673,7 +673,7 @@ test('should load bootstrap first if faster than unleash-api', (t) =>
   }));
 
 test('bootstrap should not override actual data', (t) =>
-  new Promise((resolve) => {
+  new Promise<void>((resolve) => {
     const url = 'http://unleash-test-2-api-url.app';
     const bootstrap = 'http://unleash-test-2-boostrap-url.app';
     nock(url)
@@ -743,7 +743,7 @@ test('bootstrap should not override actual data', (t) =>
   }));
 
 test('should load bootstrap first from file', (t) =>
-  new Promise((resolve) => {
+  new Promise<void>((resolve) => {
     const url = 'http://unleash-test-3-api-url.app';
     nock(url).persist().get('/client/features').delay(100).reply(408);
 
@@ -791,7 +791,7 @@ test('should load bootstrap first from file', (t) =>
   }));
 
 test('should not crash on bogus bootstrap', (t) =>
-  new Promise((resolve) => {
+  new Promise<void>((resolve) => {
     const url = 'http://unleash-test-4-api-url.app';
     nock(url).persist().get('/client/features').delay(100).reply(408);
 
@@ -821,7 +821,7 @@ test('should not crash on bogus bootstrap', (t) =>
   }));
 
 test('should load backup-file', (t) =>
-  new Promise((resolve) => {
+  new Promise<void>((resolve) => {
     const appNameLocal = 'some-backup';
     const url = 'http://unleash-test-backup-api-url.app';
     nock(url).persist().get('/client/features').delay(100).reply(408);
@@ -867,7 +867,7 @@ test('should load backup-file', (t) =>
   }));
 
 test('bootstrap should override load backup-file', (t) =>
-  new Promise((resolve) => {
+  new Promise<void>((resolve) => {
     const appNameLocal = 'should_override';
     const url = 'http://unleash-test-backup-api-url.app';
     nock(url).persist().get('/client/features').delay(100).reply(408);
