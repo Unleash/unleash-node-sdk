@@ -2,8 +2,9 @@ import test from './test-shim';
 import { createServer } from 'http';
 import { Unleash } from '../unleash';
 
-test.skip('should retry on error', (t) =>
-  new Promise((resolve) => {
+test('should retry on error', (t) =>
+  new Promise<void>((resolve) => {
+    t.plan(1);
     let calls = 0;
     const server = createServer((req, res) => {
       calls++;
@@ -27,7 +28,7 @@ test.skip('should retry on error', (t) =>
         t.is(calls, 3);
         unleash.destroy();
         server.close();
-        resolve(1);
+        resolve();
       });
     });
     server.on('error', (e) => {
