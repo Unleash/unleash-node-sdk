@@ -1,7 +1,7 @@
+/** biome-ignore-all lint/suspicious/noExplicitAny: relaxed for testing */
 import test from 'ava';
 import { UnleashEvents } from '../../events';
 import type { StreamingFetchingOptions } from '../../repository/fetcher';
-import type { FailEvent } from '../../repository/streaming-fail-over';
 import { StreamingFetcher } from '../../repository/streaming-fetcher';
 
 function makeOptions(overrides: Partial<StreamingFetchingOptions> = {}): StreamingFetchingOptions {
@@ -13,23 +13,10 @@ function makeOptions(overrides: Partial<StreamingFetchingOptions> = {}): Streami
     connectionId: 'conn-1',
     onSaveDelta: async () => {},
     onModeChange: async () => {},
-    onSave: async () => {},
     eventSource: undefined,
-    failureWindowMs: 60_000,
-    maxFailuresUntilFailover: 5,
     ...overrides,
-  };
+  } as any;
 }
-
-type StreamingFetcherTestSubject = Omit<
-  StreamingFetcher,
-  'failoverStrategy' | 'handleErrorEvent'
-> & {
-  failoverStrategy: {
-    shouldFailover: (event: FailEvent, now: Date) => boolean;
-  };
-  handleErrorEvent: (error: unknown) => Promise<void>;
-};
 
 test('emits Warn on SSE when failover is triggered', async (t) => {
   const warnings: unknown[] = [];
@@ -38,9 +25,9 @@ test('emits Warn on SSE when failover is triggered', async (t) => {
   });
 
   const fetcher = new StreamingFetcher(options);
-  const testFetcher = fetcher as unknown as StreamingFetcherTestSubject;
+  const anyFetcher = fetcher as any;
 
-  testFetcher.failoverStrategy.shouldFailover = () => true;
+  anyFetcher.failoverStrategy.shouldFailover = () => true;
 
   fetcher.on(UnleashEvents.Warn, (payload) => {
     warnings.push(payload);
@@ -48,7 +35,7 @@ test('emits Warn on SSE when failover is triggered', async (t) => {
 
   const error = { status: 429, message: 'Go away, there are way too many of you' };
 
-  await testFetcher.handleErrorEvent(error);
+  await anyFetcher.handleErrorEvent(error);
 
   t.is(warnings.length, 1);
   t.is(warnings[0], 'Go away, there are way too many of you');
@@ -61,9 +48,9 @@ test('does not emit Warn on SSE when failover is not triggered', async (t) => {
   });
 
   const fetcher = new StreamingFetcher(options);
-  const testFetcher = fetcher as unknown as StreamingFetcherTestSubject;
+  const anyFetcher = fetcher as any;
 
-  testFetcher.failoverStrategy.shouldFailover = () => false;
+  anyFetcher.failoverStrategy.shouldFailover = () => false;
 
   fetcher.on(UnleashEvents.Warn, (payload) => {
     warnings.push(payload);
@@ -71,7 +58,7 @@ test('does not emit Warn on SSE when failover is not triggered', async (t) => {
 
   const error = { status: 500, message: 'Temporary server issue' };
 
-  await testFetcher.handleErrorEvent(error);
+  await anyFetcher.handleErrorEvent(error);
 
   t.is(warnings.length, 0);
 });
@@ -83,9 +70,9 @@ test('transient errors that cause failover report the last error', async (t) => 
   });
 
   const fetcher = new StreamingFetcher(options);
-  const testFetcher = fetcher as unknown as StreamingFetcherTestSubject;
+  const anyFetcher = fetcher as any;
 
-  testFetcher.failoverStrategy.shouldFailover = (() => {
+  anyFetcher.failoverStrategy.shouldFailover = (() => {
     const currentErrors: unknown[] = [];
 
     return (error: unknown) => {
@@ -98,9 +85,9 @@ test('transient errors that cause failover report the last error', async (t) => 
     warnings.push(payload);
   });
 
-  await testFetcher.handleErrorEvent({ status: 500, message: 'Once in a lifetime issue' });
-  await testFetcher.handleErrorEvent({ status: 500, message: 'Second once in a lifetime issue' });
-  await testFetcher.handleErrorEvent({
+  await anyFetcher.handleErrorEvent({ status: 500, message: 'Once in a lifetime issue' });
+  await anyFetcher.handleErrorEvent({ status: 500, message: 'Second once in a lifetime issue' });
+  await anyFetcher.handleErrorEvent({
     status: 500,
     message: 'Third once in a lifetime issue, thats too many',
   });
