@@ -1,5 +1,4 @@
 import test from 'ava';
-import { inc } from 'semver';
 import type Client from '../../client';
 import { MetricsAPI } from '../../impact-metrics/metric-api';
 import type {
@@ -23,29 +22,14 @@ const fakeVariantResolver = (
   }),
 });
 
-const baseRegistry: ImpactMetricRegistry = {
-  getCounter: () => undefined,
-  getGauge: () => undefined,
-  getHistogram: () => undefined,
-  counter: () => ({ inc: () => {} }),
-  gauge: () => ({ inc: () => {}, dec: () => {}, set: () => {} }),
-  histogram: () => ({ observe: () => {}, restore: () => {} }),
-};
-
-const createRegistry = (overrides: Partial<ImpactMetricRegistry>): ImpactMetricRegistry => ({
-  ...baseRegistry,
-  ...overrides,
-});
-
 test('should not register a counter with empty name or help', (t) => {
   let counterRegistered = false;
 
-  const fakeRegistry = createRegistry({
+  const fakeRegistry = {
     counter: () => {
       counterRegistered = true;
-      return { inc: () => {} } as Counter;
     },
-  });
+  } as unknown as ImpactMetricRegistry;
 
   const staticContext = { appName: 'my-app', environment: 'dev' };
   const api = new MetricsAPI(fakeRegistry, fakeVariantResolver(), staticContext);
@@ -60,12 +44,11 @@ test('should not register a counter with empty name or help', (t) => {
 test('should register a counter with valid name and help', (t) => {
   let counterRegistered = false;
 
-  const fakeRegistry = createRegistry({
+  const fakeRegistry = {
     counter: () => {
       counterRegistered = true;
-      return { inc: () => {} } as Counter;
     },
-  });
+  } as unknown as ImpactMetricRegistry;
 
   const staticContext = { appName: 'my-app', environment: 'dev' };
   const api = new MetricsAPI(fakeRegistry, fakeVariantResolver(), staticContext);
@@ -77,12 +60,12 @@ test('should register a counter with valid name and help', (t) => {
 test('should not register a gauge with empty name or help', (t) => {
   let gaugeRegistered = false;
 
-  const fakeRegistry = createRegistry({
+  const fakeRegistry = {
     gauge: () => {
       gaugeRegistered = true;
       return { inc: () => {}, dec: () => {}, set: () => {} } as Gauge;
     },
-  });
+  } as unknown as ImpactMetricRegistry;
 
   const staticContext = { appName: 'my-app', environment: 'dev' };
   const api = new MetricsAPI(fakeRegistry, fakeVariantResolver(), staticContext);
@@ -97,12 +80,11 @@ test('should not register a gauge with empty name or help', (t) => {
 test('should register a gauge with valid name and help', (t) => {
   let gaugeRegistered = false;
 
-  const fakeRegistry = createRegistry({
+  const fakeRegistry = {
     gauge: () => {
       gaugeRegistered = true;
-      return { inc: () => {}, dec: () => {}, set: () => {} } as Gauge;
     },
-  });
+  } as unknown as ImpactMetricRegistry;
 
   const staticContext = { appName: 'my-app', environment: 'dev' };
   const api = new MetricsAPI(fakeRegistry, fakeVariantResolver(), staticContext);
@@ -122,9 +104,9 @@ test('should increment counter with valid parameters', (t) => {
     },
   };
 
-  const fakeRegistry = createRegistry({
+  const fakeRegistry = {
     getCounter: () => fakeCounter,
-  });
+  } as unknown as ImpactMetricRegistry;
 
   const staticContext = { appName: 'my-app', environment: 'dev' };
   const api = new MetricsAPI(fakeRegistry, fakeVariantResolver(), staticContext);
@@ -143,13 +125,11 @@ test('should set gauge with valid parameters', (t) => {
       gaugeSet = true;
       recordedLabels = labels;
     },
-    inc: () => {},
-    dec: () => {},
   };
 
-  const fakeRegistry = createRegistry({
+  const fakeRegistry = {
     getGauge: () => fakeGauge,
-  });
+  } as unknown as ImpactMetricRegistry;
 
   const staticContext = { appName: 'my-app', environment: 'dev' };
   const api = new MetricsAPI(fakeRegistry, fakeVariantResolver('variantY'), staticContext);
@@ -162,7 +142,7 @@ test('should set gauge with valid parameters', (t) => {
 test('defining a counter automatically sets label names', (t) => {
   let counterRegistered = false;
 
-  const fakeRegistry = createRegistry({
+  const fakeRegistry = {
     counter: (config: MetricOptions) => {
       counterRegistered = true;
       t.deepEqual(
@@ -170,9 +150,8 @@ test('defining a counter automatically sets label names', (t) => {
         ['featureName', 'appName', 'environment'],
         'Label names should be set correctly',
       );
-      return { inc: () => {} };
     },
-  });
+  } as unknown as ImpactMetricRegistry;
 
   const staticContext = { appName: 'my-app', environment: 'dev' };
   const api = new MetricsAPI(fakeRegistry, fakeVariantResolver(), staticContext);
@@ -184,7 +163,7 @@ test('defining a counter automatically sets label names', (t) => {
 test('defining a gauge automatically sets label names', (t) => {
   let gaugeRegistered = false;
 
-  const fakeRegistry = createRegistry({
+  const fakeRegistry = {
     gauge: (config: MetricOptions) => {
       gaugeRegistered = true;
       t.deepEqual(
@@ -192,9 +171,8 @@ test('defining a gauge automatically sets label names', (t) => {
         ['featureName', 'appName', 'environment'],
         'Label names should be set correctly',
       );
-      return { inc: () => {}, dec: () => {}, set: () => {} };
     },
-  });
+  } as unknown as ImpactMetricRegistry;
 
   const staticContext = { appName: 'my-app', environment: 'dev' };
   const api = new MetricsAPI(fakeRegistry, fakeVariantResolver('variantX'), staticContext);
@@ -206,12 +184,11 @@ test('defining a gauge automatically sets label names', (t) => {
 test('should not register a histogram with empty name or help', (t) => {
   let histogramRegistered = false;
 
-  const fakeRegistry = createRegistry({
+  const fakeRegistry = {
     histogram: () => {
       histogramRegistered = true;
-      return { observe: () => {}, restore: () => {} };
     },
-  });
+  } as unknown as ImpactMetricRegistry;
 
   const staticContext = { appName: 'my-app', environment: 'dev' };
   const api = new MetricsAPI(fakeRegistry, fakeVariantResolver(), staticContext);
@@ -226,12 +203,11 @@ test('should not register a histogram with empty name or help', (t) => {
 test('should register a histogram with valid name and help', (t) => {
   let histogramRegistered = false;
 
-  const fakeRegistry = createRegistry({
+  const fakeRegistry = {
     histogram: () => {
       histogramRegistered = true;
-      return { observe: () => {}, restore: () => {} };
     },
-  });
+  } as unknown as ImpactMetricRegistry;
 
   const staticContext = { appName: 'my-app', environment: 'dev' };
   const api = new MetricsAPI(fakeRegistry, fakeVariantResolver(), staticContext);
@@ -249,12 +225,11 @@ test('should observe histogram with valid parameters', (t) => {
       histogramObserved = true;
       recordedLabels = labels;
     },
-    restore: () => {},
   };
 
-  const fakeRegistry = createRegistry({
+  const fakeRegistry = {
     getHistogram: () => fakeHistogram,
-  });
+  } as unknown as ImpactMetricRegistry;
 
   const staticContext = { appName: 'my-app', environment: 'dev' };
   const api = new MetricsAPI(fakeRegistry, fakeVariantResolver(), staticContext);
@@ -267,7 +242,7 @@ test('should observe histogram with valid parameters', (t) => {
 test('defining a histogram automatically sets label names', (t) => {
   let histogramRegistered = false;
 
-  const fakeRegistry = createRegistry({
+  const fakeRegistry = {
     histogram: (config: BucketMetricOptions) => {
       histogramRegistered = true;
       t.deepEqual(
@@ -275,9 +250,8 @@ test('defining a histogram automatically sets label names', (t) => {
         ['featureName', 'appName', 'environment'],
         'Label names should be set correctly',
       );
-      return { observe: () => {}, restore: () => {} };
     },
-  });
+  } as unknown as ImpactMetricRegistry;
 
   const staticContext = { appName: 'my-app', environment: 'dev' };
   const api = new MetricsAPI(fakeRegistry, fakeVariantResolver(), staticContext);
