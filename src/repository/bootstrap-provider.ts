@@ -1,9 +1,9 @@
-import { promises } from 'fs';
+import { promises } from 'node:fs';
 import * as fetch from 'make-fetch-happen';
-import { ClientFeaturesResponse, FeatureInterface } from '../feature';
-import { CustomHeaders } from '../headers';
+import type { ClientFeaturesResponse, FeatureInterface } from '../feature';
+import type { CustomHeaders } from '../headers';
 import { buildHeaders } from '../request';
-import { Segment } from '../strategy/strategy';
+import type { Segment } from '../strategy/strategy';
 
 export interface BootstrapProvider {
   readBootstrap(): Promise<ClientFeaturesResponse | undefined>;

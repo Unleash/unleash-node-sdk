@@ -1,15 +1,14 @@
-import DefaultStrategy from './default-strategy';
 import ApplicationHostnameStrategy from './application-hostname-strategy';
-import GradualRolloutRandomStrategy from './gradual-rollout-random';
-import GradualRolloutUserIdStrategy from './gradual-rollout-user-id';
-import GradualRolloutSessionIdStrategy from './gradual-rollout-session-id';
-import UserWithIdStrategy from './user-with-id-strategy';
-import RemoteAddressStrategy from './remote-addresss-strategy';
+import DefaultStrategy from './default-strategy';
 import FlexibleRolloutStrategy from './flexible-rollout-strategy';
-import { Strategy } from './strategy';
+import GradualRolloutRandomStrategy from './gradual-rollout-random';
+import GradualRolloutSessionIdStrategy from './gradual-rollout-session-id';
+import GradualRolloutUserIdStrategy from './gradual-rollout-user-id';
+import RemoteAddressStrategy from './remote-addresss-strategy';
+import type { Strategy } from './strategy';
+import UserWithIdStrategy from './user-with-id-strategy';
 
-export { Strategy } from './strategy';
-export { StrategyTransportInterface } from './strategy';
+export { Strategy, StrategyTransportInterface } from './strategy';
 
 export const defaultStrategies: Array<Strategy> = [
   new DefaultStrategy(),

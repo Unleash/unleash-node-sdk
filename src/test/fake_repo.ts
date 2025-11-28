@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { EventEmitter } from 'events';
+import { EventEmitter } from 'node:events';
 
 export default class FakeRepo extends EventEmitter {
   constructor(data) {

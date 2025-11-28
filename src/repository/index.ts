@@ -1,23 +1,23 @@
-import { EventEmitter } from 'events';
-import {
+import { EventEmitter } from 'node:events';
+import { UnleashEvents } from '../events';
+import type {
   ClientFeaturesDelta,
   ClientFeaturesResponse,
   EnhancedFeatureInterface,
   FeatureInterface,
 } from '../feature';
-import { CustomHeaders, CustomHeadersFunction } from '../headers';
-import { HttpOptions } from '../http-options';
-import { TagFilter } from '../tags';
-import { BootstrapProvider } from './bootstrap-provider';
-import { StorageProvider } from './storage-provider';
-import { UnleashEvents } from '../events';
-import {
+import type { CustomHeaders, CustomHeadersFunction } from '../headers';
+import type { HttpOptions } from '../http-options';
+import type {
   EnhancedStrategyTransportInterface,
   Segment,
   StrategyTransportInterface,
 } from '../strategy/strategy';
-import { Mode } from '../unleash-config';
+import type { TagFilter } from '../tags';
+import type { Mode } from '../unleash-config';
 import { AdaptiveFetcher } from './adaptive-fetcher';
+import type { BootstrapProvider } from './bootstrap-provider';
+import type { StorageProvider } from './storage-provider';
 
 export const SUPPORTED_SPEC_VERSION = '5.2.0';
 
@@ -271,11 +271,12 @@ export default class Repository extends EventEmitter implements EventEmitter {
       if (content && this.notEmpty(content)) {
         await this.save(content, false);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
       this.emit(
         UnleashEvents.Warn,
         `Unleash SDK was unable to load bootstrap.
-Message: ${err.message}`,
+Message: ${message}`,
       );
     }
   }
@@ -283,10 +284,9 @@ Message: ${err.message}`,
   private convertToMap(features: FeatureInterface[]): FeatureToggleData {
     const obj = features.reduce(
       (o: { [s: string]: FeatureInterface }, feature: FeatureInterface) => {
-        const a = { ...o };
         this.validateFeature(feature);
-        a[feature.name] = feature;
-        return a;
+        o[feature.name] = feature;
+        return o;
       },
       {} as { [s: string]: FeatureInterface },
     );

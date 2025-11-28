@@ -1,11 +1,11 @@
-import { EventEmitter } from 'events';
+import { EventEmitter } from 'node:events';
+import { EventSource } from '../event-source';
+import { UnleashEvents } from '../events';
 import { parseClientFeaturesDelta } from '../feature';
 import { buildHeaders } from '../request';
 import { resolveUrl } from '../url-utils';
-import { UnleashEvents } from '../events';
-import { EventSource } from '../event-source';
-import { FetcherInterface, StreamingFetchingOptions } from './fetcher';
-import { FailEvent, FailoverStrategy } from './streaming-fail-over';
+import type { FetcherInterface, StreamingFetchingOptions } from './fetcher';
+import { type FailEvent, FailoverStrategy } from './streaming-fail-over';
 
 export class StreamingFetcher extends EventEmitter implements FetcherInterface {
   private eventSource: EventSource | undefined;
@@ -64,20 +64,36 @@ export class StreamingFetcher extends EventEmitter implements FetcherInterface {
     }
   }
 
-  private async handleErrorEvent(error: any): Promise<void> {
+  private async handleErrorEvent(error: unknown): Promise<void> {
     const now = new Date();
 
+    const statusCode =
+      typeof error === 'object' &&
+      error !== null &&
+      typeof (error as { status?: unknown }).status === 'number'
+        ? (error as { status: number }).status
+        : undefined;
+
+    const message =
+      typeof error === 'string'
+        ? error
+        : typeof error === 'object' &&
+            error !== null &&
+            typeof (error as { message?: unknown }).message === 'string'
+          ? (error as { message: string }).message
+          : undefined;
+
     const failEvent: FailEvent =
-      typeof error?.status === 'number'
+      typeof statusCode === 'number'
         ? {
             type: 'http-status-error',
-            message: error.message ?? `Stream failed with http status code ${error.status}`,
-            statusCode: error.status,
+            message: message ?? `Stream failed with http status code ${statusCode}`,
+            statusCode,
             occurredAt: now,
           }
         : {
             type: 'network-error',
-            message: error.message ?? 'Network error occurred in streaming',
+            message: message ?? 'Network error occurred in streaming',
             occurredAt: now,
           };
 
@@ -147,9 +163,7 @@ export class StreamingFetcher extends EventEmitter implements FetcherInterface {
       maxBackoffMillis: 30000,
       retryResetIntervalMillis: 60000,
       jitterRatio: 0.5,
-      errorFilter: function () {
-        return true;
-      },
+      errorFilter: () => true,
     });
   }
 

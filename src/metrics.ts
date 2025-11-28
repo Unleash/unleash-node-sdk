@@ -1,13 +1,13 @@
-import { EventEmitter } from 'events';
-import { post } from './request';
-import { CustomHeaders, CustomHeadersFunction } from './headers';
+import { EventEmitter } from 'node:events';
 import { sdkVersion } from './details.json';
-import { HttpOptions } from './http-options';
-import { suffixSlash, resolveUrl } from './url-utils';
 import { UnleashEvents } from './events';
+import type { CustomHeaders, CustomHeadersFunction } from './headers';
 import { getAppliedJitter } from './helpers';
+import type { HttpOptions } from './http-options';
+import type { CollectedMetric, ImpactMetricsDataSource } from './impact-metrics/metric-types';
 import { SUPPORTED_SPEC_VERSION } from './repository';
-import { CollectedMetric, ImpactMetricsDataSource } from './impact-metrics/metric-types';
+import { post } from './request';
+import { resolveUrl, suffixSlash } from './url-utils';
 
 export interface MetricsOptions {
   appName: string;
@@ -208,7 +208,7 @@ export default class Metrics extends EventEmitter {
     try {
       const res = await post({
         url,
-        json: payload,
+        json: payload as unknown as Record<string, unknown>,
         appName: this.appName,
         instanceId: this.instanceId,
         connectionId: this.connectionId,
@@ -236,7 +236,6 @@ export default class Metrics extends EventEmitter {
 
   backoff(url: string, statusCode: number): void {
     this.failures = Math.min(10, this.failures + 1);
-    // eslint-disable-next-line max-len
     this.emit(
       UnleashEvents.Warn,
       `${url} returning ${statusCode}. Backing off to ${this.failures} times normal interval`,
@@ -264,7 +263,7 @@ export default class Metrics extends EventEmitter {
     try {
       const res = await post({
         url,
-        json: payload,
+        json: payload as unknown as Record<string, unknown>,
         appName: this.appName,
         instanceId: this.instanceId,
         connectionId: this.connectionId,
@@ -274,7 +273,7 @@ export default class Metrics extends EventEmitter {
         httpOptions: this.httpOptions,
       });
       if (!res.ok) {
-        if (res.status === 403 || res.status == 401) {
+        if (res.status === 403 || res.status === 401) {
           this.configurationError(url, res.status);
         } else if (
           res.status === 404 ||

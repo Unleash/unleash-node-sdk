@@ -1,5 +1,5 @@
-import { CustomHeaders } from '../headers';
-import { StaticContext } from '../unleash';
+import type { CustomHeaders } from '../headers';
+import type { StaticContext } from '../unleash';
 import { extractEnvironmentFromCustomHeaders } from './environment-resolver';
 
 export const buildImpactMetricContext = (

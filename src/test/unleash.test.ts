@@ -1,14 +1,13 @@
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import test from 'ava';
-import * as nock from 'nock';
-import { tmpdir } from 'os';
-import { join } from 'path';
 import { mkdirp } from 'mkdirp';
+import * as nock from 'nock';
 import * as sinon from 'sinon';
-import FakeRepo from './fake_repo';
-
-import { Strategy, Unleash, UnleashEvents } from '../unleash';
 import { InMemStorageProvider } from '..';
-import { RepositoryInterface } from '../repository';
+import type { RepositoryInterface } from '../repository';
+import { Strategy, Unleash, UnleashEvents } from '../unleash';
+import FakeRepo from './fake_repo';
 
 class EnvironmentStrategy extends Strategy {
   constructor() {
@@ -309,7 +308,7 @@ test('should call fallback function for unknown feature-toggle', (t) =>
     }).on('error', reject);
 
     instance.on('synchronized', () => {
-      const fallbackFunc = sinon.spy(() => false); // eslint-disable-line import/namespace
+      const fallbackFunc = sinon.spy(() => false);
       const name = 'unknown';
       const result = instance.isEnabled(name, { userId: '123' }, fallbackFunc);
       t.true(result === false);
@@ -331,8 +330,7 @@ test('should not throw when os.userInfo throws', (t) => {
   t.plan(0);
 
   return new Promise((resolve, reject) => {
-    // eslint-disable-next-line global-require
-    require('os').userInfo = () => {
+    require('node:os').userInfo = () => {
       throw new Error('Test exception');
     };
     const url = mockNetwork();
@@ -959,7 +957,7 @@ test('should allow custom repository', (t) =>
     });
   }));
 
-const metricsCapturingUnleash = (input: any) => {
+const metricsCapturingUnleash = (input: unknown) => {
   const url = getUrl();
   const repository = new FakeRepo(input);
   const instance = new Unleash({

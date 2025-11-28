@@ -1,17 +1,17 @@
-import { EventEmitter } from 'events';
-import { Strategy, StrategyTransportInterface } from './strategy';
-import { FeatureInterface } from './feature';
-import { RepositoryInterface } from './repository';
+import { EventEmitter } from 'node:events';
+import type { Context } from './context';
+import { createImpressionEvent, UnleashEvents } from './events';
+import type { FeatureInterface } from './feature';
+import type { RepositoryInterface } from './repository';
+import type { Strategy, StrategyTransportInterface } from './strategy';
+import type { Constraint, Segment, StrategyResult } from './strategy/strategy';
 import {
-  Variant,
-  VariantDefinition,
-  VariantWithFeatureStatus,
   defaultVariant,
   selectVariant,
+  type Variant,
+  type VariantDefinition,
+  type VariantWithFeatureStatus,
 } from './variant';
-import { Context } from './context';
-import { Constraint, Segment, StrategyResult } from './strategy/strategy';
-import { createImpressionEvent, UnleashEvents } from './events';
 
 interface BooleanMap {
   [key: string]: boolean;
@@ -23,16 +23,15 @@ interface BooleanMap {
  *
  * declare module 'unleash-client' {
  *   interface UnleashTypes {
- *     flagNames: string;
+ *     flagNames: 'foo' | 'bar';
  *   }
  * }
  */
-export interface UnleashTypes {}
+export interface UnleashTypes {
+  flagNames: string;
+}
 
-type GetCustom<K extends PropertyKey, Fallback> = K extends keyof UnleashTypes
-  ? UnleashTypes[K]
-  : Fallback;
-export type Name = GetCustom<'flagNames', string>;
+export type Name = UnleashTypes['flagNames'];
 
 export default class UnleashClient extends EventEmitter {
   private repository: RepositoryInterface;
@@ -123,7 +122,7 @@ export default class UnleashClient extends EventEmitter {
     });
   }
 
-  isEnabled(name: Name, context: Context, fallback: Function): boolean {
+  isEnabled(name: Name, context: Context, fallback: () => boolean): boolean {
     const feature = this.repository.getToggle(name);
     const enabled = this.isFeatureEnabled(feature, context, fallback).enabled;
 
@@ -145,7 +144,7 @@ export default class UnleashClient extends EventEmitter {
   isFeatureEnabled(
     feature: FeatureInterface | undefined,
     context: Context,
-    fallback: Function,
+    fallback: () => boolean,
   ): StrategyResult {
     if (!feature) {
       return { enabled: fallback() };
@@ -207,11 +206,9 @@ export default class UnleashClient extends EventEmitter {
   *yieldSegmentConstraints(
     segments: (Segment | undefined)[],
   ): IterableIterator<Constraint | undefined> {
-    // eslint-disable-next-line no-restricted-syntax
     for (const segment of segments) {
       if (segment) {
-        // eslint-disable-next-line no-restricted-syntax
-        for (const constraint of segment?.constraints) {
+        for (const constraint of segment.constraints ?? []) {
           yield constraint;
         }
       } else {

@@ -1,8 +1,7 @@
-import { Context } from './context';
-// eslint-disable-next-line import/no-cycle
-import { FeatureInterface } from './feature';
-import { normalizedVariantValue } from './strategy/util';
+import type { Context } from './context';
+import type { FeatureInterface } from './feature';
 import { resolveContextValue } from './helpers';
+import { normalizedVariantValue } from './strategy/util';
 
 export enum PayloadType {
   STRING = 'string',
@@ -70,7 +69,7 @@ function getSeed(context: Context, stickiness: string = 'default'): string {
     const value = resolveContextValue(context, stickiness);
     return value ? value.toString() : randomString();
   }
-  let result;
+  let result: string | undefined;
   stickinessSelectors.some((key: string): boolean => {
     const value = context[key];
     if (typeof value === 'string' && value !== '') {

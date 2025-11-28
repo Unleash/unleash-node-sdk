@@ -1,11 +1,10 @@
 // @ts-nocheck
 import test from 'ava';
 import Client from '../client';
-import { defaultStrategies, Strategy } from '../strategy';
-
-import CustomStrategy from './true_custom_strategy';
-import CustomFalseStrategy from './false_custom_strategy';
 import { UnleashEvents } from '../events';
+import { defaultStrategies, Strategy } from '../strategy';
+import CustomFalseStrategy from './false_custom_strategy';
+import CustomStrategy from './true_custom_strategy';
 
 function buildToggle(name, active, strategies, variants = [], impressionData = false) {
   return {
@@ -308,7 +307,7 @@ test('should trigger events on isEnabled if impressionData is true', (t) => {
 
 test('should trigger events on unsatisfied dependency', (t) => {
   let impressionCount = 0;
-  let recordedWarnings = [];
+  const recordedWarnings = [];
   const repo = {
     getToggle(name: string) {
       if (name === 'feature-x') {

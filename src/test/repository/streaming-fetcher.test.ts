@@ -1,7 +1,8 @@
+/** biome-ignore-all lint/suspicious/noExplicitAny: relaxed for testing */
 import test from 'ava';
-import { StreamingFetcher } from '../../repository/streaming-fetcher';
 import { UnleashEvents } from '../../events';
 import type { StreamingFetchingOptions } from '../../repository/fetcher';
+import { StreamingFetcher } from '../../repository/streaming-fetcher';
 
 function makeOptions(overrides: Partial<StreamingFetchingOptions> = {}): StreamingFetchingOptions {
   return {

@@ -1,5 +1,5 @@
 import test from 'ava';
-import { FailoverStrategy, type FailEvent } from '../../repository/streaming-fail-over';
+import { type FailEvent, FailoverStrategy } from '../../repository/streaming-fail-over';
 
 test('fails over immediately when server requests it', (t) => {
   const failOverStrategy = new FailoverStrategy(3, 10_000);

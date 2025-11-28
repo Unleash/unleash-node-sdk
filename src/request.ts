@@ -1,12 +1,13 @@
-import * as fetch from 'make-fetch-happen';
+import * as http from 'node:http';
+import * as https from 'node:https';
+import type { URL } from 'node:url';
 import { HttpProxyAgent } from 'http-proxy-agent';
 import { HttpsProxyAgent } from 'https-proxy-agent';
-import * as http from 'http';
-import * as https from 'https';
-import { URL } from 'url';
+import * as fetch from 'make-fetch-happen';
 import { getProxyForUrl } from 'proxy-from-env';
-import { CustomHeaders } from './headers';
-import { HttpOptions } from './http-options';
+import type { CustomHeaders } from './headers';
+import type { HttpOptions } from './http-options';
+
 const details = require('./details.json');
 
 export interface RequestOptions {
@@ -26,7 +27,7 @@ export interface GetRequestOptions extends RequestOptions {
 }
 
 export interface Data {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface PostRequestOptions extends RequestOptions {

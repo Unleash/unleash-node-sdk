@@ -1,7 +1,7 @@
 import test from 'ava';
 import * as nock from 'nock';
-import Metrics from '../metrics';
 import type { CollectedMetric } from '../impact-metrics/metric-types';
+import Metrics from '../metrics';
 import { SUPPORTED_SPEC_VERSION } from '../repository';
 
 let counter = 1;
@@ -632,7 +632,7 @@ test('createMetricsData should include impactMetrics if provided', (t) => {
 
 test('sendMetrics should include impactMetrics in the payload', async (t) => {
   const url = getUrl();
-  let capturedBody = null;
+  let capturedBody: { impactMetrics?: CollectedMetric[] } | undefined;
 
   const impactMetricSample: CollectedMetric = {
     name: 'feature_toggle_used',
@@ -661,7 +661,7 @@ test('sendMetrics should include impactMetrics in the payload', async (t) => {
     .reply(200);
 
   await metrics.sendMetrics();
-  t.deepEqual(capturedBody!.impactMetrics, [impactMetricSample]);
+  t.deepEqual(capturedBody?.impactMetrics, [impactMetricSample]);
   t.true(scope.isDone());
 });
 
@@ -699,7 +699,7 @@ test('sendMetrics should restore impactMetrics on failure', async (t) => {
 
 test('sendMetrics should not include impactMetrics field when empty', async (t) => {
   const url = getUrl();
-  let capturedBody = null;
+  let capturedBody: Record<string, unknown> | null = null;
 
   const fakeMetricRegistry = {
     collect: () => [],
@@ -724,6 +724,6 @@ test('sendMetrics should not include impactMetrics field when empty', async (t) 
     .reply(200);
 
   await metrics.sendMetrics();
-  t.false('impactMetrics' in capturedBody!);
+  t.false(Boolean(capturedBody && 'impactMetrics' in capturedBody));
   t.true(scope.isDone());
 });

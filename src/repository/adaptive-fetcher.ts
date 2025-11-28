@@ -1,6 +1,6 @@
-import { EventEmitter } from 'events';
+import { EventEmitter } from 'node:events';
 import { UnleashEvents } from '../events';
-import { FetcherInterface, FetchingOptions } from './fetcher';
+import type { FetcherInterface, FetchingOptions } from './fetcher';
 import { PollingFetcher } from './polling-fetcher';
 import { StreamingFetcher } from './streaming-fetcher';
 

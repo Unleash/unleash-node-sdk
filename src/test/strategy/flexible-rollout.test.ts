@@ -1,4 +1,3 @@
-/* eslint-disable import/no-extraneous-dependencies */
 import test from 'ava';
 import * as sinon from 'sinon';
 
@@ -31,7 +30,7 @@ test('should be disabled when stickiness=userId and userId not on context', (t) 
 });
 
 test('should fallback to random if stickiness=default and empty context', (t) => {
-  const randomGenerator = sinon.fake.returns('42'); // eslint-disable-line import/namespace
+  const randomGenerator = sinon.fake.returns('42');
 
   const strategy = new FlexibleRolloutStrategy(randomGenerator);
   const params = { rollout: '100', stickiness: 'default', groupId: 'Demo' };

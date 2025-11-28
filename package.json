@@ -7,8 +7,8 @@
   "typings": "./lib/index.d.ts",
   "scripts": {
     "version": "./scripts/update-build-details.sh $npm_package_version",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
     "pre-commit": "lint-staged",
     "prebuild": "del-cli --force lib",
     "build": "tsc -p .",
@@ -50,6 +50,7 @@
   "devDependencies": {
     "@ava/babel": "^2.0.0",
     "@ava/typescript": "^4.0.0",
+    "@biomejs/biome": "2.3.8",
     "@tsconfig/node12": "^12.0.0",
     "@types/eventsource": "^1.1.15",
     "@types/express": "^4.17.17",
@@ -61,25 +62,16 @@
     "@types/proxy-from-env": "^1.0.4",
     "@types/semver": "^7.5.0",
     "@types/sinon": "^17.0.0",
-    "@typescript-eslint/eslint-plugin": "^6.0.0",
-    "@typescript-eslint/parser": "^6.0.0",
     "@unleash/client-specification": "^5.1.6",
     "ava": "^5.3.0",
     "cross-env": "^7.0.3",
     "del-cli": "^5.0.0",
-    "eslint": "^8.44.0",
-    "eslint-config-airbnb-typescript": "^17.1.0",
-    "eslint-config-prettier": "^8.8.0",
-    "eslint-import-resolver-typescript": "^3.5.5",
-    "eslint-plugin-import": "^2.27.5",
-    "eslint-plugin-prettier": "^5.0.0",
     "esm": "^3.2.25",
     "husky": "^8.0.3",
     "lint-staged": "^14.0.0",
     "mkdirp": "^3.0.1",
     "nock": "^13.3.1",
     "nyc": "^15.1.0",
-    "prettier": "^3.0.0",
     "redis": "^4.6.7",
     "sinon": "^18.0.0",
     "typescript": "^5.4.3"
@@ -107,27 +99,9 @@
     "all": true,
     "exclude-after-remap": false
   },
-  "prettier": {
-    "printWidth": 100,
-    "proseWrap": "always",
-    "singleQuote": true,
-    "tabWidth": 2,
-    "trailingComma": "all",
-    "overrides": [
-      {
-        "files": "*.json",
-        "options": {
-          "tabWidth": 2
-        }
-      }
-    ]
-  },
   "lint-staged": {
-    "*.{js,ts}": [
-      "eslint --fix"
-    ],
-    "*.{md,json}": [
-      "prettier --write"
+    "*.{js,ts,jsx,tsx,json,md}": [
+      "biome check --write"
     ]
   },
   "ava": {

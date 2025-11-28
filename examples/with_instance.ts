@@ -1,10 +1,10 @@
-import * as express from 'express'; // eslint-disable-line import/no-unresolved
-import { Unleash, Strategy } from '../lib/unleash';
+import * as express from 'express';
+import { Strategy, Unleash } from '../lib/unleash';
 
 const fixture = require('./fixtures/format-0.json');
 
 const app = express();
-app.get('/', (req, res) => res.json(fixture));
+app.get('/', (_req, res) => res.json(fixture));
 app.listen(1234);
 
 const strategies: Strategy[] = [

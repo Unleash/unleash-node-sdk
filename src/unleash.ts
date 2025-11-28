@@ -1,27 +1,26 @@
-import { tmpdir } from 'os';
-import { EventEmitter } from 'events';
-import Client, { Name } from './client';
-import Repository, { RepositoryInterface } from './repository';
-import Metrics from './metrics';
-import { Context } from './context';
-import { Strategy, defaultStrategies } from './strategy';
-
-import { EnhancedFeatureInterface, FeatureInterface } from './feature';
-import { Variant, defaultVariant, VariantWithFeatureStatus } from './variant';
+import { EventEmitter } from 'node:events';
+import { tmpdir } from 'node:os';
+import Client, { type Name } from './client';
+import type { Context } from './context';
+import { type ImpressionEvent, UnleashEvents } from './events';
+import type { EnhancedFeatureInterface, FeatureInterface } from './feature';
 import {
-  FallbackFunction,
   createFallbackFunction,
-  generateInstanceId,
+  type FallbackFunction,
   generateHashOfConfig,
+  generateInstanceId,
 } from './helpers';
-import { resolveBootstrapProvider } from './repository/bootstrap-provider';
-import { ImpressionEvent, UnleashEvents } from './events';
-import { UnleashConfig } from './unleash-config';
-import FileStorageProvider from './repository/storage-provider-file';
-import { uuidv4 } from './uuidv4';
-import { InMemoryMetricRegistry } from './impact-metrics/metric-types';
-import { MetricsAPI } from './impact-metrics/metric-api';
 import { buildImpactMetricContext } from './impact-metrics/context';
+import { MetricsAPI } from './impact-metrics/metric-api';
+import { InMemoryMetricRegistry } from './impact-metrics/metric-types';
+import Metrics from './metrics';
+import Repository, { type RepositoryInterface } from './repository';
+import { resolveBootstrapProvider } from './repository/bootstrap-provider';
+import FileStorageProvider from './repository/storage-provider-file';
+import { defaultStrategies, Strategy } from './strategy';
+import { UnleashConfig } from './unleash-config';
+import { uuidv4 } from './uuidv4';
+import { defaultVariant, type Variant, type VariantWithFeatureStatus } from './variant';
 export { Strategy, UnleashEvents, UnleashConfig };
 
 const BACKUP_PATH: string = tmpdir();
@@ -146,7 +145,6 @@ export class Unleash extends EventEmitter {
     });
 
     this.repository.on(UnleashEvents.Error, (err) => {
-      // eslint-disable-next-line no-param-reassign
       err.message = `Unleash Repository error: ${err.message}`;
       this.emit(UnleashEvents.Error, err);
     });
@@ -196,7 +194,6 @@ export class Unleash extends EventEmitter {
     );
 
     this.metrics.on(UnleashEvents.Error, (err) => {
-      // eslint-disable-next-line no-param-reassign
       err.message = `Unleash Metrics error: ${err.message}`;
       this.emit(UnleashEvents.Error, err);
     });
@@ -286,7 +283,7 @@ export class Unleash extends EventEmitter {
     const enhancedContext = { ...this.staticContext, ...context };
     const fallbackFunc = createFallbackFunction(name, enhancedContext, fallback);
 
-    let result;
+    let result: boolean;
     if (this.ready) {
       result = this.client.isEnabled(name, enhancedContext, fallbackFunc);
     } else {
@@ -313,7 +310,7 @@ export class Unleash extends EventEmitter {
       variant =
         typeof fallbackVariant !== 'undefined'
           ? { ...fallbackVariant, feature_enabled: false, featureEnabled: false }
-          : { ...defaultVariant, featureEnabled: defaultVariant.feature_enabled! };
+          : { ...defaultVariant, featureEnabled: defaultVariant.feature_enabled ?? false };
       this.emit(
         UnleashEvents.Warn,
         `Unleash has not been initialized yet. isEnabled(${name}) defaulted to ${variant}`,
@@ -357,9 +354,9 @@ export class Unleash extends EventEmitter {
   }
 
   getFeatureToggleDefinitions(): Array<FeatureInterface>;
-  getFeatureToggleDefinitions(withFullSegments: true): Array<EnhancedFeatureInterface>;
+  getFeatureToggleDefinitions(withFullSegments: boolean): Array<EnhancedFeatureInterface>;
   getFeatureToggleDefinitions(
-    withFullSegments?: any,
+    withFullSegments?: boolean,
   ): Array<FeatureInterface | EnhancedFeatureInterface> {
     if (withFullSegments === true) {
       return this.repository.getTogglesWithSegmentData();

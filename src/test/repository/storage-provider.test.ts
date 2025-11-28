@@ -1,7 +1,7 @@
+import { writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import test from 'ava';
-import { writeFileSync } from 'fs';
-import { tmpdir } from 'os';
-import { join } from 'path';
 import FileStorageProvider from '../../repository/storage-provider-file';
 
 test('should handle empty string', async (t) => {

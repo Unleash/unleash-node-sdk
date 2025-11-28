@@ -1,27 +1,27 @@
+import { EventEmitter } from 'node:events';
+import { writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import test from 'ava';
 import * as nock from 'nock';
-import { writeFileSync } from 'fs';
-import { tmpdir } from 'os';
-import { join } from 'path';
-
-import InMemStorageProvider from '../../repository/storage-provider-in-mem';
-import FileStorageProvider from '../../repository/storage-provider-file';
+import type { ClientFeaturesResponse, DeltaEvent, EnhancedFeatureInterface } from '../../feature';
 import Repository from '../../repository';
 import { DefaultBootstrapProvider } from '../../repository/bootstrap-provider';
-import { StorageProvider } from '../../repository/storage-provider';
-import { ClientFeaturesResponse, DeltaEvent } from '../../feature';
-import { EventEmitter } from 'events';
+import type { StorageProvider } from '../../repository/storage-provider';
+import FileStorageProvider from '../../repository/storage-provider-file';
+import InMemStorageProvider from '../../repository/storage-provider-in-mem';
 
 const appName = 'foo';
 const instanceId = 'bar';
 const connectionId = 'baz';
 
+// biome-ignore lint/suspicious/noExplicitAny: be relaxed in tests
 function setup(url: string, toggles: any[], headers: Record<string, string> = {}) {
   return nock(url).persist().get('/client/features').reply(200, { features: toggles }, headers);
 }
 
 function createMockEventSource() {
-  const eventSource: any = {
+  const eventSource = {
     eventEmitter: new EventEmitter(),
     listeners: new Set<string>(),
     addEventListener(eventName: string, handler: () => void) {
@@ -39,10 +39,13 @@ function createMockEventSource() {
       eventSource.eventEmitter.emit(eventName, data);
     },
   };
-  return eventSource;
+  return eventSource as unknown as EventSource & {
+    closed: boolean;
+    emit: (eventName: string, data: unknown) => void;
+  };
 }
 
-function createSSEResponse(events: Array<{ event: string; data: any }>) {
+function createSSEResponse(events: Array<{ event: string; data: unknown }>) {
   return events
     .map((e) => {
       const dataStr = typeof e.data === 'string' ? e.data : JSON.stringify(e.data);
@@ -77,9 +80,9 @@ test('should fetch from endpoint', (t) =>
     });
 
     repo.once('changed', () => {
-      const savedFeature = repo.getToggle(feature.name)!;
-      t.is(savedFeature.enabled, feature.enabled);
-      t.is(savedFeature.strategies![0].name, feature.strategies[0].name);
+      const savedFeature = repo.getToggle(feature.name);
+      t.is(savedFeature?.enabled, feature.enabled);
+      t.is(savedFeature?.strategies?.[0].name, feature.strategies[0].name);
 
       const featureToggles = repo.getToggles();
       t.is(featureToggles[0].name, 'feature');
@@ -334,10 +337,8 @@ test('should handle 401 request error and emit error event', (t) =>
     });
     repo.on('error', (err) => {
       t.truthy(err);
-      // eslint-disable-next-line max-len
       t.is(
         err.message,
-        // eslint-disable-next-line max-len
         `${url}/client/features responded 401 which means your API key is not allowed to connect. Stopping refresh of toggles`,
       );
       resolve();
@@ -361,10 +362,8 @@ test('should handle 403 request error and emit error event', (t) =>
     });
     repo.on('error', (err) => {
       t.truthy(err);
-      // eslint-disable-next-line max-len
       t.is(
         err.message,
-        // eslint-disable-next-line max-len
         `${url}/client/features responded 403 which means your API key is not allowed to connect. Stopping refresh of toggles`,
       );
       resolve();
@@ -665,7 +664,7 @@ test('should load bootstrap first if faster than unleash-api', (t) =>
     repo.on('changed', () => {
       counter++;
       if (counter === 2) {
-        t.is(repo.getToggle('feature')!.enabled, true);
+        t.is(repo.getToggle('feature')?.enabled, true);
         resolve();
       }
     });
@@ -735,7 +734,7 @@ test('bootstrap should not override actual data', (t) =>
     repo.on('changed', () => {
       counter++;
       if (counter === 2) {
-        t.is(repo.getToggle('feature')!.enabled, true);
+        t.is(repo.getToggle('feature')?.enabled, true);
         resolve();
       }
     });
@@ -784,7 +783,7 @@ test('should load bootstrap first from file', (t) =>
     });
 
     repo.on('changed', () => {
-      t.is(repo.getToggle('feature-bootstrap')!.enabled, true);
+      t.is(repo.getToggle('feature-bootstrap')?.enabled, true);
       resolve();
     });
     repo.start();
@@ -860,7 +859,7 @@ test('should load backup-file', (t) =>
     });
 
     repo.on('ready', () => {
-      t.is(repo.getToggle('feature-backup')!.enabled, true);
+      t.is(repo.getToggle('feature-backup')?.enabled, true);
       resolve();
     });
     repo.start();
@@ -929,7 +928,7 @@ test('bootstrap should override load backup-file', (t) =>
     });
 
     repo.on('changed', () => {
-      t.is(repo.getToggle('feature-backup')!.enabled, false);
+      t.is(repo.getToggle('feature-backup')?.enabled, false);
       resolve();
     });
     repo.on('error', () => {});
@@ -1007,12 +1006,11 @@ test('bootstrap should not override load backup-file', async (t) => {
 
   await repo.start();
 
-  t.is(repo.getToggle('feature-backup')!.enabled, true);
+  t.is(repo.getToggle('feature-backup')?.enabled, true);
 });
 
 // Skipped because make-fetch-happens actually automatically retries two extra times on 404
 // with a timeout of 1000, this makes us have to wait up to 3 seconds for a single test to succeed
-// eslint-disable-next-line max-len
 test.skip('Failing two times and then succeed should decrease interval to 2 times initial interval (404)', async (t) => {
   const url = 'http://unleash-test-fail5times.app';
   nock(url).persist().get('/client/features').reply(404);
@@ -1061,7 +1059,6 @@ test.skip('Failing two times and then succeed should decrease interval to 2 time
 
 // Skipped because make-fetch-happens actually automatically retries two extra times on 429
 // with a timeout of 1000, this makes us have to wait up to 3 seconds for a single test to succeed
-// eslint-disable-next-line max-len
 test.skip('Failing two times should increase interval to 3 times initial interval (initial interval + 2 * interval)', async (t) => {
   const url = 'http://unleash-test-fail5times.app';
   nock(url).persist().get('/client/features').reply(429);
@@ -1085,7 +1082,6 @@ test.skip('Failing two times should increase interval to 3 times initial interva
 
 // Skipped because make-fetch-happens actually automatically retries two extra times on 429
 // with a timeout of 1000, this makes us have to wait up to 3 seconds for a single test to succeed
-// eslint-disable-next-line max-len
 test.skip('Failing two times and then succeed should decrease interval to 2 times initial interval (429)', async (t) => {
   const url = 'http://unleash-test-fail5times.app';
   nock(url).persist().get('/client/features').reply(429);
@@ -1217,16 +1213,16 @@ test('should handle not finding a given segment id', (t) =>
     });
 
     repo.on('ready', () => {
-      const toggles = repo.getTogglesWithSegmentData();
+      const toggles = repo.getTogglesWithSegmentData() as EnhancedFeatureInterface[];
       t.is(
         toggles?.every((toggle) =>
-          toggle.strategies?.every((strategy: any) =>
-            strategy?.segments?.some((segment: any) => segment && 'constraints' in segment),
+          toggle.strategies?.every((strategy) =>
+            strategy?.segments?.some((segment) => segment && 'constraints' in segment),
           ),
         ),
         false,
       );
-      t.deepEqual(toggles![0]?.strategies![0]?.segments, [undefined]);
+      t.deepEqual(toggles?.[0]?.strategies?.[0]?.segments, [undefined]);
       resolve();
     });
     repo.on('error', () => {});
@@ -1278,8 +1274,8 @@ test('should handle not having segments to read from', (t) =>
 
     repo.on('ready', () => {
       const toggles = repo.getTogglesWithSegmentData();
-      t.deepEqual(toggles![0]?.strategies![0]?.segments, [undefined]);
-      t.deepEqual(toggles![0]?.strategies![1]?.segments, [undefined, undefined]);
+      t.deepEqual(toggles?.[0]?.strategies?.[0]?.segments, [undefined]);
+      t.deepEqual(toggles?.[0]?.strategies?.[1]?.segments, [undefined, undefined]);
       resolve();
     });
     repo.on('error', () => {});
@@ -1371,11 +1367,11 @@ test('should return full segment data when requested', (t) =>
     });
 
     repo.on('ready', () => {
-      const toggles = repo.getTogglesWithSegmentData();
+      const toggles = repo.getTogglesWithSegmentData() as EnhancedFeatureInterface[];
       t.is(
         toggles?.every((toggle) =>
-          toggle.strategies?.every((strategy: any) =>
-            strategy?.segments.every((segment: any) => 'constraints' in segment),
+          toggle.strategies?.every((strategy) =>
+            strategy?.segments?.every((segment) => segment && 'constraints' in segment),
           ),
         ),
         true,
@@ -1418,6 +1414,8 @@ test('Stopping repository should stop storage provider updates', async (t) => {
     strategies: [
       {
         name: 'default',
+        parameters: {},
+        constraints: [],
       },
     ],
   };
@@ -1451,6 +1449,8 @@ test('Streaming deltas', async (t) => {
     strategies: [
       {
         name: 'default',
+        parameters: {},
+        constraints: [],
       },
     ],
   };
@@ -1552,7 +1552,7 @@ test('Streaming deltas', async (t) => {
   const removedSegment = repo.getSegment(1);
   t.deepEqual(removedSegment, undefined);
 
-  let recordedWarnings: string[] = [];
+  const recordedWarnings: string[] = [];
   repo.on('warn', (msg) => {
     recordedWarnings.push(msg);
   });
@@ -1777,6 +1777,8 @@ test('setMode can switch from polling to streaming mode', async (t) => {
     strategies: [
       {
         name: 'default',
+        parameters: {},
+        constraints: [],
       },
     ],
   };
@@ -1826,6 +1828,8 @@ test('setMode can switch from streaming to polling mode', async (t) => {
     strategies: [
       {
         name: 'default',
+        parameters: {},
+        constraints: [],
       },
     ],
   };
@@ -1896,6 +1900,8 @@ test('setMode should be no-op when repository is stopped', async (t) => {
     strategies: [
       {
         name: 'default',
+        parameters: {},
+        constraints: [],
       },
     ],
   };

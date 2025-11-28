@@ -1,5 +1,5 @@
+import { hostname } from 'node:os';
 import test from 'ava';
-import { hostname } from 'os';
 
 import ApplicationHostnameStrategy from '../../strategy/application-hostname-strategy';
 
