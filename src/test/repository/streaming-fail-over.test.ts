@@ -1,4 +1,4 @@
-import test from 'ava';
+import { expect, test } from 'vitest';
 import { type FailEvent, FailoverStrategy } from '../../repository/streaming-fail-over';
 
 test('fails over immediately when server requests it', (t) => {
@@ -13,7 +13,7 @@ test('fails over immediately when server requests it', (t) => {
     occurredAt: now,
   };
 
-  t.true(failOverStrategy.shouldFailover(event, now));
+  expect(failOverStrategy.shouldFailover(event, now)).toBe(true);
 });
 
 test('does not fail over on arbitrary server events', (t) => {
@@ -28,7 +28,7 @@ test('does not fail over on arbitrary server events', (t) => {
     message: 'Service should frob the wranglebinder now',
   };
 
-  t.false(failOverStrategy.shouldFailover(event, now));
+  expect(failOverStrategy.shouldFailover(event, now)).toBe(false);
 });
 
 test('fails over immediately on hard http status codes', (t) => {
@@ -44,10 +44,7 @@ test('fails over immediately on hard http status codes', (t) => {
       message: `HTTP status error with status code ${statusCode}`,
     };
 
-    t.true(
-      failOverStrategy.shouldFailover(event, now),
-      `Should failover on status code ${statusCode}`,
-    );
+    expect(failOverStrategy.shouldFailover(event, now)).toBe(true);
   }
 });
 
@@ -62,21 +59,21 @@ test('soft errors accumulate to failover within relax window', (t) => {
     message: `HTTP status error with status code 503`,
   });
 
-  t.false(
+  expect(
     failOverStrategy.shouldFailover(mkEvent(0), new Date(base)),
     'Should not failover on first soft error',
-  );
+  ).toBe(false);
 
-  t.false(
+  expect(
     failOverStrategy.shouldFailover(mkEvent(1000), new Date(base + 1000)),
     'Should not failover on second soft error',
-  );
+  ).toBe(false);
 
   // this is within the sliding window threshold so it's time to failover
-  t.true(
+  expect(
     failOverStrategy.shouldFailover(mkEvent(2000), new Date(base + 2000)),
     'Should failover on third soft error within relax window',
-  );
+  ).toBe(true);
 });
 
 test('soft errors are pruned error window and do not cause failover', (t) => {
@@ -90,21 +87,21 @@ test('soft errors are pruned error window and do not cause failover', (t) => {
     message: `HTTP status error with status code 502`,
   });
 
-  t.false(
+  expect(
     failOverStrategy.shouldFailover(mkEvent(0), new Date(base)),
     'First soft error should not trigger failover',
-  );
+  ).toBe(false);
 
-  t.false(
+  expect(
     failOverStrategy.shouldFailover(mkEvent(2000), new Date(base + 2000)),
     'Second soft error after window should not trigger failover',
-  );
+  ).toBe(false);
 
   // event 3 lands outside the window that event 1 lands is so it's safe
-  t.false(
+  expect(
     failOverStrategy.shouldFailover(mkEvent(3000), new Date(base + 3000)),
     'Third soft error should still not trigger failover since previous ones aged out',
-  );
+  ).toBe(false);
 });
 
 test('unhandled HTTP status codes never trigger failover', (t) => {
@@ -120,9 +117,9 @@ test('unhandled HTTP status codes never trigger failover', (t) => {
 
   // teapots are explicitly designed to stream so they never cause failover
   for (const statusCode of [418, 418, 418, 418]) {
-    t.false(
+    expect(
       failOverStrategy.shouldFailover(mkWeird(statusCode, 0), new Date(base)),
       `Status code ${statusCode} should not cause failover`,
-    );
+    ).toBe(false);
   }
 });

@@ -1,13 +1,13 @@
-import test from 'ava';
+import { expect, test } from 'vitest';
 
 import DefaultStrategy from '../../strategy/default-strategy';
 
 test('default strategy should be enabled', (t) => {
   const strategy = new DefaultStrategy();
-  t.true(strategy.isEnabled());
+  expect(strategy.isEnabled()).toBe(true);
 });
 
 test('default strategy should have correct name', (t) => {
   const strategy = new DefaultStrategy();
-  t.true(strategy.name === 'default');
+  expect(strategy.name).toBe('default');
 });

@@ -2,8 +2,8 @@ import { EventEmitter } from 'node:events';
 import { writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import test from 'ava';
-import * as nock from 'nock';
+import nock from 'nock';
+import { assert, expect, test } from 'vitest';
 import type { ClientFeaturesResponse, DeltaEvent, EnhancedFeatureInterface } from '../../feature';
 import Repository from '../../repository';
 import { DefaultBootstrapProvider } from '../../repository/bootstrap-provider';
@@ -54,59 +54,65 @@ function createSSEResponse(events: Array<{ event: string; data: unknown }>) {
     .join('');
 }
 
-test('should fetch from endpoint', (t) =>
-  new Promise((resolve) => {
-    const url = 'http://unleash-test-0.app';
-    const feature = {
-      name: 'feature',
-      enabled: true,
-      strategies: [
-        {
-          name: 'default',
-        },
-      ],
-    };
+test('should fetch from endpoint', async () => {
+  const url = 'http://unleash-test-0.app';
+  const feature = {
+    name: 'feature',
+    enabled: true,
+    strategies: [
+      {
+        name: 'default',
+      },
+    ],
+  };
 
-    setup(url, [feature]);
-    const repo = new Repository({
-      url,
-      appName,
-      instanceId,
-      connectionId,
-      refreshInterval: 10,
-      bootstrapProvider: new DefaultBootstrapProvider({}, 'test-app', 'test-instance'),
-      storageProvider: new InMemStorageProvider(),
-      mode: { type: 'polling', format: 'full' },
-    });
+  setup(url, [feature]);
+  const repo = new Repository({
+    url,
+    appName,
+    instanceId,
+    connectionId,
+    refreshInterval: 10,
+    bootstrapProvider: new DefaultBootstrapProvider({}, 'test-app', 'test-instance'),
+    storageProvider: new InMemStorageProvider(),
+    mode: { type: 'polling', format: 'full' },
+  });
 
+  await new Promise<void>((resolve, reject) => {
     repo.once('changed', () => {
       const savedFeature = repo.getToggle(feature.name);
-      t.is(savedFeature?.enabled, feature.enabled);
-      t.is(savedFeature?.strategies?.[0].name, feature.strategies[0].name);
+      expect(savedFeature?.enabled).toBe(feature.enabled);
+      expect(savedFeature?.strategies?.[0].name).toBe(feature.strategies[0].name);
 
       const featureToggles = repo.getToggles();
-      t.is(featureToggles[0].name, 'feature');
+      expect(featureToggles[0].name).toBe('feature');
 
       resolve();
     });
-    repo.start();
-  }));
 
-test('should poll for changes', (t) =>
-  new Promise((resolve, reject) => {
-    const url = 'http://unleash-test-2.app';
-    setup(url, []);
-    const repo = new Repository({
-      url,
-      appName,
-      instanceId,
-      connectionId,
-      refreshInterval: 10,
-      bootstrapProvider: new DefaultBootstrapProvider({}, 'test-app', 'test-instance'),
-      storageProvider: new InMemStorageProvider(),
-      mode: { type: 'polling', format: 'full' },
+    // Optional: surface repo errors in the test
+    repo.once('error', (err: unknown) => {
+      reject(err);
     });
 
+    repo.start();
+  });
+});
+
+test('should poll for changes', async (t) => {
+  const url = 'http://unleash-test-2.app';
+  setup(url, []);
+  const repo = new Repository({
+    url,
+    appName,
+    instanceId,
+    connectionId,
+    refreshInterval: 10,
+    bootstrapProvider: new DefaultBootstrapProvider({}, 'test-app', 'test-instance'),
+    storageProvider: new InMemStorageProvider(),
+    mode: { type: 'polling', format: 'full' },
+  });
+  await new Promise<void>((resolve, reject) => {
     let assertCount = 5;
     repo.on('unchanged', resolve);
     repo.on('changed', () => {
@@ -114,17 +120,18 @@ test('should poll for changes', (t) =>
 
       if (assertCount === 0) {
         repo.stop();
-        t.true(assertCount === 0);
+        expect(assertCount).toBe(0);
         resolve();
       }
     });
 
     repo.on('error', reject);
     repo.start();
-  }));
+  });
+});
 
-test('should retry even if custom header function fails', (t) =>
-  new Promise((resolve) => {
+test('should retry even if custom header function fails', async () =>
+  await new Promise((resolve) => {
     const url = 'http://unleash-test-2-custom-headers.app';
     setup(url, []);
     const repo = new Repository({
@@ -148,15 +155,15 @@ test('should retry even if custom header function fails', (t) =>
       }
       if (assertCount === 0) {
         repo.stop();
-        t.true(assertCount === 0);
+        expect(assertCount).toBe(0);
         resolve();
       }
     });
     repo.start();
   }));
 
-test('should store etag', (t) =>
-  new Promise((resolve) => {
+test('should store etag', async () => {
+  await new Promise((resolve) => {
     const url = 'http://unleash-test-3.app';
     setup(url, [], { Etag: '12345' });
     const repo = new Repository({
@@ -172,15 +179,16 @@ test('should store etag', (t) =>
 
     repo.once('unchanged', resolve);
     repo.once('changed', () => {
-      t.true(repo.etag === '12345');
+      expect(repo.etag).toBe('12345');
 
       resolve();
     });
     repo.start();
-  }));
+  });
+});
 
-test('should request with etag', (t) =>
-  new Promise((resolve) => {
+test('should request with etag', async () => {
+  await new Promise((resolve) => {
     const url = 'http://unleash-test-4.app';
     nock(url)
       .matchHeader('If-None-Match', '12345-1')
@@ -204,14 +212,14 @@ test('should request with etag', (t) =>
       resolve();
     });
     repo.once('changed', () => {
-      t.true(repo.etag === '12345-2');
-      resolve();
+      expect(repo.etag).toBe('12345-2');
     });
     repo.start();
-  }));
+  });
+});
 
-test('should request with correct custom and unleash headers', (t) =>
-  new Promise((resolve) => {
+test('should request with correct custom and unleash headers', async () => {
+  await new Promise((resolve) => {
     const url = 'http://unleash-test-4-x.app';
     const randomKey = `random-${Math.random()}`;
     nock(url)
@@ -245,14 +253,15 @@ test('should request with correct custom and unleash headers', (t) =>
       resolve();
     });
     repo.once('changed', () => {
-      t.is(repo.etag, '12345-3');
+      expect(repo.etag).toEqual('12345-3');
       resolve();
     });
     repo.start();
-  }));
+  });
+});
 
-test('request with customHeadersFunction should take precedence over customHeaders', (t) =>
-  new Promise((resolve) => {
+test('request with customHeadersFunction should take precedence over customHeaders', async () => {
+  await new Promise((resolve) => {
     const url = 'http://unleash-test-4-x.app';
     const randomKey = `random-${Math.random()}`;
     const customHeaderKey = `customer-${Math.random()}`;
@@ -283,13 +292,14 @@ test('request with customHeadersFunction should take precedence over customHeade
       resolve();
     });
     repo.once('changed', () => {
-      t.is(repo.etag, '12345-3');
+      expect(repo.etag).toEqual('12345-3');
       resolve();
     });
     repo.start();
-  }));
+  });
+});
 
-test('should handle 429 request error and emit warn event', async (t) => {
+test('should handle 429 request error and emit warn event', async () => {
   const url = 'http://unleash-test-6-429.app';
   nock(url).persist().get('/client/features').reply(429, 'blabla');
   const repo = new Repository({
@@ -304,16 +314,18 @@ test('should handle 429 request error and emit warn event', async (t) => {
   });
   const warning = new Promise<void>((resolve) => {
     repo.on('warn', (warn) => {
-      t.truthy(warn);
-      t.is(warn, `${url}/client/features responded TOO_MANY_CONNECTIONS (429). Backing off`);
-      t.is(repo.getFailures(), 1);
-      t.is(repo.nextFetch(), 20);
+      expect(warn).toBeTruthy();
+      expect(warn).toEqual(
+        `${url}/client/features responded TOO_MANY_CONNECTIONS (429). Backing off`,
+      );
+      expect(repo.getFailures()).toBe(1);
+      expect(repo.nextFetch()).toBe(20);
       resolve();
     });
   });
   const timeout = new Promise<void>((resolve) =>
     setTimeout(() => {
-      t.fail('Failed to get warning about connections');
+      assert.fail('Failed to get warning about connections');
       resolve();
     }, 5000),
   );
@@ -321,8 +333,8 @@ test('should handle 429 request error and emit warn event', async (t) => {
   await Promise.race([warning, timeout]);
 });
 
-test('should handle 401 request error and emit error event', (t) =>
-  new Promise((resolve) => {
+test('should handle 401 request error and emit error event', async () => {
+  await new Promise((resolve) => {
     const url = 'http://unleash-test-6-401.app';
     nock(url).persist().get('/client/features').reply(401, 'blabla');
     const repo = new Repository({
@@ -336,18 +348,18 @@ test('should handle 401 request error and emit error event', (t) =>
       mode: { type: 'polling', format: 'full' },
     });
     repo.on('error', (err) => {
-      t.truthy(err);
-      t.is(
-        err.message,
+      expect(err).toBeTruthy();
+      expect(err.message).toEqual(
         `${url}/client/features responded 401 which means your API key is not allowed to connect. Stopping refresh of toggles`,
       );
       resolve();
     });
     repo.start();
-  }));
+  });
+});
 
-test('should handle 403 request error and emit error event', (t) =>
-  new Promise((resolve) => {
+test('should handle 403 request error and emit error event', async () =>
+  await new Promise((resolve) => {
     const url = 'http://unleash-test-6-403.app';
     nock(url).persist().get('/client/features').reply(403, 'blabla');
     const repo = new Repository({
@@ -361,9 +373,8 @@ test('should handle 403 request error and emit error event', (t) =>
       mode: { type: 'polling', format: 'full' },
     });
     repo.on('error', (err) => {
-      t.truthy(err);
-      t.is(
-        err.message,
+      expect(err).toBeTruthy();
+      expect(err.message).toEqual(
         `${url}/client/features responded 403 which means your API key is not allowed to connect. Stopping refresh of toggles`,
       );
       resolve();
@@ -386,8 +397,8 @@ test('should handle 500 request error and emit warn event', (t) =>
       mode: { type: 'polling', format: 'full' },
     });
     repo.on('warn', (warn) => {
-      t.truthy(warn);
-      t.is(warn, `${url}/client/features responded 500. Backing off`);
+      expect(warn).toBeTruthy();
+      expect(warn).toEqual(`${url}/client/features responded 500. Backing off`);
       resolve();
     });
     repo.start();
@@ -407,8 +418,10 @@ test.skip('should handle 502 request error and emit warn event', (t) =>
       mode: { type: 'polling', format: 'full' },
     });
     repo.on('warn', (warn) => {
-      t.truthy(warn);
-      t.is(warn, `${url}/client/features responded 502. Waiting for 20ms before trying again.`);
+      expect(warn).toBeTruthy();
+      expect(warn).toEqual(
+        `${url}/client/features responded 502. Waiting for 20ms before trying again.`,
+      );
       resolve();
     });
     repo.start();
@@ -428,8 +441,10 @@ test.skip('should handle 503 request error and emit warn event', (t) =>
       mode: { type: 'polling', format: 'full' },
     });
     repo.on('warn', (warn) => {
-      t.truthy(warn);
-      t.is(warn, `${url}/client/features responded 503. Waiting for 20ms before trying again.`);
+      expect(warn).toBeTruthy();
+      expect(warn).toEqual(
+        `${url}/client/features responded 503. Waiting for 20ms before trying again.`,
+      );
       resolve();
     });
     repo.start();
@@ -449,8 +464,10 @@ test.skip('should handle 504 request error and emit warn event', (t) =>
       mode: { type: 'polling', format: 'full' },
     });
     repo.on('warn', (warn) => {
-      t.truthy(warn);
-      t.is(warn, `${url}/client/features responded 504. Waiting for 20ms before trying again.`);
+      expect(warn).toBeTruthy();
+      expect(warn).toEqual(
+        `${url}/client/features responded 504. Waiting for 20ms before trying again.`,
+      );
       resolve();
     });
     repo.start();
@@ -496,12 +513,12 @@ test('should handle invalid JSON response', (t) =>
       refreshInterval: 10,
     });
     repo.on('error', (err) => {
-      t.truthy(err);
-      t.true(
+      expect(err).toBeTruthy();
+      expect(
         err.message.indexOf('Unexpected token') > -1 ||
           err.message.indexOf('Unexpected end of JSON input') > -1 ||
           err.message.indexOf('Unterminated string in JSON') > -1,
-      );
+      ).toBe(true);
       resolve();
     });
     repo.on('unchanged', resolve);
@@ -527,7 +544,7 @@ test('should respect timeout', t =>
             timeout: 50,
         });
         repo.on('error', err => {
-            t.truthy(err);
+            expect(err).toBeTruthy();
             t.true(err.message.indexOf('ESOCKETTIMEDOUT') > -1);
             resolve();
         });
@@ -557,7 +574,7 @@ test('should emit errors on invalid features', (t) =>
     });
 
     repo.once('error', (err) => {
-      t.truthy(err);
+      expect(err).toBeTruthy();
       repo.stop();
       resolve();
     });
@@ -592,8 +609,8 @@ test('should emit errors on invalid variant', (t) =>
     });
 
     repo.once('error', (err) => {
-      t.truthy(err);
-      t.is(err.message, 'feature.variants should be an array, but was string');
+      expect(err).toBeTruthy();
+      expect(err.message).toEqual('feature.variants should be an array, but was string');
       repo.stop();
       resolve();
     });
@@ -664,7 +681,7 @@ test('should load bootstrap first if faster than unleash-api', (t) =>
     repo.on('changed', () => {
       counter++;
       if (counter === 2) {
-        t.is(repo.getToggle('feature')?.enabled, true);
+        expect(repo.getToggle('feature')?.enabled).toEqual(true);
         resolve();
       }
     });
@@ -734,7 +751,7 @@ test('bootstrap should not override actual data', (t) =>
     repo.on('changed', () => {
       counter++;
       if (counter === 2) {
-        t.is(repo.getToggle('feature')?.enabled, true);
+        expect(repo.getToggle('feature')?.enabled).toEqual(true);
         resolve();
       }
     });
@@ -783,7 +800,7 @@ test('should load bootstrap first from file', (t) =>
     });
 
     repo.on('changed', () => {
-      t.is(repo.getToggle('feature-bootstrap')?.enabled, true);
+      expect(repo.getToggle('feature-bootstrap')?.enabled).toEqual(true);
       resolve();
     });
     repo.start();
@@ -859,7 +876,7 @@ test('should load backup-file', (t) =>
     });
 
     repo.on('ready', () => {
-      t.is(repo.getToggle('feature-backup')?.enabled, true);
+      expect(repo.getToggle('feature-backup')?.enabled).toEqual(true);
       resolve();
     });
     repo.start();
@@ -928,7 +945,7 @@ test('bootstrap should override load backup-file', (t) =>
     });
 
     repo.on('changed', () => {
-      t.is(repo.getToggle('feature-backup')?.enabled, false);
+      expect(repo.getToggle('feature-backup')?.enabled).toEqual(false);
       resolve();
     });
     repo.on('error', () => {});
@@ -1006,7 +1023,7 @@ test('bootstrap should not override load backup-file', async (t) => {
 
   await repo.start();
 
-  t.is(repo.getToggle('feature-backup')?.enabled, true);
+  expect(repo.getToggle('feature-backup')?.enabled).toEqual(true);
 });
 
 // Skipped because make-fetch-happens actually automatically retries two extra times on 404
@@ -1025,11 +1042,11 @@ test.skip('Failing two times and then succeed should decrease interval to 2 time
     mode: { type: 'polling', format: 'full' },
   });
   await repo.fetch();
-  t.is(1, repo.getFailures());
-  t.is(20, repo.nextFetch());
+  expect(1).toEqual(repo.getFailures());
+  expect(20).toEqual(repo.nextFetch());
   await repo.fetch();
-  t.is(2, repo.getFailures());
-  t.is(30, repo.nextFetch());
+  expect(2).toEqual(repo.getFailures());
+  expect(30).toEqual(repo.nextFetch());
   nock.cleanAll();
   nock(url)
     .persist()
@@ -1053,8 +1070,8 @@ test.skip('Failing two times and then succeed should decrease interval to 2 time
     });
 
   await repo.fetch();
-  t.is(1, repo.getFailures());
-  t.is(20, repo.nextFetch());
+  expect(1).toEqual(repo.getFailures());
+  expect(20).toEqual(repo.nextFetch());
 });
 
 // Skipped because make-fetch-happens actually automatically retries two extra times on 429
@@ -1073,11 +1090,11 @@ test.skip('Failing two times should increase interval to 3 times initial interva
     mode: { type: 'polling', format: 'full' },
   });
   await repo.fetch();
-  t.is(1, repo.getFailures());
-  t.is(20, repo.nextFetch());
+  expect(1).toEqual(repo.getFailures());
+  expect(20).toEqual(repo.nextFetch());
   await repo.fetch();
-  t.is(2, repo.getFailures());
-  t.is(30, repo.nextFetch());
+  expect(2).toEqual(repo.getFailures());
+  expect(30).toEqual(repo.nextFetch());
 });
 
 // Skipped because make-fetch-happens actually automatically retries two extra times on 429
@@ -1096,11 +1113,11 @@ test.skip('Failing two times and then succeed should decrease interval to 2 time
     mode: { type: 'polling', format: 'full' },
   });
   await repo.fetch();
-  t.is(1, repo.getFailures());
-  t.is(20, repo.nextFetch());
+  expect(1).toEqual(repo.getFailures());
+  expect(20).toEqual(repo.nextFetch());
   await repo.fetch();
-  t.is(2, repo.getFailures());
-  t.is(30, repo.nextFetch());
+  expect(2).toEqual(repo.getFailures());
+  expect(30).toEqual(repo.nextFetch());
   nock.cleanAll();
   nock(url)
     .persist()
@@ -1124,8 +1141,8 @@ test.skip('Failing two times and then succeed should decrease interval to 2 time
     });
 
   await repo.fetch();
-  t.is(1, repo.getFailures());
-  t.is(20, repo.nextFetch());
+  expect(1).toEqual(repo.getFailures());
+  expect(20).toEqual(repo.nextFetch());
 });
 
 test('should handle not finding a given segment id', (t) =>
@@ -1437,7 +1454,7 @@ test('Stopping repository should stop storage provider updates', async (t) => {
   await promise;
 
   const result = await storageProvider.get(appName);
-  t.is(result, undefined);
+  expect(result).toEqual(undefined);
 });
 
 test('Streaming deltas', async (t) => {
@@ -1689,7 +1706,7 @@ test('Switch from polling to streaming mode via HTTP header', async (t) => {
 
   await modePromise;
 
-  t.is(repo.getMode(), 'streaming');
+  expect(repo.getMode()).toEqual('streaming');
 
   repo.stop();
 });
@@ -1743,7 +1760,7 @@ test('Switch from streaming to polling mode via EventSource', async (t) => {
   });
 
   let toggles = repo.getToggles();
-  t.is(toggles[0].enabled, true);
+  expect(toggles[0].enabled).toEqual(true);
 
   const modePromise = new Promise<void>((resolve) => {
     repo.once('mode', (data) => {
@@ -1758,13 +1775,13 @@ test('Switch from streaming to polling mode via EventSource', async (t) => {
 
   await modePromise;
 
-  t.is(repo.getMode(), 'polling');
+  expect(repo.getMode()).toEqual('polling');
   t.true(eventSource.closed);
 
   await repo.fetch();
 
   toggles = repo.getToggles();
-  t.is(toggles[0].enabled, false);
+  expect(toggles[0].enabled).toEqual(false);
 
   repo.stop();
 });
@@ -1809,13 +1826,13 @@ test('setMode can switch from polling to streaming mode', async (t) => {
 
   await repo.start();
 
-  t.is(repo.getMode(), 'polling');
+  expect(repo.getMode()).toEqual('polling');
 
   await repo.setMode('streaming');
 
   await modePromise;
 
-  t.is(repo.getMode(), 'streaming');
+  expect(repo.getMode()).toEqual('streaming');
 
   repo.stop();
 });
@@ -1868,7 +1885,7 @@ test('setMode can switch from streaming to polling mode', async (t) => {
   });
 
   let toggles = repo.getToggles();
-  t.is(toggles[0].enabled, false);
+  expect(toggles[0].enabled).toEqual(false);
 
   const modePromise = new Promise<void>((resolve) => {
     repo.once('mode', (data) => {
@@ -1877,17 +1894,17 @@ test('setMode can switch from streaming to polling mode', async (t) => {
     });
   });
 
-  t.is(repo.getMode(), 'streaming');
+  expect(repo.getMode()).toEqual('streaming');
 
   await repo.setMode('polling');
 
   await modePromise;
 
-  t.is(repo.getMode(), 'polling');
+  expect(repo.getMode()).toEqual('polling');
   t.true(eventSource.closed);
 
   toggles = repo.getToggles();
-  t.is(toggles[0].enabled, true);
+  expect(toggles[0].enabled).toEqual(true);
 
   repo.stop();
 });
@@ -1920,12 +1937,12 @@ test('setMode should be no-op when repository is stopped', async (t) => {
   });
 
   await repo.start();
-  t.is(repo.getMode(), 'polling');
+  expect(repo.getMode()).toEqual('polling');
 
   repo.stop();
 
   await repo.setMode('streaming');
-  t.is(repo.getMode(), 'polling');
+  expect(repo.getMode()).toEqual('polling');
 });
 
 test('SSE with HTTP mocking - should process unleash-connected event', async (t) => {
@@ -1982,9 +1999,9 @@ test('SSE with HTTP mocking - should process unleash-connected event', async (t)
   await changedEvent;
 
   const toggles = repo.getToggles();
-  t.is(toggles.length, 1);
-  t.is(toggles[0].name, 'test-feature');
-  t.is(toggles[0].enabled, true);
+  expect(toggles.length).toEqual(1);
+  expect(toggles[0].name).toEqual('test-feature');
+  expect(toggles[0].enabled).toEqual(true);
 
   repo.stop();
 });
@@ -2061,7 +2078,7 @@ test('SSE with HTTP mocking - should process unleash-updated event', async (t) =
   await changedEvents;
 
   const toggles = repo.getToggles();
-  t.is(toggles[0].enabled, true);
+  expect(toggles[0].enabled).toEqual(true);
 
   repo.stop();
 });

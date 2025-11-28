@@ -1,25 +1,25 @@
-import test from 'ava';
+import { expect, test } from 'vitest';
 
 import GradualRolloutUserIdStrategy from '../../strategy/gradual-rollout-user-id';
 import { normalizedStrategyValue } from '../../strategy/util';
 
 test('gradual-rollout-user-id strategy should have correct name', (t) => {
   const strategy = new GradualRolloutUserIdStrategy();
-  t.deepEqual(strategy.name, 'gradualRolloutUserId');
+  expect(strategy.name).toBe('gradualRolloutUserId');
 });
 
 test('should be enabled when percentage is 100', (t) => {
   const strategy = new GradualRolloutUserIdStrategy();
   const params = { percentage: '100', groupId: 'gr1' };
   const context = { userId: '123' };
-  t.true(strategy.isEnabled(params, context));
+  expect(strategy.isEnabled(params, context)).toBe(true);
 });
 
 test('should be disabled when percentage is 0', (t) => {
   const strategy = new GradualRolloutUserIdStrategy();
   const params = { percentage: '0', groupId: 'gr1' };
   const context = { userId: '123' };
-  t.false(strategy.isEnabled(params, context));
+  expect(strategy.isEnabled(params, context)).toBe(false);
 });
 
 test('should be enabled when percentage is exactly same', (t) => {
@@ -30,7 +30,7 @@ test('should be enabled when percentage is exactly same', (t) => {
   const percentage = normalizedStrategyValue(userId, groupId);
   const params = { percentage: `${percentage}`, groupId };
   const context = { userId };
-  t.true(strategy.isEnabled(params, context));
+  expect(strategy.isEnabled(params, context)).toBe(true);
 });
 
 test('should be disabled when percentage is just below required value', (t) => {
@@ -41,7 +41,7 @@ test('should be disabled when percentage is just below required value', (t) => {
   const percentage = normalizedStrategyValue(userId, groupId) - 1;
   const params = { percentage: `${percentage}`, groupId };
   const context = { userId };
-  t.false(strategy.isEnabled(params, context));
+  expect(strategy.isEnabled(params, context)).toBe(false);
 });
 
 test('should only at most miss by one percent', (t) => {
@@ -65,6 +65,6 @@ test('should only at most miss by one percent', (t) => {
   const highMark = percentage + 1;
   const lowMark = percentage - 1;
 
-  t.true(lowMark <= actualPercentage);
-  t.true(highMark >= actualPercentage);
+  expect(lowMark <= actualPercentage).toBe(true);
+  expect(highMark >= actualPercentage).toBe(true);
 });

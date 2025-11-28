@@ -1,4 +1,4 @@
-import test from 'ava';
+import { expect, test } from 'vitest';
 import { InMemoryMetricRegistry } from '../../impact-metrics/metric-types';
 
 test('Counter increments by default value', (t) => {
@@ -10,7 +10,7 @@ test('Counter increments by default value', (t) => {
   const result = registry.collect();
   const metric = result.find((m) => m.name === 'test_counter');
 
-  t.deepEqual(metric, {
+  expect(metric).toStrictEqual({
     name: 'test_counter',
     help: 'testing',
     type: 'counter',
@@ -33,7 +33,7 @@ test('Counter increments with custom value and labels', (t) => {
   const result = registry.collect();
   const metric = result.find((m) => m.name === 'labeled_counter');
 
-  t.deepEqual(metric, {
+  expect(metric).toStrictEqual({
     name: 'labeled_counter',
     help: 'with labels',
     type: 'counter',
@@ -57,7 +57,7 @@ test('Gauge supports inc, dec, and set', (t) => {
   const result = registry.collect();
   const metric = result.find((m) => m.name === 'test_gauge');
 
-  t.deepEqual(metric, {
+  expect(metric).toStrictEqual({
     name: 'test_gauge',
     help: 'gauge test',
     type: 'gauge',
@@ -81,7 +81,7 @@ test('Different label combinations are stored separately', (t) => {
   const result = registry.collect();
   const metric = result.find((m) => m.name === 'multi_label');
 
-  t.deepEqual(metric, {
+  expect(metric).toStrictEqual({
     name: 'multi_label',
     help: 'label test',
     type: 'counter',
@@ -104,7 +104,7 @@ test('Gauge tracks values separately per label set', (t) => {
   const result = registry.collect();
   const metric = result.find((m) => m.name === 'multi_env_gauge');
 
-  t.deepEqual(metric, {
+  expect(metric).toStrictEqual({
     name: 'multi_env_gauge',
     help: 'tracks multiple envs',
     type: 'gauge',
@@ -122,7 +122,7 @@ test('collect returns empty array when all metrics are empty', (t) => {
   registry.gauge({ name: 'noop_gauge', help: 'noop' });
 
   const result = registry.collect();
-  t.deepEqual(result, []);
+  expect(result).toStrictEqual([]);
 });
 
 test('collect returns empty array after flushing previous values', (t) => {
@@ -131,11 +131,11 @@ test('collect returns empty array after flushing previous values', (t) => {
 
   counter.inc(1);
   const first = registry.collect();
-  t.truthy(first);
-  t.is(first.length, 1);
+  expect(first).toBeTruthy();
+  expect(first).toHaveLength(1);
 
   const second = registry.collect();
-  t.deepEqual(second, []);
+  expect(second).toStrictEqual([]);
 });
 
 test('restore reinserts collected metrics into the registry', (t) => {
@@ -146,15 +146,15 @@ test('restore reinserts collected metrics into the registry', (t) => {
   counter.inc(2, { tag: 'b' });
 
   const flushed = registry.collect();
-  t.is(flushed.length, 1);
+  expect(flushed).toHaveLength(1);
 
   const afterFlush = registry.collect();
-  t.deepEqual(afterFlush, []);
+  expect(afterFlush).toStrictEqual([]);
 
   registry.restore(flushed);
 
   const restored = registry.collect();
-  t.deepEqual(restored, [
+  expect(restored).toStrictEqual([
     {
       name: 'restore_test',
       help: 'testing restore',
@@ -181,7 +181,7 @@ test('Histogram observes values', (t) => {
 
   const result = registry.collect();
 
-  t.deepEqual(result, [
+  expect(result).toStrictEqual([
     {
       name: 'test_histogram',
       help: 'testing histogram',
@@ -219,7 +219,7 @@ test('Histogram tracks different label combinations separately', (t) => {
 
   const result = registry.collect();
 
-  t.deepEqual(result, [
+  expect(result).toStrictEqual([
     {
       name: 'multi_label_histogram',
       help: 'histogram with multiple labels',
@@ -274,14 +274,13 @@ test('Histogram restoration preserves exact data', (t) => {
   histogram.observe(15, { method: 'POST' });
 
   const firstCollect = registry.collect();
-  t.is(firstCollect.length, 1);
+  expect(firstCollect).toHaveLength(1);
 
   const emptyCollect = registry.collect();
-  t.deepEqual(emptyCollect, []);
+  expect(emptyCollect).toStrictEqual([]);
 
   registry.restore(firstCollect);
 
   const restoredCollect = registry.collect();
-
-  t.deepEqual(restoredCollect, firstCollect);
+  expect(restoredCollect).toStrictEqual(firstCollect);
 });

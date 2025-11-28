@@ -7,11 +7,12 @@
     "declaration": true,
     "declarationMap": true,
     "resolveJsonModule": true,
+    "moduleResolution": "nodenext",
     "esModuleInterop": true,
     "allowJs": true,
     "skipLibCheck": false,
     "allowSyntheticDefaultImports": true
   },
-  "exclude": ["examples/", "lib/", "node_modules/", "src/test/**/*"],
+  "exclude": ["examples/", "lib/", "node_modules/", "vitest.config.ts"],
   "include": ["src/**/*.ts", "src/**/*.js"]
 }

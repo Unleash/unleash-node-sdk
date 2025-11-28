@@ -1,5 +1,5 @@
 /** biome-ignore-all lint/suspicious/noExplicitAny: relaxed for testing */
-import test from 'ava';
+import { expect, test } from 'vitest';
 import { UnleashEvents } from '../../events';
 import type { StreamingFetchingOptions } from '../../repository/fetcher';
 import { StreamingFetcher } from '../../repository/streaming-fetcher';
@@ -37,8 +37,8 @@ test('emits Warn on SSE when failover is triggered', async (t) => {
 
   await anyFetcher.handleErrorEvent(error);
 
-  t.is(warnings.length, 1);
-  t.is(warnings[0], 'Go away, there are way too many of you');
+  expect(warnings.length).toEqual(1);
+  expect(warnings[0]).toEqual('Go away, there are way too many of you');
 });
 
 test('does not emit Warn on SSE when failover is not triggered', async (t) => {
@@ -60,7 +60,7 @@ test('does not emit Warn on SSE when failover is not triggered', async (t) => {
 
   await anyFetcher.handleErrorEvent(error);
 
-  t.is(warnings.length, 0);
+  expect(warnings.length).toEqual(0);
 });
 
 test('transient errors that cause failover report the last error', async (t) => {
@@ -92,6 +92,6 @@ test('transient errors that cause failover report the last error', async (t) => 
     message: 'Third once in a lifetime issue, thats too many',
   });
 
-  t.is(warnings.length, 1);
-  t.is(warnings[0], 'Third once in a lifetime issue, thats too many');
+  expect(warnings.length).toEqual(1);
+  expect(warnings[0]).toEqual('Third once in a lifetime issue, thats too many');
 });

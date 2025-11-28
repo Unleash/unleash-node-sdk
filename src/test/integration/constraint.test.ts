@@ -1,8 +1,8 @@
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import test from 'ava';
 import { mkdirp } from 'mkdirp';
-import * as nock from 'nock';
+import nock from 'nock';
+import { expect, test } from 'vitest';
 
 import { Unleash } from '../../unleash';
 
@@ -80,7 +80,7 @@ test('should be enabled for satisfied constraint', (t) =>
     instance.on('error', reject);
     instance.on('synchronized', () => {
       const result = instance.isEnabled('toggle.with.constraint.enabled');
-      t.is(result, true);
+      expect(result).toBe(true);
       instance.destroy();
       resolve();
     });
@@ -105,7 +105,7 @@ test('should be enabled for satisfied NOT_IN constraint', (t) =>
       const result = instance.isEnabled('toggle.with.constraint.not_in.enabled', {
         userId: '123',
       });
-      t.is(result, true);
+      expect(result).toBe(true);
       instance.destroy();
       resolve();
     });

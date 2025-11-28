@@ -1,9 +1,9 @@
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import * as specs from '@unleash/client-specification/specifications/index.json';
-import test from 'ava';
+import specs from '@unleash/client-specification/specifications/index.json';
 import { mkdirp } from 'mkdirp';
-import * as nock from 'nock';
+import nock from 'nock';
+import { expect, test } from 'vitest';
 
 import { Unleash } from '../../unleash';
 
@@ -17,6 +17,10 @@ function getRandomBackupPath(testName) {
   return path;
 }
 
+const loadDefinition = (testName: string) => {
+  const mod = require(`@unleash/client-specification/specifications/${testName}`);
+  return mod.default ?? mod;
+};
 // @ts-expect-error
 function mockNetwork(toggles, url = getUrl()) {
   nock(url).get('/client/features').reply(200, toggles);
@@ -24,13 +28,13 @@ function mockNetwork(toggles, url = getUrl()) {
 }
 
 specs.forEach((testName) => {
-  const definition = require(`@unleash/client-specification/specifications/${testName}`);
+  const definition = loadDefinition(`${testName}`);
 
   if (definition.tests) {
     // @ts-expect-error
     definition.tests.forEach((testCase) => {
-      test(`${testName}:${testCase.description}`, (t) =>
-        new Promise((resolve, reject) => {
+      test(`${testName}:${testCase.description}`, async () => {
+        await new Promise<void>((resolve, reject) => {
           // Mock unleash-api
           const url = mockNetwork(definition.state);
 
@@ -46,19 +50,20 @@ specs.forEach((testName) => {
           instance.on('error', reject);
           instance.on('synchronized', () => {
             const result = instance.isEnabled(testCase.toggleName, testCase.context);
-            t.is(result, testCase.expectedResult);
+            expect(result).toStrictEqual(testCase.expectedResult);
             instance.destroy();
             resolve();
           });
-        }));
+        });
+      });
     });
   }
 
   if (definition.variantTests) {
     // @ts-expect-error
     definition.variantTests.forEach((testCase) => {
-      test(`${testName}:${testCase.description}`, (t) =>
-        new Promise((resolve, reject) => {
+      test(`${testName}:${testCase.description}`, async () =>
+        await new Promise<void>((resolve, reject) => {
           // Mock unleash-api
           const url = mockNetwork(definition.state);
 
@@ -74,11 +79,10 @@ specs.forEach((testName) => {
           instance.on('error', reject);
           instance.on('synchronized', () => {
             const result = instance.getVariant(testCase.toggleName, testCase.context);
-            t.deepEqual(result, {
+            expect(result).toStrictEqual({
               ...testCase.expectedResult,
               featureEnabled: testCase.expectedResult.feature_enabled,
             });
-
             instance.destroy();
             resolve();
           });

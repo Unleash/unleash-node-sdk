@@ -1,14 +1,14 @@
-import test from 'ava';
+import { expect, test } from 'vitest';
 import { extractEnvironmentFromCustomHeaders } from '../../impact-metrics/environment-resolver';
 
-test('valid headers', (t) => {
+test('valid headers', () => {
   const customHeaders = {
     Authorization: 'project:environment.hash',
     'Content-Type': 'application/json',
   };
 
   const result = extractEnvironmentFromCustomHeaders(customHeaders);
-  t.is(result, 'environment');
+  expect(result).toEqual('environment');
 });
 
 test('case-insensitive header keys', (t) => {
@@ -18,12 +18,12 @@ test('case-insensitive header keys', (t) => {
   };
 
   const result = extractEnvironmentFromCustomHeaders(customHeaders);
-  t.is(result, 'environment');
+  expect(result).toEqual('environment');
 });
 
 test('authorization header not present', (t) => {
   const result = extractEnvironmentFromCustomHeaders({});
-  t.is(result, undefined);
+  expect(result).toBeUndefined();
 });
 
 test('environment part is empty', (t) => {
@@ -32,5 +32,5 @@ test('environment part is empty', (t) => {
   };
 
   const result = extractEnvironmentFromCustomHeaders(customHeaders);
-  t.is(result, undefined);
+  expect(result).toBeUndefined();
 });
