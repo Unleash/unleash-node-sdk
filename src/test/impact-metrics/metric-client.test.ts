@@ -199,10 +199,10 @@ test('should not register a histogram with empty name or help', () => {
   const api = new MetricsAPI(fakeRegistry, fakeVariantResolver(), staticContext);
 
   api.defineHistogram('some_name', '');
-  expect(histogramRegistered, 'Histogram should not be registered with empty help');
+  expect(histogramRegistered, 'Histogram should not be registered with empty help').toBe(false);
 
   api.defineHistogram('', 'some_help');
-  expect(histogramRegistered, 'Histogram should not be registered with empty name');
+  expect(histogramRegistered, 'Histogram should not be registered with empty name').toBe(false);
 });
 
 test('should register a histogram with valid name and help', () => {
