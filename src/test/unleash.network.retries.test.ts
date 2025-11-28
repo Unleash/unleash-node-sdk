@@ -34,6 +34,7 @@ test('should retry on error', async () => {
     });
     server.on('error', (e) => {
       console.error(e);
+      server.close();
       assert.fail(e.message);
     });
   });
