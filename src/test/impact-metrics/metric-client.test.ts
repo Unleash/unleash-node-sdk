@@ -3,8 +3,6 @@ import type Client from '../../client';
 import { MetricsAPI } from '../../impact-metrics/metric-api';
 import type {
   BucketMetricOptions,
-  Counter,
-  Gauge,
   ImpactMetricRegistry,
   MetricLabels,
   MetricOptions,
