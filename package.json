@@ -61,7 +61,6 @@
     "@unleash/client-specification": "^5.1.6",
     "@vitest/coverage-v8": "4.0.14",
     "@vitest/ui": "4.0.14",
-    "cross-env": "^10.1.0",
     "del-cli": "^7.0.0",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.7",
