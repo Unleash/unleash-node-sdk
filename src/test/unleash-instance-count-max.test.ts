@@ -1,9 +1,8 @@
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import test from 'ava';
 import { mkdirp } from 'mkdirp';
-import * as nock from 'nock';
-
+import nock from 'nock';
+import { expect, test } from 'vitest';
 import { Unleash, UnleashEvents } from '../unleash';
 
 const getUrl = () => `http://test2${Math.round(Math.random() * 100000)}.app/`;
@@ -40,7 +39,7 @@ function mockNetwork(toggles = defaultToggles, url = getUrl()) {
   return url;
 }
 
-test('should increase instanceCount every time sdk is created ', (t) => {
+test('should increase instanceCount every time sdk is created ', async () => {
   const baseUrl = `${getUrl()}api`;
   mockNetwork([], baseUrl);
 
@@ -111,11 +110,11 @@ test('should increase instanceCount every time sdk is created ', (t) => {
     url: baseUrl,
   });
 
-  return new Promise((resolve) => {
+  await new Promise<void>((resolve) => {
     u11.on(UnleashEvents.Error, (e) => {
-      t.is(e.message, 'The unleash SDK has been initialized more than 10 times');
+      expect(e.message).toEqual('The unleash SDK has been initialized more than 10 times');
       // @ts-expect-error
-      t.is(Unleash.instanceCount, 11);
+      expect(Unleash.instanceCount).toEqual(11);
 
       u1.destroy();
       u2.destroy();

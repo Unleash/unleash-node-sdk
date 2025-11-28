@@ -1,13 +1,13 @@
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import test from 'ava';
 import * as nock from 'nock';
+import { expect, test } from 'vitest';
 import { Unleash } from '../unleash';
 
-test('should emit network errors', (t) =>
-  new Promise((resolve) => {
+test('should emit network errors', async () => {
+  await new Promise<void>((resolve) => {
     nock.disableNetConnect();
-    t.plan(3);
+    expect.assertions(3);
     const backupPath = join(tmpdir(), `test-tmp-${Math.round(Math.random() * 100000)}`);
     const unleash = new Unleash({
       appName: 'network',
@@ -20,7 +20,7 @@ test('should emit network errors', (t) =>
     });
 
     unleash.on('warn', (e) => {
-      t.truthy(e);
+      expect(e).toBeTruthy();
     });
 
     unleash.on('error', () => {
@@ -38,4 +38,5 @@ test('should emit network errors', (t) =>
         resolve();
       });
     }, 1000);
-  }));
+  });
+});

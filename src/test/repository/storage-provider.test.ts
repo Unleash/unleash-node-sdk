@@ -1,30 +1,30 @@
 import { writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import test from 'ava';
+import { expect, test } from 'vitest';
 import FileStorageProvider from '../../repository/storage-provider-file';
 
-test('should handle empty string', async (t) => {
+test('should handle empty string', async () => {
   const appNameLocal = 'test-sp';
   const backupPath = join(tmpdir());
   const backupFile = join(backupPath, `/unleash-backup-${appNameLocal}.json`);
   writeFileSync(backupFile, '');
   const storageProvider = new FileStorageProvider(backupPath);
   const result = await storageProvider.get(appNameLocal);
-  t.is(result, undefined);
+  expect(result).toBeUndefined();
 });
 
-test('should handle empty string with spaces', async (t) => {
+test('should handle empty string with spaces', async () => {
   const appNameLocal = 'test-spaces';
   const backupPath = join(tmpdir());
   const backupFile = join(backupPath, `/unleash-backup-${appNameLocal}.json`);
   writeFileSync(backupFile, '                 ');
   const storageProvider = new FileStorageProvider(backupPath);
   const result = await storageProvider.get(appNameLocal);
-  t.is(result, undefined);
+  expect(result).toBeUndefined();
 });
 
-test('should return data', async (t) => {
+test('should return data', async () => {
   const appNameLocal = 'test-sp-content';
   const backupPath = join(tmpdir());
   const backupFile = join(backupPath, `/unleash-backup-${appNameLocal}.json`);
@@ -48,7 +48,7 @@ test('should return data', async (t) => {
   const result = await storageProvider.get(appNameLocal);
 
   // @ts-expect-error
-  t.is(result.features.length, 1);
+  expect(result.features.length).toEqual(1);
   // @ts-expect-error
-  t.is(result.features[0].name, 'feature-backup');
+  expect(result.features[0].name).toEqual('feature-backup');
 });

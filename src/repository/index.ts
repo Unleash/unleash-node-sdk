@@ -268,7 +268,7 @@ export default class Repository extends EventEmitter implements EventEmitter {
         return;
       }
 
-      if (content && this.notEmpty(content)) {
+      if (content && this.notEmpty(content) && content.features) {
         await this.save(content, false);
       }
     } catch (err: unknown) {
@@ -282,7 +282,7 @@ Message: ${message}`,
   }
 
   private convertToMap(features: FeatureInterface[]): FeatureToggleData {
-    const obj = features.reduce(
+    const obj = (features || []).reduce(
       (o: { [s: string]: FeatureInterface }, feature: FeatureInterface) => {
         this.validateFeature(feature);
         o[feature.name] = feature;

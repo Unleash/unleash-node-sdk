@@ -1,4 +1,4 @@
-import test from 'ava';
+import { expect, test } from 'vitest';
 import type Client from '../../client';
 import { MetricsAPI } from '../../impact-metrics/metric-api';
 import type {
@@ -20,7 +20,7 @@ const fakeVariantResolver = (
   }),
 });
 
-test('should not register a counter with empty name or help', (t) => {
+test('should not register a counter with empty name or help', () => {
   let counterRegistered = false;
 
   const fakeRegistry = {
@@ -33,13 +33,13 @@ test('should not register a counter with empty name or help', (t) => {
   const api = new MetricsAPI(fakeRegistry, fakeVariantResolver(), staticContext);
 
   api.defineCounter('some_name', '');
-  t.false(counterRegistered, 'Counter should not be registered with empty help');
+  expect(counterRegistered, 'Counter should not be registered with empty help').toBe(false);
 
   api.defineCounter('', 'some_help');
-  t.false(counterRegistered, 'Counter should not be registered with empty name');
+  expect(counterRegistered, 'Counter should not be registered with empty name').toBe(false);
 });
 
-test('should register a counter with valid name and help', (t) => {
+test('should register a counter with valid name and help', () => {
   let counterRegistered = false;
 
   const fakeRegistry = {
@@ -52,10 +52,10 @@ test('should register a counter with valid name and help', (t) => {
   const api = new MetricsAPI(fakeRegistry, fakeVariantResolver(), staticContext);
 
   api.defineCounter('valid_name', 'Valid help text');
-  t.true(counterRegistered, 'Counter should be registered with valid name and help');
+  expect(counterRegistered, 'Counter should be registered with valid name and help').toBe(true);
 });
 
-test('should not register a gauge with empty name or help', (t) => {
+test('should not register a gauge with empty name or help', () => {
   let gaugeRegistered = false;
 
   const fakeRegistry = {
@@ -68,13 +68,13 @@ test('should not register a gauge with empty name or help', (t) => {
   const api = new MetricsAPI(fakeRegistry, fakeVariantResolver(), staticContext);
 
   api.defineGauge('some_name', '');
-  t.false(gaugeRegistered, 'Gauge should not be registered with empty help');
+  expect(gaugeRegistered, 'Gauge should not be registered with empty help').toBe(false);
 
   api.defineGauge('', 'some_help');
-  t.false(gaugeRegistered, 'Gauge should not be registered with empty name');
+  expect(gaugeRegistered, 'Gauge should not be registered with empty name').toBe(false);
 });
 
-test('should register a gauge with valid name and help', (t) => {
+test('should register a gauge with valid name and help', () => {
   let gaugeRegistered = false;
 
   const fakeRegistry = {
@@ -87,10 +87,10 @@ test('should register a gauge with valid name and help', (t) => {
   const api = new MetricsAPI(fakeRegistry, fakeVariantResolver(), staticContext);
 
   api.defineGauge('valid_name', 'Valid help text');
-  t.true(gaugeRegistered, 'Gauge should be registered with valid name and help');
+  expect(gaugeRegistered, 'Gauge should be registered with valid name and help').toBe(true);
 });
 
-test('should increment counter with valid parameters', (t) => {
+test('should increment counter with valid parameters', () => {
   let counterIncremented = false;
   let recordedLabels: MetricLabels = {};
 
@@ -109,11 +109,15 @@ test('should increment counter with valid parameters', (t) => {
   const api = new MetricsAPI(fakeRegistry, fakeVariantResolver(), staticContext);
 
   api.incrementCounter('valid_counter', 5, { flagNames: ['featureX'], context: staticContext });
-  t.true(counterIncremented, 'Counter should be incremented with valid parameters');
-  t.deepEqual(recordedLabels, { appName: 'my-app', environment: 'dev', featureX: 'enabled' });
+  expect(counterIncremented, 'Counter should be incremented with valid parameters').toBe(true);
+  expect(recordedLabels).toStrictEqual({
+    appName: 'my-app',
+    environment: 'dev',
+    featureX: 'enabled',
+  });
 });
 
-test('should set gauge with valid parameters', (t) => {
+test('should set gauge with valid parameters', () => {
   let gaugeSet = false;
   let recordedLabels: MetricLabels = {};
 
@@ -132,21 +136,25 @@ test('should set gauge with valid parameters', (t) => {
   const api = new MetricsAPI(fakeRegistry, fakeVariantResolver('variantY'), staticContext);
 
   api.updateGauge('valid_gauge', 10, { flagNames: ['featureY'], context: staticContext });
-  t.true(gaugeSet, 'Gauge should be set with valid parameters');
-  t.deepEqual(recordedLabels, { appName: 'my-app', environment: 'dev', featureY: 'variantY' });
+  expect(gaugeSet, 'Gauge should be set with valid parameters').toBe(true);
+  expect(recordedLabels).toStrictEqual({
+    appName: 'my-app',
+    environment: 'dev',
+    featureY: 'variantY',
+  });
 });
 
-test('defining a counter automatically sets label names', (t) => {
+test('defining a counter automatically sets label names', () => {
   let counterRegistered = false;
 
   const fakeRegistry = {
     counter: (config: MetricOptions) => {
       counterRegistered = true;
-      t.deepEqual(
-        config.labelNames,
-        ['featureName', 'appName', 'environment'],
-        'Label names should be set correctly',
-      );
+      expect(config.labelNames, 'Label names should be set correctly').toStrictEqual([
+        'featureName',
+        'appName',
+        'environment',
+      ]);
     },
   } as unknown as ImpactMetricRegistry;
 
@@ -154,20 +162,20 @@ test('defining a counter automatically sets label names', (t) => {
   const api = new MetricsAPI(fakeRegistry, fakeVariantResolver(), staticContext);
 
   api.defineCounter('test_counter', 'Test help text');
-  t.true(counterRegistered, 'Counter should be registered');
+  expect(counterRegistered, 'Counter should be registered').toBe(true);
 });
 
-test('defining a gauge automatically sets label names', (t) => {
+test('defining a gauge automatically sets label names', () => {
   let gaugeRegistered = false;
 
   const fakeRegistry = {
     gauge: (config: MetricOptions) => {
       gaugeRegistered = true;
-      t.deepEqual(
-        config.labelNames,
-        ['featureName', 'appName', 'environment'],
-        'Label names should be set correctly',
-      );
+      expect(config.labelNames, 'Label names should be set correctly').toStrictEqual([
+        'featureName',
+        'appName',
+        'environment',
+      ]);
     },
   } as unknown as ImpactMetricRegistry;
 
@@ -175,10 +183,10 @@ test('defining a gauge automatically sets label names', (t) => {
   const api = new MetricsAPI(fakeRegistry, fakeVariantResolver('variantX'), staticContext);
 
   api.defineGauge('test_gauge', 'Test help text');
-  t.true(gaugeRegistered, 'Gauge should be registered');
+  expect(gaugeRegistered, 'Gauge should be registered').toBe(true);
 });
 
-test('should not register a histogram with empty name or help', (t) => {
+test('should not register a histogram with empty name or help', () => {
   let histogramRegistered = false;
 
   const fakeRegistry = {
@@ -191,13 +199,13 @@ test('should not register a histogram with empty name or help', (t) => {
   const api = new MetricsAPI(fakeRegistry, fakeVariantResolver(), staticContext);
 
   api.defineHistogram('some_name', '');
-  t.false(histogramRegistered, 'Histogram should not be registered with empty help');
+  expect(histogramRegistered, 'Histogram should not be registered with empty help').toBe(false);
 
   api.defineHistogram('', 'some_help');
-  t.false(histogramRegistered, 'Histogram should not be registered with empty name');
+  expect(histogramRegistered, 'Histogram should not be registered with empty name').toBe(false);
 });
 
-test('should register a histogram with valid name and help', (t) => {
+test('should register a histogram with valid name and help', () => {
   let histogramRegistered = false;
 
   const fakeRegistry = {
@@ -210,10 +218,10 @@ test('should register a histogram with valid name and help', (t) => {
   const api = new MetricsAPI(fakeRegistry, fakeVariantResolver(), staticContext);
 
   api.defineHistogram('valid_name', 'Valid help text');
-  t.true(histogramRegistered, 'Histogram should be registered with valid name and help');
+  expect(histogramRegistered, 'Histogram should be registered with valid name and help').toBe(true);
 });
 
-test('should observe histogram with valid parameters', (t) => {
+test('should observe histogram with valid parameters', () => {
   let histogramObserved = false;
   let recordedLabels: MetricLabels = {};
 
@@ -232,21 +240,25 @@ test('should observe histogram with valid parameters', (t) => {
   const api = new MetricsAPI(fakeRegistry, fakeVariantResolver(), staticContext);
 
   api.observeHistogram('valid_histogram', 1.5, { flagNames: ['featureX'], context: staticContext });
-  t.true(histogramObserved, 'Histogram should be observed with valid parameters');
-  t.deepEqual(recordedLabels, { appName: 'my-app', environment: 'dev', featureX: 'enabled' });
+  expect(histogramObserved, 'Histogram should be observed with valid parameters').toBe(true);
+  expect(recordedLabels).toStrictEqual({
+    appName: 'my-app',
+    environment: 'dev',
+    featureX: 'enabled',
+  });
 });
 
-test('defining a histogram automatically sets label names', (t) => {
+test('defining a histogram automatically sets label names', () => {
   let histogramRegistered = false;
 
   const fakeRegistry = {
     histogram: (config: BucketMetricOptions) => {
       histogramRegistered = true;
-      t.deepEqual(
-        config.labelNames,
-        ['featureName', 'appName', 'environment'],
-        'Label names should be set correctly',
-      );
+      expect(config.labelNames, 'Label names should be set correctly').toStrictEqual([
+        'featureName',
+        'appName',
+        'environment',
+      ]);
     },
   } as unknown as ImpactMetricRegistry;
 
@@ -254,5 +266,5 @@ test('defining a histogram automatically sets label names', (t) => {
   const api = new MetricsAPI(fakeRegistry, fakeVariantResolver(), staticContext);
 
   api.defineHistogram('test_histogram', 'Test help text');
-  t.true(histogramRegistered, 'Histogram should be registered');
+  expect(histogramRegistered, 'Histogram should be registered').toBe(true);
 });

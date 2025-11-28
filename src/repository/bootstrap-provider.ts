@@ -1,5 +1,5 @@
 import { promises } from 'node:fs';
-import * as fetch from 'make-fetch-happen';
+import fetch from 'make-fetch-happen';
 import type { ClientFeaturesResponse, FeatureInterface } from '../feature';
 import type { CustomHeaders } from '../headers';
 import { buildHeaders } from '../request';
