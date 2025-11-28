@@ -26,7 +26,7 @@ const nockRegister = (url: string, code = 200) => nock(url).post(registerUrl).re
 const nockFeatures = (url: string, code = 200) =>
   nock(url).get('/client/features').reply(code, { features: [] });
 
-test('should load main module', (t) => {
+test('should load main module', () => {
   expect(initialize).toBeTruthy();
   expect(startUnleash).toBeTruthy();
   expect(isEnabled).toBeTruthy();
@@ -39,7 +39,7 @@ test('should load main module', (t) => {
   expect(count).toBeTruthy();
 });
 
-test('initialize should init with valid options', (t) => {
+test('initialize should init with valid options', () => {
   const url = getUrl();
   nockMetrics(url);
   nockRegister(url);
@@ -47,7 +47,7 @@ test('initialize should init with valid options', (t) => {
   destroy();
 });
 
-test('should call methods', (t) => {
+test('should call methods', () => {
   const url = getUrl();
   nockMetrics(url);
   nockRegister(url);
@@ -58,12 +58,12 @@ test('should call methods', (t) => {
   destroy();
 });
 
-test('should not return feature-toggle definition if there is no instance', (t) => {
+test('should not return feature-toggle definition if there is no instance', () => {
   // @ts-expect-error
   expect(getFeatureToggleDefinition()).toBeUndefined();
 });
 
-test.sequential('should start unleash with promise', async (t) => {
+test.sequential('should start unleash with promise', async () => {
   const url = getUrl();
   nockFeatures(url);
   nockMetrics(url);
@@ -73,7 +73,7 @@ test.sequential('should start unleash with promise', async (t) => {
   destroy();
 });
 
-test.sequential('should start unleash with promise multiple times', async (t) => {
+test.sequential('should start unleash with promise multiple times', async () => {
   const url = getUrl();
   nockFeatures(url);
   nockMetrics(url);

@@ -11,7 +11,7 @@ test('valid headers', () => {
   expect(result).toEqual('environment');
 });
 
-test('case-insensitive header keys', (t) => {
+test('case-insensitive header keys', () => {
   const customHeaders = {
     AUTHORIZATION: 'project:environment.hash',
     'Content-Type': 'application/json',
@@ -21,12 +21,12 @@ test('case-insensitive header keys', (t) => {
   expect(result).toEqual('environment');
 });
 
-test('authorization header not present', (t) => {
+test('authorization header not present', () => {
   const result = extractEnvironmentFromCustomHeaders({});
   expect(result).toBeUndefined();
 });
 
-test('environment part is empty', (t) => {
+test('environment part is empty', () => {
   const customHeaders = {
     Authorization: 'project:.hash',
   };

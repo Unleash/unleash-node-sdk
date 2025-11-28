@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { expect, test } from 'vitest';
 import FileStorageProvider from '../../repository/storage-provider-file';
 
-test('should handle empty string', async (t) => {
+test('should handle empty string', async () => {
   const appNameLocal = 'test-sp';
   const backupPath = join(tmpdir());
   const backupFile = join(backupPath, `/unleash-backup-${appNameLocal}.json`);
@@ -14,7 +14,7 @@ test('should handle empty string', async (t) => {
   expect(result).toBeUndefined();
 });
 
-test('should handle empty string with spaces', async (t) => {
+test('should handle empty string with spaces', async () => {
   const appNameLocal = 'test-spaces';
   const backupPath = join(tmpdir());
   const backupFile = join(backupPath, `/unleash-backup-${appNameLocal}.json`);
@@ -24,7 +24,7 @@ test('should handle empty string with spaces', async (t) => {
   expect(result).toBeUndefined();
 });
 
-test('should return data', async (t) => {
+test('should return data', async () => {
   const appNameLocal = 'test-sp-content';
   const backupPath = join(tmpdir());
   const backupFile = join(backupPath, `/unleash-backup-${appNameLocal}.json`);

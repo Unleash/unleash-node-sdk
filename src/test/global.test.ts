@@ -43,7 +43,7 @@ test('should be able to call api', () => {
   destroy();
 });
 
-test('should load if backup file is corrupted', (t) =>
+test('should load if backup file is corrupted', () =>
   new Promise<void>((resolve) => {
     const url = mockNetwork();
     const backupPath = join(tmpdir());
@@ -72,7 +72,7 @@ test('should load if backup file is corrupted', (t) =>
   }));
 
 // FIXME: This test is flaky
-test.skip('should be able to call isEnabled eventually', (t) =>
+test.skip('should be able to call isEnabled eventually', () =>
   new Promise<void>((resolve) => {
     const url = mockNetwork();
     initialize({
@@ -92,7 +92,7 @@ test.skip('should be able to call isEnabled eventually', (t) =>
     expect(isEnabled('feature')).toBe(false);
   }));
 
-test('should return fallbackValue if init was not called', (t) => {
+test('should return fallbackValue if init was not called', () => {
   expect(isEnabled('feature')).toBe(false);
   expect(isEnabled('feature', {}, false)).toBe(false);
   expect(isEnabled('feature', {}, true)).toBe(true);

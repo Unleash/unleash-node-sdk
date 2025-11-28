@@ -20,7 +20,7 @@ const fakeVariantResolver = (
   }),
 });
 
-test('should not register a counter with empty name or help', (t) => {
+test('should not register a counter with empty name or help', () => {
   let counterRegistered = false;
 
   const fakeRegistry = {
@@ -39,7 +39,7 @@ test('should not register a counter with empty name or help', (t) => {
   expect(counterRegistered, 'Counter should not be registered with empty name').toBe(false);
 });
 
-test('should register a counter with valid name and help', (t) => {
+test('should register a counter with valid name and help', () => {
   let counterRegistered = false;
 
   const fakeRegistry = {
@@ -55,7 +55,7 @@ test('should register a counter with valid name and help', (t) => {
   expect(counterRegistered, 'Counter should be registered with valid name and help').toBe(true);
 });
 
-test('should not register a gauge with empty name or help', (t) => {
+test('should not register a gauge with empty name or help', () => {
   let gaugeRegistered = false;
 
   const fakeRegistry = {
@@ -74,7 +74,7 @@ test('should not register a gauge with empty name or help', (t) => {
   expect(gaugeRegistered, 'Gauge should not be registered with empty name').toBe(false);
 });
 
-test('should register a gauge with valid name and help', (t) => {
+test('should register a gauge with valid name and help', () => {
   let gaugeRegistered = false;
 
   const fakeRegistry = {
@@ -90,7 +90,7 @@ test('should register a gauge with valid name and help', (t) => {
   expect(gaugeRegistered, 'Gauge should be registered with valid name and help').toBe(true);
 });
 
-test('should increment counter with valid parameters', (t) => {
+test('should increment counter with valid parameters', () => {
   let counterIncremented = false;
   let recordedLabels: MetricLabels = {};
 
@@ -117,7 +117,7 @@ test('should increment counter with valid parameters', (t) => {
   });
 });
 
-test('should set gauge with valid parameters', (t) => {
+test('should set gauge with valid parameters', () => {
   let gaugeSet = false;
   let recordedLabels: MetricLabels = {};
 
@@ -144,7 +144,7 @@ test('should set gauge with valid parameters', (t) => {
   });
 });
 
-test('defining a counter automatically sets label names', (t) => {
+test('defining a counter automatically sets label names', () => {
   let counterRegistered = false;
 
   const fakeRegistry = {
@@ -165,7 +165,7 @@ test('defining a counter automatically sets label names', (t) => {
   expect(counterRegistered, 'Counter should be registered').toBe(true);
 });
 
-test('defining a gauge automatically sets label names', (t) => {
+test('defining a gauge automatically sets label names', () => {
   let gaugeRegistered = false;
 
   const fakeRegistry = {
@@ -186,7 +186,7 @@ test('defining a gauge automatically sets label names', (t) => {
   expect(gaugeRegistered, 'Gauge should be registered').toBe(true);
 });
 
-test('should not register a histogram with empty name or help', (t) => {
+test('should not register a histogram with empty name or help', () => {
   let histogramRegistered = false;
 
   const fakeRegistry = {
@@ -205,7 +205,7 @@ test('should not register a histogram with empty name or help', (t) => {
   expect(histogramRegistered, 'Histogram should not be registered with empty name');
 });
 
-test('should register a histogram with valid name and help', (t) => {
+test('should register a histogram with valid name and help', () => {
   let histogramRegistered = false;
 
   const fakeRegistry = {
@@ -221,7 +221,7 @@ test('should register a histogram with valid name and help', (t) => {
   expect(histogramRegistered, 'Histogram should be registered with valid name and help').toBe(true);
 });
 
-test('should observe histogram with valid parameters', (t) => {
+test('should observe histogram with valid parameters', () => {
   let histogramObserved = false;
   let recordedLabels: MetricLabels = {};
 
@@ -248,7 +248,7 @@ test('should observe histogram with valid parameters', (t) => {
   });
 });
 
-test('defining a histogram automatically sets label names', (t) => {
+test('defining a histogram automatically sets label names', () => {
   let histogramRegistered = false;
 
   const fakeRegistry = {

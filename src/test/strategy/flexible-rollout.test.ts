@@ -1,33 +1,33 @@
 import { expect, test, vi } from 'vitest';
 import FlexibleRolloutStrategy from '../../strategy/flexible-rollout-strategy';
 
-test('should have correct name', (t) => {
+test('should have correct name', () => {
   const strategy = new FlexibleRolloutStrategy();
   expect(strategy.name).toBe('flexibleRollout');
 });
 
-test('should NOT be enabled for userId=61 and rollout=9', (t) => {
+test('should NOT be enabled for userId=61 and rollout=9', () => {
   const strategy = new FlexibleRolloutStrategy();
   const params = { rollout: 9, stickiness: 'default', groupId: 'Demo' };
   const context = { userId: '61', application: 'web' };
   expect(strategy.isEnabled(params, context)).toBe(false);
 });
 
-test('should be enabled for userId=61 and rollout=10', (t) => {
+test('should be enabled for userId=61 and rollout=10', () => {
   const strategy = new FlexibleRolloutStrategy();
   const params = { rollout: '10', stickiness: 'default', groupId: 'Demo' };
   const context = { userId: '61', application: 'web' };
   expect(strategy.isEnabled(params, context)).toBe(true);
 });
 
-test('should be disabled when stickiness=userId and userId not on context', (t) => {
+test('should be disabled when stickiness=userId and userId not on context', () => {
   const strategy = new FlexibleRolloutStrategy();
   const params = { rollout: '100', stickiness: 'userId', groupId: 'Demo' };
   const context = {};
   expect(strategy.isEnabled(params, context)).toBe(false);
 });
 
-test('should fallback to random if stickiness=default and empty context', (t) => {
+test('should fallback to random if stickiness=default and empty context', () => {
   const randomGenerator = vi.fn(() => '42');
 
   const strategy = new FlexibleRolloutStrategy(randomGenerator);
@@ -38,14 +38,14 @@ test('should fallback to random if stickiness=default and empty context', (t) =>
   expect(randomGenerator).toHaveBeenCalled();
 });
 
-test('should NOT be enabled for rollout=10% when userId is 123', (t) => {
+test('should NOT be enabled for rollout=10% when userId is 123', () => {
   const strategy = new FlexibleRolloutStrategy();
   const params = { rollout: 10, stickiness: 'default', groupId: 'toggleName' };
   const context = { environment: 'dev', userId: '123' };
   expect(strategy.isEnabled(params, context)).toBe(false);
 });
 
-test('should be disabled when stickiness=customerId and customerId not found on context', (t) => {
+test('should be disabled when stickiness=customerId and customerId not found on context', () => {
   const strategy = new FlexibleRolloutStrategy();
   const params = {
     rollout: '100',
@@ -56,7 +56,7 @@ test('should be disabled when stickiness=customerId and customerId not found on 
   expect(strategy.isEnabled(params, context)).toBe(false);
 });
 
-test('should be enabled when stickiness=customerId and customerId=61', (t) => {
+test('should be enabled when stickiness=customerId and customerId=61', () => {
   const strategy = new FlexibleRolloutStrategy();
   const params = {
     rollout: '100',

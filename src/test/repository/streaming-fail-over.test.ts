@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest';
 import { type FailEvent, FailoverStrategy } from '../../repository/streaming-fail-over';
 
-test('fails over immediately when server requests it', (t) => {
+test('fails over immediately when server requests it', () => {
   const failOverStrategy = new FailoverStrategy(3, 10_000);
 
   const now = new Date('2024-01-01T00:00:00Z');
@@ -16,7 +16,7 @@ test('fails over immediately when server requests it', (t) => {
   expect(failOverStrategy.shouldFailover(event, now)).toBe(true);
 });
 
-test('does not fail over on arbitrary server events', (t) => {
+test('does not fail over on arbitrary server events', () => {
   const failOverStrategy = new FailoverStrategy(3, 10_000);
 
   const now = new Date('2024-01-01T00:00:00Z');
@@ -31,7 +31,7 @@ test('does not fail over on arbitrary server events', (t) => {
   expect(failOverStrategy.shouldFailover(event, now)).toBe(false);
 });
 
-test('fails over immediately on hard http status codes', (t) => {
+test('fails over immediately on hard http status codes', () => {
   const failOverStrategy = new FailoverStrategy(3, 10_000);
 
   const now = new Date('2024-01-01T00:00:00Z');
@@ -48,7 +48,7 @@ test('fails over immediately on hard http status codes', (t) => {
   }
 });
 
-test('soft errors accumulate to failover within relax window', (t) => {
+test('soft errors accumulate to failover within relax window', () => {
   const failOverStrategy = new FailoverStrategy(3, 60_000);
   const base = Date.UTC(1867, 10, 7, 0, 0, 0);
 
@@ -76,7 +76,7 @@ test('soft errors accumulate to failover within relax window', (t) => {
   ).toBe(true);
 });
 
-test('soft errors are pruned error window and do not cause failover', (t) => {
+test('soft errors are pruned error window and do not cause failover', () => {
   const failOverStrategy = new FailoverStrategy(3, 1_000);
   const base = Date.UTC(1867, 10, 7, 0, 0, 0);
 
@@ -104,7 +104,7 @@ test('soft errors are pruned error window and do not cause failover', (t) => {
   ).toBe(false);
 });
 
-test('unhandled HTTP status codes never trigger failover', (t) => {
+test('unhandled HTTP status codes never trigger failover', () => {
   const failOverStrategy = new FailoverStrategy(1, 10_000);
   const base = Date.UTC(1867, 10, 7, 0, 0, 0);
 

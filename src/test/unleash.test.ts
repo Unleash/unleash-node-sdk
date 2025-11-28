@@ -473,7 +473,7 @@ test('should local context should take precedence over static context fields', a
   });
 });
 
-test('should call client/features with projectName query parameter if projectName is set', (t) => {
+test('should call client/features with projectName query parameter if projectName is set', () => {
   const baseUrl = getUrl();
   const project = 'myProject';
 
@@ -494,7 +494,7 @@ test('should call client/features with projectName query parameter if projectNam
   instance.destroy();
 });
 
-test('should call client/features if no projectname set', (t) => {
+test('should call client/features if no projectname set', () => {
   const baseUrl = getUrl();
   mockNetwork([], baseUrl);
 

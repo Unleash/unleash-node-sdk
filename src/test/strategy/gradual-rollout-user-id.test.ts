@@ -3,26 +3,26 @@ import { expect, test } from 'vitest';
 import GradualRolloutUserIdStrategy from '../../strategy/gradual-rollout-user-id';
 import { normalizedStrategyValue } from '../../strategy/util';
 
-test('gradual-rollout-user-id strategy should have correct name', (t) => {
+test('gradual-rollout-user-id strategy should have correct name', () => {
   const strategy = new GradualRolloutUserIdStrategy();
   expect(strategy.name).toBe('gradualRolloutUserId');
 });
 
-test('should be enabled when percentage is 100', (t) => {
+test('should be enabled when percentage is 100', () => {
   const strategy = new GradualRolloutUserIdStrategy();
   const params = { percentage: '100', groupId: 'gr1' };
   const context = { userId: '123' };
   expect(strategy.isEnabled(params, context)).toBe(true);
 });
 
-test('should be disabled when percentage is 0', (t) => {
+test('should be disabled when percentage is 0', () => {
   const strategy = new GradualRolloutUserIdStrategy();
   const params = { percentage: '0', groupId: 'gr1' };
   const context = { userId: '123' };
   expect(strategy.isEnabled(params, context)).toBe(false);
 });
 
-test('should be enabled when percentage is exactly same', (t) => {
+test('should be enabled when percentage is exactly same', () => {
   const strategy = new GradualRolloutUserIdStrategy();
   const userId = '123123';
   const groupId = 'group1';
@@ -33,7 +33,7 @@ test('should be enabled when percentage is exactly same', (t) => {
   expect(strategy.isEnabled(params, context)).toBe(true);
 });
 
-test('should be disabled when percentage is just below required value', (t) => {
+test('should be disabled when percentage is just below required value', () => {
   const strategy = new GradualRolloutUserIdStrategy();
   const userId = '123123';
   const groupId = 'group1';
@@ -44,7 +44,7 @@ test('should be disabled when percentage is just below required value', (t) => {
   expect(strategy.isEnabled(params, context)).toBe(false);
 });
 
-test('should only at most miss by one percent', (t) => {
+test('should only at most miss by one percent', () => {
   const strategy = new GradualRolloutUserIdStrategy();
 
   const percentage = 10;

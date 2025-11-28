@@ -41,7 +41,7 @@ test('registerInstance, sendMetrics, startTimer and count should respect disable
   });
 });
 
-test('should not start fetch/register when metricsInterval is 0', (t) => {
+test('should not start fetch/register when metricsInterval is 0', () => {
   const url = getUrl();
   // @ts-expect-error
   const metrics = new Metrics({
@@ -81,7 +81,7 @@ test('should sendMetrics and register when metricsInterval is a positive number'
   await vi.waitFor<void>(() => validator, { timeout: 1000 });
 });
 
-test('should sendMetrics', async (t) => {
+test('should sendMetrics', async () => {
   const url = getUrl();
   expect.assertions(7);
   const metricsEP = nock(url)
@@ -160,7 +160,7 @@ test('should send correct custom and unleash headers', async () => {
   });
 });
 
-test('should send content-type header', async (t) => {
+test('should send content-type header', async () => {
   const url = getUrl();
   expect.assertions(2);
   const metricsEP = nockMetrics(url).matchHeader('content-type', 'application/json');
@@ -180,7 +180,7 @@ test('should send content-type header', async (t) => {
   metrics.stop();
 });
 
-test('request with customHeadersFunction should take precedence over customHeaders', async (t) => {
+test('request with customHeadersFunction should take precedence over customHeaders', async () => {
   const url = getUrl();
   expect.assertions(2);
   const customHeadersKey = `value-${Math.random()}`;
@@ -320,7 +320,7 @@ test('sendMetrics should not send empty buckets', async () => {
   expect(metEP.isDone()).toBe(false);
 });
 
-test('count should increment yes and no counters', (t) => {
+test('count should increment yes and no counters', () => {
   const url = getUrl();
   // @ts-expect-error
   const metrics = new Metrics({
@@ -351,7 +351,7 @@ test('count should increment yes and no counters', (t) => {
   expect(toggleCount.no).toBe(4);
 });
 
-test('count should increment yes and no counters with variants', (t) => {
+test('count should increment yes and no counters with variants', () => {
   const url = getUrl();
   // @ts-expect-error
   const metrics = new Metrics({

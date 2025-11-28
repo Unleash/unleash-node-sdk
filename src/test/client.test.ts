@@ -20,7 +20,7 @@ const log = (err) => {
   console.error(err);
 };
 
-test('invalid strategy should throw', (t) => {
+test('invalid strategy should throw', () => {
   const repo = {
     getToggle() {
       return buildToggle('feature', true);
@@ -43,7 +43,7 @@ test('invalid strategy should throw', (t) => {
   ).toThrow();
 });
 
-test('should use provided repository', (t) => {
+test('should use provided repository', () => {
   const repo = {
     getToggle() {
       return buildToggle('feature', true);
@@ -56,7 +56,7 @@ test('should use provided repository', (t) => {
   expect(result).toBe(true);
 });
 
-test('should fallback when missing feature', (t) => {
+test('should fallback when missing feature', () => {
   const repo = {
     getToggle() {
       return null;
@@ -72,7 +72,7 @@ test('should fallback when missing feature', (t) => {
   expect(result2).toBe(true);
 });
 
-test('should consider toggle not active', (t) => {
+test('should consider toggle not active', () => {
   const repo = {
     getToggle() {
       return buildToggle('feature', false);
@@ -85,7 +85,7 @@ test('should consider toggle not active', (t) => {
   expect(result).toBe(false);
 });
 
-test('should use custom strategy', (t) => {
+test('should use custom strategy', () => {
   const repo = {
     getToggle() {
       return buildToggle('feature', true, [{ name: 'custom' }]);
@@ -98,7 +98,7 @@ test('should use custom strategy', (t) => {
   expect(result).toBe(true);
 });
 
-test('should use a set of custom strategies', (t) => {
+test('should use a set of custom strategies', () => {
   const repo = {
     getToggle() {
       return buildToggle('feature', true, [{ name: 'custom' }, { name: 'custom-false' }]);
@@ -113,7 +113,7 @@ test('should use a set of custom strategies', (t) => {
   expect(result).toBe(true);
 });
 
-test('should return false a set of custom-false strategies', (t) => {
+test('should return false a set of custom-false strategies', () => {
   const repo = {
     getToggle() {
       return buildToggle('feature', true, [{ name: 'custom-false' }, { name: 'custom-false' }]);
@@ -128,7 +128,7 @@ test('should return false a set of custom-false strategies', (t) => {
   expect(result).toBe(false);
 });
 
-test('should emit error when invalid feature runtime', (t) => {
+test('should emit error when invalid feature runtime', () => {
   expect.assertions(3);
   const repo = {
     getToggle() {
@@ -151,7 +151,7 @@ test('should emit error when invalid feature runtime', (t) => {
   expect(client.isEnabled('feature-malformed-strategies')).toBe(false);
 });
 
-test('should emit error when mising feature runtime', (t) => {
+test('should emit error when mising feature runtime', () => {
   expect.assertions(3);
   const repo = {
     getToggle() {
@@ -191,7 +191,7 @@ test('should emit error when mising feature runtime', (t) => {
     ['1', 100],
   ],
 ].forEach(([[id1, weight1], [id2, weight2], [id3, weight3]]) => {
-  test(`should return variant when equal weight on ${weight1},${weight2},${weight3}`, (t) => {
+  test(`should return variant when equal weight on ${weight1},${weight2},${weight3}`, () => {
     const repo = {
       getToggle() {
         return buildToggle('feature', true, null, [
@@ -236,7 +236,7 @@ test('should emit error when mising feature runtime', (t) => {
   });
 });
 
-test('should always return defaultVariant if missing variant', (t) => {
+test('should always return defaultVariant if missing variant', () => {
   const repo = {
     getToggle() {
       return buildToggle('feature-but-no-variant', true, []);
@@ -273,7 +273,7 @@ test('should always return defaultVariant if missing variant', (t) => {
   expect(result3).toEqual(defaultVariant);
 });
 
-test('should not trigger events if impressionData is false', (t) => {
+test('should not trigger events if impressionData is false', () => {
   let called = false;
   const repo = {
     getToggle() {
@@ -290,7 +290,7 @@ test('should not trigger events if impressionData is false', (t) => {
   expect(called).toBe(false);
 });
 
-test('should trigger events on isEnabled if impressionData is true', (t) => {
+test('should trigger events on isEnabled if impressionData is true', () => {
   let called = false;
   const repo = {
     getToggle() {
@@ -305,7 +305,7 @@ test('should trigger events on isEnabled if impressionData is true', (t) => {
   expect(called).toBe(true);
 });
 
-test('should trigger events on unsatisfied dependency', (t) => {
+test('should trigger events on unsatisfied dependency', () => {
   let impressionCount = 0;
   const recordedWarnings = [];
   const repo = {
@@ -337,7 +337,7 @@ test('should trigger events on unsatisfied dependency', (t) => {
   expect(recordedWarnings).toEqual(['Missing dependency "not-feature-x" for toggle "feature-x"']);
 });
 
-test('should trigger events on getVariant if impressionData is true', (t) => {
+test('should trigger events on getVariant if impressionData is true', () => {
   let called = false;
   const repo = {
     getToggle() {
@@ -352,7 +352,7 @@ test('should trigger events on getVariant if impressionData is true', (t) => {
   expect(called).toBe(true);
 });
 
-test('should favor strategy variant over feature variant', (t) => {
+test('should favor strategy variant over feature variant', () => {
   const repo = {
     getToggle() {
       return buildToggle(
@@ -399,7 +399,7 @@ test('should favor strategy variant over feature variant', (t) => {
   });
 });
 
-test('should return disabled variant for non-matching strategy variant', (t) => {
+test('should return disabled variant for non-matching strategy variant', () => {
   const repo = {
     getToggle() {
       return buildToggle(

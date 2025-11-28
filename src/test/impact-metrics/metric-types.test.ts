@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest';
 import { InMemoryMetricRegistry } from '../../impact-metrics/metric-types';
 
-test('Counter increments by default value', (t) => {
+test('Counter increments by default value', () => {
   const registry = new InMemoryMetricRegistry();
   const counter = registry.counter({ name: 'test_counter', help: 'testing' });
 
@@ -23,7 +23,7 @@ test('Counter increments by default value', (t) => {
   });
 });
 
-test('Counter increments with custom value and labels', (t) => {
+test('Counter increments with custom value and labels', () => {
   const registry = new InMemoryMetricRegistry();
   const counter = registry.counter({ name: 'labeled_counter', help: 'with labels' });
 
@@ -46,7 +46,7 @@ test('Counter increments with custom value and labels', (t) => {
   });
 });
 
-test('Gauge supports inc, dec, and set', (t) => {
+test('Gauge supports inc, dec, and set', () => {
   const registry = new InMemoryMetricRegistry();
   const gauge = registry.gauge({ name: 'test_gauge', help: 'gauge test' });
 
@@ -70,7 +70,7 @@ test('Gauge supports inc, dec, and set', (t) => {
   });
 });
 
-test('Different label combinations are stored separately', (t) => {
+test('Different label combinations are stored separately', () => {
   const registry = new InMemoryMetricRegistry();
   const counter = registry.counter({ name: 'multi_label', help: 'label test' });
 
@@ -93,7 +93,7 @@ test('Different label combinations are stored separately', (t) => {
   });
 });
 
-test('Gauge tracks values separately per label set', (t) => {
+test('Gauge tracks values separately per label set', () => {
   const registry = new InMemoryMetricRegistry();
   const gauge = registry.gauge({ name: 'multi_env_gauge', help: 'tracks multiple envs' });
 
@@ -116,7 +116,7 @@ test('Gauge tracks values separately per label set', (t) => {
   });
 });
 
-test('collect returns empty array when all metrics are empty', (t) => {
+test('collect returns empty array when all metrics are empty', () => {
   const registry = new InMemoryMetricRegistry();
   registry.counter({ name: 'noop_counter', help: 'noop' });
   registry.gauge({ name: 'noop_gauge', help: 'noop' });
@@ -125,7 +125,7 @@ test('collect returns empty array when all metrics are empty', (t) => {
   expect(result).toStrictEqual([]);
 });
 
-test('collect returns empty array after flushing previous values', (t) => {
+test('collect returns empty array after flushing previous values', () => {
   const registry = new InMemoryMetricRegistry();
   const counter = registry.counter({ name: 'flush_test', help: 'flush' });
 
@@ -138,7 +138,7 @@ test('collect returns empty array after flushing previous values', (t) => {
   expect(second).toStrictEqual([]);
 });
 
-test('restore reinserts collected metrics into the registry', (t) => {
+test('restore reinserts collected metrics into the registry', () => {
   const registry = new InMemoryMetricRegistry();
   const counter = registry.counter({ name: 'restore_test', help: 'testing restore' });
 
@@ -167,7 +167,7 @@ test('restore reinserts collected metrics into the registry', (t) => {
   ]);
 });
 
-test('Histogram observes values', (t) => {
+test('Histogram observes values', () => {
   const registry = new InMemoryMetricRegistry();
   const histogram = registry.histogram({
     name: 'test_histogram',
@@ -205,7 +205,7 @@ test('Histogram observes values', (t) => {
   ]);
 });
 
-test('Histogram tracks different label combinations separately', (t) => {
+test('Histogram tracks different label combinations separately', () => {
   const registry = new InMemoryMetricRegistry();
   const histogram = registry.histogram({
     name: 'multi_label_histogram',
@@ -260,7 +260,7 @@ test('Histogram tracks different label combinations separately', (t) => {
   ]);
 });
 
-test('Histogram restoration preserves exact data', (t) => {
+test('Histogram restoration preserves exact data', () => {
   const registry = new InMemoryMetricRegistry();
   const histogram = registry.histogram({
     name: 'restore_histogram',

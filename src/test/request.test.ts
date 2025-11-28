@@ -3,17 +3,17 @@ import https from 'node:https';
 import { expect, test } from 'vitest';
 import { buildHeaders, getDefaultAgent } from '../request';
 
-test('http URLs should yield http.Agent', (t) => {
+test('http URLs should yield http.Agent', () => {
   const agent = getDefaultAgent(new URL('http://unleash-host1.com'));
   expect(agent).toBeInstanceOf(http.Agent);
 });
 
-test('https URLs should yield https.Agent', (t) => {
+test('https URLs should yield https.Agent', () => {
   const agent = getDefaultAgent(new URL('https://unleash.hosted.com'));
   expect(agent).toBeInstanceOf(https.Agent);
 });
 
-test('Correct headers should be included', (t) => {
+test('Correct headers should be included', () => {
   const headers = buildHeaders({
     appName: 'myApp',
     instanceId: 'instanceId',

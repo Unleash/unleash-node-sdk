@@ -52,21 +52,21 @@ test('should be disabled when percentage=0 and random is not zero', () => {
   expect(strategy.isEnabled(params)).toBe(false);
 });
 
-test('should be enabled when percentage is greater than random', (t) => {
+test('should be enabled when percentage is greater than random', () => {
   const strategy = new GradualRolloutRandomStrategy(() => 10);
   const params = { percentage: '20', groupId: 'test' };
   // @ts-expect-error
   expect(strategy.isEnabled(params)).toBe(true);
 });
 
-test('should be enabled when percentage=100', (t) => {
+test('should be enabled when percentage=100', () => {
   const strategy = new GradualRolloutRandomStrategy(() => 90);
   const params = { percentage: '100', groupId: 'test' };
   // @ts-expect-error
   expect(strategy.isEnabled(params)).toBe(true);
 });
 
-test('should be enabled when percentage and random are the same', (t) => {
+test('should be enabled when percentage and random are the same', () => {
   const strategy = new GradualRolloutRandomStrategy(() => 55);
   const params = { percentage: '55', groupId: 'test' };
   // @ts-expect-error

@@ -18,7 +18,7 @@ function makeOptions(overrides: Partial<StreamingFetchingOptions> = {}): Streami
   } as any;
 }
 
-test('emits Warn on SSE when failover is triggered', async (t) => {
+test('emits Warn on SSE when failover is triggered', async () => {
   const warnings: unknown[] = [];
   const options = makeOptions({
     onModeChange: async () => {},
@@ -41,7 +41,7 @@ test('emits Warn on SSE when failover is triggered', async (t) => {
   expect(warnings[0]).toEqual('Go away, there are way too many of you');
 });
 
-test('does not emit Warn on SSE when failover is not triggered', async (t) => {
+test('does not emit Warn on SSE when failover is not triggered', async () => {
   const warnings: unknown[] = [];
   const options = makeOptions({
     onModeChange: async () => {},
@@ -63,7 +63,7 @@ test('does not emit Warn on SSE when failover is not triggered', async (t) => {
   expect(warnings.length).toEqual(0);
 });
 
-test('transient errors that cause failover report the last error', async (t) => {
+test('transient errors that cause failover report the last error', async () => {
   const warnings: unknown[] = [];
   const options = makeOptions({
     onModeChange: async () => {},
