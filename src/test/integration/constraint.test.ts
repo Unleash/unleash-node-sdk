@@ -63,8 +63,8 @@ const toggles = {
   ],
 };
 
-test('should be enabled for satisfied constraint', (t) =>
-  new Promise((resolve, reject) => {
+test('should be enabled for satisfied constraint', async () => {
+  await new Promise<void>((resolve, reject) => {
     // Mock unleash-api
     const url = mockNetwork(toggles);
 
@@ -84,10 +84,11 @@ test('should be enabled for satisfied constraint', (t) =>
       instance.destroy();
       resolve();
     });
-  }));
+  });
+});
 
-test('should be enabled for satisfied NOT_IN constraint', (t) =>
-  new Promise((resolve, reject) => {
+test('should be enabled for satisfied NOT_IN constraint', async () => {
+  await new Promise<void>((resolve, reject) => {
     // Mock unleash-api
     const url = mockNetwork(toggles);
 
@@ -109,4 +110,5 @@ test('should be enabled for satisfied NOT_IN constraint', (t) =>
       instance.destroy();
       resolve();
     });
-  }));
+  });
+});

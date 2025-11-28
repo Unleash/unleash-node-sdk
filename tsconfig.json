@@ -10,7 +10,7 @@
     "moduleResolution": "nodenext",
     "esModuleInterop": true,
     "allowJs": true,
-    "skipLibCheck": false,
+    "skipLibCheck": true,
     "allowSyntheticDefaultImports": true
   },
   "exclude": ["examples/", "lib/", "node_modules/", "vitest.config.ts"],

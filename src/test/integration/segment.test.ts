@@ -46,7 +46,7 @@ const toggles = {
   ],
 };
 
-test('should use global segments for constraint calculation', (t) =>
+test('should use global segments for constraint calculation', () =>
   new Promise<void>((resolve, reject) => {
     const url = mockNetwork(toggles);
 
@@ -92,8 +92,8 @@ test('should resolve to false if required global segment cannot be found', async
   });
 });
 
-test('should handle case where segment is not present on strategy', async (t) => {
-  await new Promise((resolve, reject) => {
+test('should handle case where segment is not present on strategy', async () => {
+  await new Promise<void>((resolve, reject) => {
     const togglesWithoutSegmentIds = { ...toggles };
     // @ts-expect-error
     togglesWithoutSegmentIds.features[0].strategies[0].segments = undefined;
