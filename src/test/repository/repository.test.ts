@@ -196,6 +196,7 @@ test('should request with etag', async () => {
       .persist()
       .get('/client/features')
       .reply(200, { features: [] }, { Etag: '12345-2' });
+    nock(url).matchHeader('If-None-Match', '12345-2').persist().get('/client/features').reply(304);
 
     const repo = new Repository({
       url,
