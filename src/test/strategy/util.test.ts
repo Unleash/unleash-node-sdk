@@ -1,8 +1,8 @@
-import test from 'ava';
+import { expect, test } from 'vitest';
 
 import { normalizedStrategyValue } from '../../strategy/util';
 
-test('normalized values are the same across node, java, and go clients', (t) => {
-  t.is(normalizedStrategyValue('123', 'gr1'), 73);
-  t.is(normalizedStrategyValue('999', 'groupX'), 25);
+test('normalized values are the same across node, java, and go clients', () => {
+  expect(normalizedStrategyValue('123', 'gr1')).toBe(73);
+  expect(normalizedStrategyValue('999', 'groupX')).toBe(25);
 });

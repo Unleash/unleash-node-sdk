@@ -1,14 +1,13 @@
-import * as http from 'node:http';
-import * as https from 'node:https';
+import http from 'node:http';
+import https from 'node:https';
 import type { URL } from 'node:url';
 import { HttpProxyAgent } from 'http-proxy-agent';
 import { HttpsProxyAgent } from 'https-proxy-agent';
-import * as fetch from 'make-fetch-happen';
+import fetch from 'make-fetch-happen';
 import { getProxyForUrl } from 'proxy-from-env';
+import details from './details.json';
 import type { CustomHeaders } from './headers';
 import type { HttpOptions } from './http-options';
-
-const details = require('./details.json');
 
 export interface RequestOptions {
   url: string;
