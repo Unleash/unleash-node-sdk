@@ -2176,15 +2176,15 @@ test('SSE parse error forces full rehydration without Last-Event-ID', async (t) 
   await waitedForRehydration;
   repo.stop();
 
-  t.is(seenRequests.length, 3);
+  expect(seenRequests.length).toBe(3);
 
   const firstReqHeaders = seenRequests[0];
   const secondReqHeaders = seenRequests[1];
   const thirdReqHeaders = seenRequests[2];
 
-  t.is(firstReqHeaders['last-event-id'], undefined);
+  expect(firstReqHeaders['last-event-id']).toBeUndefined();
   // we do expect a last event id second time round, since the hydration event will have carried one
-  t.is(secondReqHeaders['last-event-id'], '0');
+  expect(secondReqHeaders['last-event-id']).toBe('0');
   // no last event id is explicitly requesting a full hydration
-  t.is(thirdReqHeaders['last-event-id'], undefined);
+  expect(thirdReqHeaders['last-event-id']).toBeUndefined();
 });
