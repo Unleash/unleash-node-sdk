@@ -6,7 +6,7 @@ export default defineConfig({
     include: ['src/**/*.test.ts'],
     coverage: {
       provider: 'v8',
-      reporter: [['lcov', { projectRoot: 'src' }], ['json'], ['json-summary']],
+      reporter: [['lcov'], ['json'], ['json-summary']],
       reportOnFailure: true,
     },
     pool: 'threads',
