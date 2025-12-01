@@ -130,7 +130,15 @@ export class StreamingFetcher extends EventEmitter implements FetcherInterface {
       const data = parseClientFeaturesDelta(JSON.parse(event.data));
       await this.onSaveDelta(data);
     } catch (err) {
-      this.emit(UnleashEvents.Error, err);
+      const errorMessage =
+        err instanceof Error && typeof err.message === 'string' ? err.message : String(err);
+
+      this.emit(
+        UnleashEvents.Warn,
+        `Requesting full re-hydration to prevent data loss because of a failed event process: ${errorMessage}`,
+      );
+
+      this.forceRehydration();
     }
   }
 
@@ -145,6 +153,22 @@ export class StreamingFetcher extends EventEmitter implements FetcherInterface {
         occurredAt: new Date(),
       });
     }
+  }
+
+  private forceRehydration() {
+    if (!this.eventSource) {
+      return;
+    }
+
+    const currentEventSource = this.eventSource;
+    this.eventSource = undefined;
+    currentEventSource?.close();
+
+    // Explicitly construct a new EventSource, this beast traps the last
+    // event id in internal state and if we allow it to attempt to connect with that
+    // Unleash will not send a rehydration to us, we'll pick up from where we left off
+    this.eventSource = this.createEventSource();
+    this.setupEventSource();
   }
 
   private createEventSource(): EventSource {

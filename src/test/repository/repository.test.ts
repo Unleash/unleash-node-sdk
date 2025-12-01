@@ -46,10 +46,11 @@ function createMockEventSource() {
 }
 
 function createSSEResponse(events: Array<{ event: string; data: unknown }>) {
+  let eventId = 0;
   return events
     .map((e) => {
       const dataStr = typeof e.data === 'string' ? e.data : JSON.stringify(e.data);
-      return `event: ${e.event}\ndata: ${dataStr}\n\n`;
+      return `event: ${e.event}\ndata: ${dataStr}\nid: ${eventId++}\n\n`;
     })
     .join('');
 }
@@ -2071,4 +2072,119 @@ test('SSE with HTTP mocking - should process unleash-updated event', async () =>
   expect(toggles[0].enabled).toEqual(true);
 
   repo.stop();
+});
+
+test('SSE parse error forces full rehydration without Last-Event-ID', async (t) => {
+  const url = 'http://unleash-test-sse-parse-error.app';
+
+  const initialHydration = createSSEResponse([
+    {
+      event: 'unleash-connected',
+      data: {
+        events: [
+          {
+            type: 'hydration',
+            eventId: 1,
+            features: [
+              {
+                name: 'test-feature',
+                enabled: false,
+                strategies: [{ name: 'default' }],
+              },
+            ],
+            segments: [],
+          },
+        ],
+      },
+    },
+  ]);
+
+  const brokenResponse = 'event: unleash-updated\n' + 'data: { this-is: not-valid-json }\n\n';
+
+  const secondHydration = createSSEResponse([
+    {
+      event: 'unleash-connected',
+      data: {
+        events: [
+          {
+            type: 'hydration',
+            eventId: 2,
+            features: [
+              {
+                name: 'test-feature',
+                // little cheat - we send a different enabled state so we can wait for it
+                enabled: true,
+                strategies: [{ name: 'default' }],
+              },
+            ],
+            segments: [],
+          },
+        ],
+      },
+    },
+  ]);
+
+  const seenRequests: Record<string, string | undefined>[] = [];
+
+  nock(url)
+    .get('/client/streaming')
+    .reply(function () {
+      seenRequests.push(this.req.headers);
+      return [200, initialHydration, { 'Content-Type': 'text/event-stream' }];
+    })
+    .get('/client/streaming')
+    .reply(function () {
+      seenRequests.push(this.req.headers);
+      return [200, brokenResponse, { 'Content-Type': 'text/event-stream' }];
+    })
+    .get('/client/streaming')
+    .reply(function () {
+      seenRequests.push(this.req.headers);
+      return [200, secondHydration, { 'Content-Type': 'text/event-stream' }];
+    });
+
+  const storageProvider: StorageProvider<ClientFeaturesResponse> = new InMemStorageProvider();
+
+  const repo = new Repository({
+    url,
+    appName,
+    instanceId,
+    connectionId,
+    refreshInterval: 10,
+    bootstrapProvider: new DefaultBootstrapProvider({}, 'test-app', 'test-instance'),
+    storageProvider,
+    mode: { type: 'streaming' },
+  });
+
+  // now we can wait until the second hydration has taken place
+  const waitedForRehydration = new Promise<void>((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      reject(new Error('Timed out waiting for rehydration'));
+    }, 5_000);
+
+    repo.on('changed', () => {
+      const toggles = repo.getToggles();
+      const featureToggle = toggles.find((f) => f.name === 'test-feature');
+      if (featureToggle?.enabled === true) {
+        clearTimeout(timeout);
+        resolve();
+      }
+    });
+  });
+
+  await repo.start();
+  await waitedForRehydration;
+  repo.stop();
+
+  expect(seenRequests.length).toBe(3);
+
+  const firstReqHeaders = seenRequests[0];
+  const secondReqHeaders = seenRequests[1];
+  const thirdReqHeaders = seenRequests[2];
+
+  expect(firstReqHeaders['last-event-id']).toBeUndefined();
+  // we do expect a last event id second time round, since the hydration event will have carried one
+  expect(secondReqHeaders['last-event-id']).toBe('0');
+  // no last event id is explicitly requesting a full hydration
+  expect(thirdReqHeaders['last-event-id']).toBeUndefined();
 });
