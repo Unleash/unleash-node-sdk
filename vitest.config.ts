@@ -7,6 +7,7 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: [['lcov', { projectRoot: 'src' }], ['json'], ['json-summary']],
+      reportOnFailure: true,
     },
     pool: 'threads',
   },
