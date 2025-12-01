@@ -138,7 +138,7 @@ export class StreamingFetcher extends EventEmitter implements FetcherInterface {
         `Requesting full re-hydration to prevent data loss because of a failed event process: ${errorMessage}`,
       );
 
-      await this.forceRehydration();
+      this.forceRehydration();
     }
   }
 
