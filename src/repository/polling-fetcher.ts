@@ -1,4 +1,5 @@
-import { EventEmitter } from 'events';
+import { EventEmitter } from 'node:events';
+import { UnleashEvents } from '../events';
 import { parseClientFeaturesDelta } from '../feature';
 import { get } from '../request';
 import type { TagFilter } from '../tags';

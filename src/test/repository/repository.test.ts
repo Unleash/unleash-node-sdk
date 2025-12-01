@@ -1020,7 +1020,7 @@ test('bootstrap should not override load backup-file', async () => {
   expect(repo.getToggle('feature-backup')?.enabled).toEqual(true);
 });
 
-test('Failing twice then succeeding should shrink interval to 2x initial (404)', async (t) => {
+test('Failing twice then succeeding should shrink interval to 2x initial (404)', async (_t) => {
   const url = 'http://unleash-test-fail5times.app';
   nock(url).get('/client/features').times(2).reply(404);
   const repo = new Repository({
@@ -1067,7 +1067,7 @@ test('Failing twice then succeeding should shrink interval to 2x initial (404)',
 
 // Skipped because the HTTP client automatically retries 429 responses,
 // which makes the test very slow.
-test.skip('Failing twice should increase interval to initial + 2x interval (429)', async (t) => {
+test.skip('Failing twice should increase interval to initial + 2x interval (429)', async (_t) => {
   const url = 'http://unleash-test-fail5times.app';
   nock(url).persist().get('/client/features').reply(429);
   const repo = new Repository({
@@ -1086,12 +1086,12 @@ test.skip('Failing twice should increase interval to initial + 2x interval (429)
   await repo.fetch();
   expect(2).toEqual(repo.getFailures());
   expect(30).toEqual(repo.nextFetch());
-  repo.stop()
+  repo.stop();
 });
 
 // Skipped because the HTTP client automatically retries 429 responses,
 // which makes the test very slow.
-test.skip('Failing twice then succeeding should shrink interval to 2x initial (429)', async (t) => {
+test.skip('Failing twice then succeeding should shrink interval to 2x initial (429)', async (_t) => {
   const url = 'http://unleash-test-fail5times.app';
   nock(url).persist().get('/client/features').reply(429);
   const repo = new Repository({

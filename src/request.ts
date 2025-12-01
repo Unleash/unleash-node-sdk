@@ -1,12 +1,13 @@
+import * as http from 'node:http';
+import * as https from 'node:https';
+import type { URL } from 'node:url';
 import { HttpProxyAgent } from 'http-proxy-agent';
 import { HttpsProxyAgent } from 'https-proxy-agent';
-import * as http from 'http';
-import * as https from 'https';
-import { URL } from 'url';
 import { getProxyForUrl } from 'proxy-from-env';
-import { CustomHeaders } from './headers';
-import { HttpOptions } from './http-options';
+import type { CustomHeaders } from './headers';
 import { defaultRetry, getKyClient } from './http-client';
+import type { HttpOptions } from './http-options';
+
 const details = require('./details.json');
 
 export interface RequestOptions {
@@ -161,7 +162,7 @@ export const post = async ({
     retry: defaultRetry,
   } as const;
 
-  return ky.post(url, requestOptions as any).catch((err: any) => {
+  return ky.post(url, requestOptions).catch((err) => {
     if (err?.response) {
       return err.response;
     }
@@ -198,8 +199,10 @@ export const get = async ({
     retry: defaultRetry,
   } as const;
 
-  return ky.get(url, requestOptions as any).catch((err: any) => {
+  return ky.get(url, requestOptions).catch((err: unknown) => {
+    // @ts-expect-error we declare as unknown, so won't have the type here
     if (err?.response) {
+      // @ts-expect-error we declare as unknown, so won't have the type here
       return err.response;
     }
     throw err;
