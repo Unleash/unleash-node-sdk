@@ -1,10 +1,10 @@
 import { createServer } from 'node:http';
-import test from 'ava';
+import { assert, expect, test } from 'vitest';
 import { Unleash } from '../unleash';
 
-test('should retry on error', (t) =>
-  new Promise((resolve) => {
-    t.plan(1);
+test('should retry on error', async () => {
+  await new Promise<void>((resolve) => {
+    expect.assertions(1);
 
     let calls = 0;
     const server = createServer((_req, res) => {
@@ -26,7 +26,7 @@ test('should retry on error', (t) =>
       });
 
       unleash.on('error', () => {
-        t.is(calls, 3);
+        expect(calls).toBe(3);
         unleash.destroy();
         server.close();
         resolve();
@@ -34,7 +34,8 @@ test('should retry on error', (t) =>
     });
     server.on('error', (e) => {
       console.error(e);
-      t.fail(e.message);
       server.close();
+      assert.fail(e.message);
     });
-  }));
+  });
+});

@@ -1,9 +1,8 @@
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import test from 'ava';
 import { mkdirp } from 'mkdirp';
-import * as nock from 'nock';
-
+import nock from 'nock';
+import { expect, test } from 'vitest';
 import { Unleash } from '../unleash';
 
 const getUrl = () => `http://test2${Math.round(Math.random() * 100000)}.app/`;
@@ -40,7 +39,7 @@ function mockNetwork(toggles = defaultToggles, url = getUrl()) {
   return url;
 }
 
-test('should increase instanceCount every time sdk is created ', (t) => {
+test('should increase instanceCount every time sdk is created ', () => {
   const baseUrl = `${getUrl()}api`;
   mockNetwork([], baseUrl);
 
@@ -62,9 +61,8 @@ test('should increase instanceCount every time sdk is created ', (t) => {
     backupPath: getRandomBackupPath(),
     url: baseUrl,
   });
-
   // @ts-expect-error
-  t.is(Unleash.instanceCount, 3);
+  expect(Unleash.instanceCount).toBe(3);
 
   u1.destroy();
   u2.destroy();

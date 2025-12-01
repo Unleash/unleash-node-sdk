@@ -1,8 +1,8 @@
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import test from 'ava';
 import { mkdirp } from 'mkdirp';
-import * as nock from 'nock';
+import nock from 'nock';
+import { expect, test } from 'vitest';
 
 import { Unleash } from '../../unleash';
 
@@ -46,8 +46,8 @@ const toggles = {
   ],
 };
 
-test('should use global segments for constraint calculation', (t) =>
-  new Promise((resolve, reject) => {
+test('should use global segments for constraint calculation', () =>
+  new Promise<void>((resolve, reject) => {
     const url = mockNetwork(toggles);
 
     const instance = new Unleash({
@@ -61,14 +61,14 @@ test('should use global segments for constraint calculation', (t) =>
     instance.on('error', reject);
     instance.on('synchronized', () => {
       const result = instance.isEnabled('toggle.with.global.segment');
-      t.is(result, false);
+      expect(result).toBe(false);
       instance.destroy();
       resolve();
     });
   }));
 
-test('should resolve to false if required global segment cannot be found', (t) =>
-  new Promise((resolve, reject) => {
+test('should resolve to false if required global segment cannot be found', async () => {
+  await new Promise<void>((resolve, reject) => {
     const togglesWithoutGlobalSegment = { ...toggles };
     // @ts-expect-error
     togglesWithoutGlobalSegment.segments = undefined;
@@ -85,14 +85,15 @@ test('should resolve to false if required global segment cannot be found', (t) =
     instance.on('error', reject);
     instance.on('synchronized', () => {
       const result = instance.isEnabled('toggle.with.global.segment');
-      t.is(result, false);
+      expect(result).toBe(false);
       instance.destroy();
       resolve();
     });
-  }));
+  });
+});
 
-test('should handle case where segment is not present on strategy', (t) =>
-  new Promise((resolve, reject) => {
+test('should handle case where segment is not present on strategy', async () => {
+  await new Promise<void>((resolve, reject) => {
     const togglesWithoutSegmentIds = { ...toggles };
     // @ts-expect-error
     togglesWithoutSegmentIds.features[0].strategies[0].segments = undefined;
@@ -109,8 +110,9 @@ test('should handle case where segment is not present on strategy', (t) =>
     instance.on('error', reject);
     instance.on('synchronized', () => {
       const result = instance.isEnabled('toggle.with.global.segment');
-      t.is(result, true);
+      expect(result).toBe(true);
       instance.destroy();
       resolve();
     });
-  }));
+  });
+});
