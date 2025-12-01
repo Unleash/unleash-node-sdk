@@ -1392,7 +1392,6 @@ test('should return full segment data when requested', () =>
   }));
 
 test('Stopping repository should stop unchanged event reporting', async () => {
-  expect.assertions(0);
   const url = 'http://unleash-test-stop-304.app';
   nock(url).persist().get('/client/features').reply(304, '');
   const repo = new Repository({
