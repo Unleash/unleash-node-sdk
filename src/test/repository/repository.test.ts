@@ -1414,7 +1414,6 @@ test('Stopping repository should stop unchanged event reporting', async () => {
 });
 
 test('Stopping repository should stop storage provider updates', async () => {
-  expect.assertions(1);
   const url = 'http://unleash-test-stop-200.app';
   const feature = {
     name: 'feature',
