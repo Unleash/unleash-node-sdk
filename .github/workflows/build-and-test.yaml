@@ -44,6 +44,7 @@ jobs:
         uses: coverallsapp/github-action@master
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          file: './coverage/lcov.info'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
