@@ -58,7 +58,7 @@
     "@types/node": "^20.17.17",
     "@types/proxy-from-env": "^1.0.4",
     "@types/semver": "^7.5.0",
-    "@unleash/client-specification": "^5.1.6",
+    "@unleash/client-specification": "5.1.9",
     "@vitest/coverage-v8": "4.0.14",
     "@vitest/ui": "4.0.14",
     "del-cli": "^7.0.0",
@@ -84,7 +84,7 @@
   },
   "lint-staged": {
     "*.{js,ts,jsx,tsx,json,md}": [
-      "biome check --write"
+      "biome check --write --no-errors-on-unmatched --files-ignore-unknown=true"
     ]
   },
   "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e",
