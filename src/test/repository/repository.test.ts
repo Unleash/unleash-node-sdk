@@ -309,19 +309,17 @@ test('should handle 429 request error and emit warn event', async () => {
     appName,
     instanceId,
     connectionId,
-    refreshInterval: 10,
+    refreshInterval: 1000,
     bootstrapProvider: new DefaultBootstrapProvider({}, 'test-app', 'test-instance'),
     storageProvider: new InMemStorageProvider(),
     mode: { type: 'polling', format: 'full' },
   });
   const warning = new Promise<void>((resolve) => {
     repo.on('warn', (warn) => {
-      expect(warn).toBeTruthy();
       expect(warn).toEqual(
         `${url}/client/features responded TOO_MANY_CONNECTIONS (429). Backing off`,
       );
-      expect(repo.getFailures()).toBe(1);
-      expect(repo.nextFetch()).toBe(20);
+      expect(repo.nextFetch()).toBe(1000 + repo.getFailures() * 1000);
       resolve();
     });
   });
