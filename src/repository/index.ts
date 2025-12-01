@@ -268,7 +268,7 @@ export default class Repository extends EventEmitter implements EventEmitter {
         return;
       }
 
-      if (content && this.notEmpty(content) && content.features) {
+      if (content && this.notEmpty(content)) {
         await this.save(content, false);
       }
     } catch (err: unknown) {
