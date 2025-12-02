@@ -20,7 +20,7 @@ export class StreamingFetcher extends EventEmitter implements FetcherInterface {
 
   private readonly connectionId?: string;
 
-  private readonly onSaveDelta: StreamingFetchingOptions['onSaveDelta'];
+  private readonly onSave: StreamingFetchingOptions['onSave'];
 
   private readonly onModeChange?: StreamingFetchingOptions['onModeChange'];
 
@@ -35,7 +35,7 @@ export class StreamingFetcher extends EventEmitter implements FetcherInterface {
     eventSource,
     maxFailuresUntilFailover = 5,
     failureWindowMs = 60_000,
-    onSaveDelta,
+    onSave,
     onModeChange,
   }: StreamingFetchingOptions) {
     super();
@@ -45,7 +45,7 @@ export class StreamingFetcher extends EventEmitter implements FetcherInterface {
     this.instanceId = instanceId;
     this.headers = headers;
     this.connectionId = connectionId;
-    this.onSaveDelta = onSaveDelta;
+    this.onSave = onSave;
     this.onModeChange = onModeChange;
 
     this.eventSource = eventSource;
@@ -128,7 +128,7 @@ export class StreamingFetcher extends EventEmitter implements FetcherInterface {
   private async handleFlagsFromStream(event: { data: string }) {
     try {
       const data = parseClientFeaturesDelta(JSON.parse(event.data));
-      await this.onSaveDelta(data);
+      await this.onSave(data, true);
     } catch (err) {
       const errorMessage =
         err instanceof Error && typeof err.message === 'string' ? err.message : String(err);

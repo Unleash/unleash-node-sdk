@@ -1,6 +1,5 @@
 import { EventEmitter } from 'node:events';
 import { UnleashEvents } from '../events';
-import { parseClientFeaturesDelta } from '../feature';
 import { get } from '../request';
 import type { TagFilter } from '../tags';
 import getUrl from '../url-utils';
@@ -166,12 +165,7 @@ export class PollingFetcher extends EventEmitter implements FetcherInterface {
             await this.options.onModeChange('streaming');
             return;
           }
-
-          if (this.options.mode.type === 'polling' && this.options.mode.format === 'delta') {
-            await this.options.onSaveDelta(parseClientFeaturesDelta(data));
-          } else {
-            await this.options.onSave(data, true);
-          }
+          await this.options.onSave(data, true);
         } catch (err) {
           this.emit(UnleashEvents.Error, err);
         }

@@ -1,7 +1,7 @@
 import { EventEmitter } from 'node:events';
 import { UnleashEvents } from '../events';
 import type {
-  ClientFeaturesDelta,
+  ApiResponse,
   ClientFeaturesResponse,
   EnhancedFeatureInterface,
   FeatureInterface,
@@ -134,7 +134,6 @@ export default class Repository extends EventEmitter implements EventEmitter {
       mode,
       eventSource,
       onSave: this.save.bind(this),
-      onSaveDelta: this.saveDelta.bind(this),
     });
 
     this.setupFetchingStrategyEvents();
@@ -207,52 +206,68 @@ export default class Repository extends EventEmitter implements EventEmitter {
     return new Map(segments.map((segment) => [segment.id, segment]));
   }
 
-  public async save(response: ClientFeaturesResponse, fromApi: boolean): Promise<void> {
+  public async save(response: ApiResponse, fromApi: boolean): Promise<void> {
     if (this.stopped) {
       return;
     }
     if (fromApi) {
       this.connected = true;
-      this.data = this.convertToMap(response.features);
-      this.segments = this.createSegmentLookup(response.segments);
+      this.applyFeatureResponse(response);
     } else if (!this.connected) {
       // Only allow bootstrap if not connected
-      this.data = this.convertToMap(response.features);
-      this.segments = this.createSegmentLookup(response.segments);
+      this.applyFeatureResponse(response);
     }
 
     this.setReady();
-    this.emit(UnleashEvents.Changed, [...response.features]);
-    await this.storageProvider.set(this.appName, response);
+    const newFeatures = Object.values(this.data);
+    this.emit(UnleashEvents.Changed, newFeatures);
+
+    const clientFeatureResponse: ClientFeaturesResponse = {
+      version: 'version' in response ? response.version : 2,
+      features: newFeatures,
+      segments: [...this.segments.values()],
+    };
+
+    await this.storageProvider.set(this.appName, clientFeatureResponse);
   }
 
-  public async saveDelta(delta: ClientFeaturesDelta): Promise<void> {
-    if (this.stopped) {
-      return;
+  private applyFeatureResponse(response: ApiResponse): void {
+    if ('events' in response) {
+      response.events.forEach((event) => {
+        switch (event.type) {
+          case 'feature-updated':
+            this.data[event.feature.name] = event.feature;
+            break;
+          case 'feature-removed':
+            delete this.data[event.featureName];
+            break;
+          case 'segment-updated':
+            this.segments.set(event.segment.id, event.segment);
+            break;
+          case 'segment-removed':
+            this.segments.delete(event.segmentId);
+            break;
+          case 'hydration':
+            this.data = this.convertToMap(event.features);
+            this.segments = this.createSegmentLookup(event.segments);
+            break;
+          default:
+            this.emit(
+              UnleashEvents.Warn,
+              `Unknown event type received, this may or may not cause features to evaluate incorrectly: ${JSON.stringify(event)}`,
+            );
+            break;
+        }
+      });
+    } else if ('features' in response) {
+      this.data = this.convertToMap(response.features);
+      this.segments = this.createSegmentLookup(response.segments);
+    } else {
+      this.emit(
+        UnleashEvents.Warn,
+        `Unknown response when applying feature response: ${JSON.stringify(response)}`,
+      );
     }
-    this.connected = true;
-    delta.events.forEach((event) => {
-      if (event.type === 'feature-updated') {
-        this.data[event.feature.name] = event.feature;
-      } else if (event.type === 'feature-removed') {
-        delete this.data[event.featureName];
-      } else if (event.type === 'segment-updated') {
-        this.segments.set(event.segment.id, event.segment);
-      } else if (event.type === 'segment-removed') {
-        this.segments.delete(event.segmentId);
-      } else if (event.type === 'hydration') {
-        this.data = this.convertToMap(event.features);
-        this.segments = this.createSegmentLookup(event.segments);
-      }
-    });
-
-    this.setReady();
-    this.emit(UnleashEvents.Changed, Object.values(this.data));
-    await this.storageProvider.set(this.appName, {
-      features: Object.values(this.data),
-      segments: [...this.segments.values()],
-      version: 0,
-    });
   }
 
   notEmpty(content: ClientFeaturesResponse): boolean {

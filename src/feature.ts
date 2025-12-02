@@ -25,6 +25,8 @@ export interface EnhancedFeatureInterface extends Omit<FeatureInterface, 'strate
   strategies?: EnhancedStrategyTransportInterface[];
 }
 
+export type ApiResponse = ClientFeaturesDelta | ClientFeaturesResponse;
+
 export interface ClientFeaturesResponse {
   version: number;
   features: FeatureInterface[];

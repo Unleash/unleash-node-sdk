@@ -1,5 +1,5 @@
 import type { EventEmitter } from 'node:events';
-import type { ClientFeaturesDelta, ClientFeaturesResponse } from '../feature';
+import type { ApiResponse } from '../feature';
 import type { CustomHeaders, CustomHeadersFunction } from '../headers';
 import type { HttpOptions } from '../http-options';
 import type { TagFilter } from '../tags';
@@ -18,8 +18,7 @@ export interface CommonFetchingOptions {
   instanceId: string;
   headers?: CustomHeaders;
   connectionId: string;
-  onSave: (response: ClientFeaturesResponse, fromApi: boolean) => Promise<void>;
-  onSaveDelta: (delta: ClientFeaturesDelta) => Promise<void>;
+  onSave: (response: ApiResponse, fromApi: boolean) => Promise<void>;
   onModeChange?: (mode: Mode['type']) => Promise<void>;
 }
 
