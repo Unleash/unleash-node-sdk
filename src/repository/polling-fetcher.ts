@@ -1,5 +1,6 @@
 import { EventEmitter } from 'node:events';
 import { UnleashEvents } from '../events';
+import { parseApiResponse } from '../feature';
 import { get } from '../request';
 import type { TagFilter } from '../tags';
 import getUrl from '../url-utils';
@@ -165,7 +166,7 @@ export class PollingFetcher extends EventEmitter implements FetcherInterface {
             await this.options.onModeChange('streaming');
             return;
           }
-          await this.options.onSave(data, true);
+          await this.options.onSave(parseApiResponse(data), true);
         } catch (err) {
           this.emit(UnleashEvents.Error, err);
         }
