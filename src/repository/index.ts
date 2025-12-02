@@ -235,28 +235,34 @@ export default class Repository extends EventEmitter implements EventEmitter {
     if ('events' in response) {
       response.events.forEach((event) => {
         switch (event.type) {
-          case 'feature-updated':
+          case 'feature-updated': {
             this.data[event.feature.name] = event.feature;
             break;
-          case 'feature-removed':
+          }
+          case 'feature-removed': {
             delete this.data[event.featureName];
             break;
-          case 'segment-updated':
+          }
+          case 'segment-updated': {
             this.segments.set(event.segment.id, event.segment);
             break;
-          case 'segment-removed':
+          }
+          case 'segment-removed': {
             this.segments.delete(event.segmentId);
             break;
-          case 'hydration':
+          }
+          case 'hydration': {
             this.data = this.convertToMap(event.features);
             this.segments = this.createSegmentLookup(event.segments);
             break;
-          default:
+          }
+          default: {
             this.emit(
               UnleashEvents.Warn,
               `Unknown event type received, this may or may not cause features to evaluate incorrectly: ${JSON.stringify(event)}`,
             );
             break;
+          }
         }
       });
     } else if ('features' in response) {
