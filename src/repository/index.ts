@@ -1,10 +1,11 @@
 import { EventEmitter } from 'node:events';
 import { UnleashEvents } from '../events';
-import type {
-  ApiResponse,
-  ClientFeaturesResponse,
-  EnhancedFeatureInterface,
-  FeatureInterface,
+import {
+  type ApiResponse,
+  type ClientFeaturesResponse,
+  type EnhancedFeatureInterface,
+  type FeatureInterface,
+  parseApiResponse,
 } from '../feature';
 import type { CustomHeaders, CustomHeadersFunction } from '../headers';
 import type { HttpOptions } from '../http-options';
@@ -232,47 +233,50 @@ export default class Repository extends EventEmitter implements EventEmitter {
   }
 
   private applyFeatureResponse(response: ApiResponse): void {
-    if ('events' in response) {
-      response.events.forEach((event) => {
-        switch (event.type) {
-          case 'feature-updated': {
-            this.data[event.feature.name] = event.feature;
-            break;
+    switch (response.type) {
+      case 'delta': {
+        response.events.forEach((event) => {
+          switch (event.type) {
+            case 'feature-updated': {
+              this.data[event.feature.name] = event.feature;
+              break;
+            }
+            case 'feature-removed': {
+              delete this.data[event.featureName];
+              break;
+            }
+            case 'segment-updated': {
+              this.segments.set(event.segment.id, event.segment);
+              break;
+            }
+            case 'segment-removed': {
+              this.segments.delete(event.segmentId);
+              break;
+            }
+            case 'hydration': {
+              this.data = this.convertToMap(event.features);
+              this.segments = this.createSegmentLookup(event.segments);
+              break;
+            }
+            default: {
+              this.emit(
+                UnleashEvents.Warn,
+                `Unknown event type received, this may or may not cause features to evaluate incorrectly: ${JSON.stringify(event)}`,
+              );
+              break;
+            }
           }
-          case 'feature-removed': {
-            delete this.data[event.featureName];
-            break;
-          }
-          case 'segment-updated': {
-            this.segments.set(event.segment.id, event.segment);
-            break;
-          }
-          case 'segment-removed': {
-            this.segments.delete(event.segmentId);
-            break;
-          }
-          case 'hydration': {
-            this.data = this.convertToMap(event.features);
-            this.segments = this.createSegmentLookup(event.segments);
-            break;
-          }
-          default: {
-            this.emit(
-              UnleashEvents.Warn,
-              `Unknown event type received, this may or may not cause features to evaluate incorrectly: ${JSON.stringify(event)}`,
-            );
-            break;
-          }
-        }
-      });
-    } else if ('features' in response) {
-      this.data = this.convertToMap(response.features);
-      this.segments = this.createSegmentLookup(response.segments);
-    } else {
-      this.emit(
-        UnleashEvents.Warn,
-        `Unknown response when applying feature response: ${JSON.stringify(response)}`,
-      );
+        });
+        break;
+      }
+      case 'full': {
+        this.data = this.convertToMap(response.features);
+        this.segments = this.createSegmentLookup(response.segments);
+        break;
+      }
+      default: {
+        assertNever(response);
+      }
     }
   }
 
@@ -290,7 +294,7 @@ export default class Repository extends EventEmitter implements EventEmitter {
       }
 
       if (content && this.notEmpty(content)) {
-        await this.save(content, false);
+        await this.save(parseApiResponse(content), false);
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Unknown error';
@@ -302,17 +306,16 @@ Message: ${message}`,
     }
   }
 
-  private convertToMap(features: FeatureInterface[]): FeatureToggleData {
-    const obj = (features || []).reduce(
-      (o: { [s: string]: FeatureInterface }, feature: FeatureInterface) => {
-        this.validateFeature(feature);
-        o[feature.name] = feature;
-        return o;
-      },
-      {} as { [s: string]: FeatureInterface },
-    );
+  private convertToMap(features: FeatureInterface[] | undefined | null): FeatureToggleData {
+    const result: FeatureToggleData = {};
+    if (!features?.length) return {};
 
-    return obj;
+    for (const feature of features) {
+      this.validateFeature(feature);
+      result[feature.name] = feature;
+    }
+
+    return result;
   }
 
   stop() {
@@ -373,3 +376,7 @@ Message: ${message}`,
     });
   };
 }
+
+const assertNever = (value: never): never => {
+  throw new Error(`Unexpected value: ${JSON.stringify(value)}`);
+};

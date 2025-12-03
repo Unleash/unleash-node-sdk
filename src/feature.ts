@@ -25,7 +25,9 @@ export interface EnhancedFeatureInterface extends Omit<FeatureInterface, 'strate
   strategies?: EnhancedStrategyTransportInterface[];
 }
 
-export type ApiResponse = ClientFeaturesDelta | ClientFeaturesResponse;
+export type ApiResponse =
+  | (ClientFeaturesDelta & { type: 'delta' })
+  | (ClientFeaturesResponse & { type: 'full' });
 
 export interface ClientFeaturesResponse {
   version: number;
@@ -38,16 +40,18 @@ export interface ClientFeaturesDelta {
   events: DeltaEvent[];
 }
 
-export const parseClientFeaturesDelta = (delta: unknown): ClientFeaturesDelta => {
-  if (
-    typeof delta === 'object' &&
-    delta !== null &&
-    'events' in delta &&
-    Array.isArray(delta.events)
-  ) {
-    return delta as ClientFeaturesDelta;
+export const parseApiResponse = (data: unknown): ApiResponse => {
+  if (typeof data !== 'object' || data === null) {
+    throw new Error(`Invalid API response: ${JSON.stringify(data, null, 2)}`);
   }
-  throw new Error(`Invalid delta response: ${JSON.stringify(delta, null, 2)}`);
+  if ('events' in data && Array.isArray(data.events)) {
+    return { ...data, type: 'delta' } as ClientFeaturesDelta & { type: 'delta' };
+  } else if ('features' in data && Array.isArray(data.features)) {
+    return { ...data, type: 'full' } as ClientFeaturesResponse & { type: 'full' };
+  }
+  throw new Error(
+    `Client features was neither a delta nor a full response: ${JSON.stringify(data, null, 2)}`,
+  );
 };
 
 export type DeltaEvent =

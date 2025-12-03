@@ -1,7 +1,7 @@
 import { EventEmitter } from 'node:events';
 import { EventSource } from '../event-source';
 import { UnleashEvents } from '../events';
-import { parseClientFeaturesDelta } from '../feature';
+import { parseApiResponse } from '../feature';
 import { buildHeaders } from '../request';
 import { resolveUrl } from '../url-utils';
 import type { FetcherInterface, StreamingFetchingOptions } from './fetcher';
@@ -127,7 +127,7 @@ export class StreamingFetcher extends EventEmitter implements FetcherInterface {
 
   private async handleFlagsFromStream(event: { data: string }) {
     try {
-      const data = parseClientFeaturesDelta(JSON.parse(event.data));
+      const data = parseApiResponse(JSON.parse(event.data));
       await this.onSave(data, true);
     } catch (err) {
       const errorMessage =
