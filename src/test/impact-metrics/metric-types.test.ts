@@ -116,16 +116,28 @@ test('Gauge tracks values separately per label set', () => {
   });
 });
 
-test('collect returns empty array when all metrics are empty', () => {
+test('collect returns counter with zero value when counter is empty', () => {
   const registry = new InMemoryMetricRegistry();
   registry.counter({ name: 'noop_counter', help: 'noop' });
   registry.gauge({ name: 'noop_gauge', help: 'noop' });
 
   const result = registry.collect();
-  expect(result).toStrictEqual([]);
+  expect(result).toStrictEqual([
+    {
+      name: 'noop_counter',
+      help: 'noop',
+      type: 'counter',
+      samples: [
+        {
+          labels: {},
+          value: 0,
+        },
+      ],
+    },
+  ]);
 });
 
-test('collect returns empty array after flushing previous values', () => {
+test('collect returns counter with zero value after flushing previous values', () => {
   const registry = new InMemoryMetricRegistry();
   const counter = registry.counter({ name: 'flush_test', help: 'flush' });
 
@@ -135,7 +147,19 @@ test('collect returns empty array after flushing previous values', () => {
   expect(first).toHaveLength(1);
 
   const second = registry.collect();
-  expect(second).toStrictEqual([]);
+  expect(second).toStrictEqual([
+    {
+      name: 'flush_test',
+      help: 'flush',
+      type: 'counter',
+      samples: [
+        {
+          labels: {},
+          value: 0,
+        },
+      ],
+    },
+  ]);
 });
 
 test('restore reinserts collected metrics into the registry', () => {
@@ -149,7 +173,19 @@ test('restore reinserts collected metrics into the registry', () => {
   expect(flushed).toHaveLength(1);
 
   const afterFlush = registry.collect();
-  expect(afterFlush).toStrictEqual([]);
+  expect(afterFlush).toStrictEqual([
+    {
+      name: 'restore_test',
+      help: 'testing restore',
+      type: 'counter',
+      samples: [
+        {
+          labels: {},
+          value: 0,
+        },
+      ],
+    },
+  ]);
 
   registry.restore(flushed);
 
@@ -277,7 +313,26 @@ test('Histogram restoration preserves exact data', () => {
   expect(firstCollect).toHaveLength(1);
 
   const emptyCollect = registry.collect();
-  expect(emptyCollect).toStrictEqual([]);
+  expect(emptyCollect).toStrictEqual([
+    {
+      name: 'restore_histogram',
+      help: 'testing histogram restore',
+      type: 'histogram',
+      samples: [
+        {
+          labels: {},
+          count: 0,
+          sum: 0,
+          buckets: [
+            { le: 0.1, count: 0 },
+            { le: 1, count: 0 },
+            { le: 10, count: 0 },
+            { le: '+Inf', count: 0 },
+          ],
+        },
+      ],
+    },
+  ]);
 
   registry.restore(firstCollect);
 

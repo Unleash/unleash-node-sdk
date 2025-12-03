@@ -78,6 +78,13 @@ class CounterImpl implements Counter {
 
     this.values.clear();
 
+    if (samples.length === 0) {
+      samples.push({
+        labels: {},
+        value: 0,
+      });
+    }
+
     return {
       name: this.opts.name,
       help: this.opts.help,
@@ -198,6 +205,18 @@ class HistogramImpl implements Histogram {
     }));
 
     this.values.clear();
+
+    if (samples.length === 0) {
+      samples.push({
+        labels: {},
+        count: 0,
+        sum: 0,
+        buckets: this.buckets.map((le) => ({
+          le: le === Infinity ? '+Inf' : le,
+          count: 0,
+        })),
+      });
+    }
 
     return {
       name: this.opts.name,
