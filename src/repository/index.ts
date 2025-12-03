@@ -308,8 +308,9 @@ Message: ${message}`,
 
   private convertToMap(features: FeatureInterface[] | undefined | null): FeatureToggleData {
     const result: FeatureToggleData = {};
+    if (!features?.length) return {};
 
-    for (const feature of features ?? []) {
+    for (const feature of features) {
       this.validateFeature(feature);
       result[feature.name] = feature;
     }
