@@ -2074,7 +2074,7 @@ test('SSE with HTTP mocking - should process unleash-updated event', async () =>
   repo.stop();
 });
 
-test('SSE parse error forces full rehydration without Last-Event-ID', async (t) => {
+test('SSE parse error forces full rehydration without Last-Event-ID', async () => {
   const url = 'http://unleash-test-sse-parse-error.app';
 
   const initialHydration = createSSEResponse([
