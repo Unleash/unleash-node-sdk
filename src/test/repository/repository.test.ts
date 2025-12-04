@@ -1590,7 +1590,7 @@ test('Polling delta', async () => {
     appName,
     instanceId,
     connectionId,
-    refreshInterval: 10,
+    refreshInterval: 60_000,
     bootstrapProvider: new DefaultBootstrapProvider({}, 'test-app', 'test-instance'),
     storageProvider,
     mode: { type: 'polling', format: 'delta' },
