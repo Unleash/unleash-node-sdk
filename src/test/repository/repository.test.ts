@@ -1136,6 +1136,7 @@ test.skip('Failing twice then succeeding should shrink interval to 2x initial (4
   await repo.fetch();
   expect(1).toEqual(repo.getFailures());
   expect(20).toEqual(repo.nextFetch());
+  repo.stop();
 });
 
 test('should handle not finding a given segment id', () =>

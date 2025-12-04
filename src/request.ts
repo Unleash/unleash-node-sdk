@@ -1,6 +1,8 @@
 import http from 'node:http';
 import https from 'node:https';
 import type { URL } from 'node:url';
+import { HttpProxyAgent } from 'http-proxy-agent';
+import { HttpsProxyAgent } from 'https-proxy-agent';
 import { getProxyForUrl } from 'proxy-from-env';
 import details from './details.json';
 import type { CustomHeaders } from './headers';
@@ -60,8 +62,9 @@ export const getDefaultAgent = (url: URL, rejectUnauthorized?: boolean) => {
     return isHttps ? httpsNoProxyAgent : httpNoProxyAgent;
   }
 
-  // Fallback for callers that still expect a Node.js Agent (non-ky usage).
-  return isHttps ? new https.Agent(agentOptions) : new http.Agent(agentOptions);
+  return isHttps
+    ? new HttpsProxyAgent(proxy, agentOptions)
+    : new HttpProxyAgent(proxy, agentOptions);
 };
 
 type HeaderOptions = {
@@ -177,9 +180,12 @@ export const post = async ({
   } as const;
 
   return withRejectUnauthorized(httpOptions?.rejectUnauthorized, () =>
-    ky.post(url, requestOptions).catch((err: any) => {
-      if (err?.response) {
-        return err.response;
+    ky.post(url, requestOptions).catch((err: unknown) => {
+      if (err && typeof err === 'object' && 'response' in err) {
+        const response = (err as { response?: Response }).response;
+        if (response) {
+          return response;
+        }
       }
       throw err;
     }),
@@ -216,9 +222,12 @@ export const get = async ({
   } as const;
 
   return withRejectUnauthorized(httpOptions?.rejectUnauthorized, () =>
-    ky.get(url, requestOptions as any).catch((err: any) => {
-      if (err?.response) {
-        return err.response;
+    ky.get(url, requestOptions as any).catch((err: unknown) => {
+      if (err && typeof err === 'object' && 'response' in err) {
+        const response = (err as { response?: Response }).response;
+        if (response) {
+          return response;
+        }
       }
       throw err;
     }),

@@ -1,10 +1,6 @@
-type KyRetryOptions = {
-  limit?: number;
-  methods?: string[];
-  statusCodes?: number[];
-  maxRetryAfter?: number;
-  backoffLimit?: number;
-};
+import type { Options as KyOptions } from 'ky';
+
+type KyRetryOptions = NonNullable<KyOptions['retry']>;
 
 export const defaultRetry: KyRetryOptions = {
   limit: 2,

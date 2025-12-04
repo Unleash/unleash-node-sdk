@@ -57,7 +57,15 @@ export class DefaultBootstrapProvider implements BootstrapProvider {
       }),
       agent: getDefaultAgent,
     } as const;
-    const response = await ky.get(bootstrapUrl, requestOptions);
+    const response = await ky.get(bootstrapUrl, requestOptions).catch((err: unknown) => {
+      if (err && typeof err === 'object' && 'response' in err) {
+        const resp = (err as { response?: Response }).response;
+        if (resp) {
+          return resp;
+        }
+      }
+      throw err;
+    });
     if (response.ok) {
       return response.json();
     }
