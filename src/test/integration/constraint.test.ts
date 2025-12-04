@@ -1,8 +1,8 @@
-import test from 'ava';
-import * as nock from 'nock';
-import { tmpdir } from 'os';
-import { join } from 'path';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { mkdirp } from 'mkdirp';
+import nock from 'nock';
+import { expect, test } from 'vitest';
 
 import { Unleash } from '../../unleash';
 
@@ -63,8 +63,8 @@ const toggles = {
   ],
 };
 
-test('should be enabled for satisfied constraint', (t) =>
-  new Promise((resolve, reject) => {
+test('should be enabled for satisfied constraint', async () => {
+  await new Promise<void>((resolve, reject) => {
     // Mock unleash-api
     const url = mockNetwork(toggles);
 
@@ -80,14 +80,15 @@ test('should be enabled for satisfied constraint', (t) =>
     instance.on('error', reject);
     instance.on('synchronized', () => {
       const result = instance.isEnabled('toggle.with.constraint.enabled');
-      t.is(result, true);
+      expect(result).toBe(true);
       instance.destroy();
       resolve();
     });
-  }));
+  });
+});
 
-test('should be enabled for satisfied NOT_IN constraint', (t) =>
-  new Promise((resolve, reject) => {
+test('should be enabled for satisfied NOT_IN constraint', async () => {
+  await new Promise<void>((resolve, reject) => {
     // Mock unleash-api
     const url = mockNetwork(toggles);
 
@@ -105,8 +106,9 @@ test('should be enabled for satisfied NOT_IN constraint', (t) =>
       const result = instance.isEnabled('toggle.with.constraint.not_in.enabled', {
         userId: '123',
       });
-      t.is(result, true);
+      expect(result).toBe(true);
       instance.destroy();
       resolve();
     });
-  }));
+  });
+});

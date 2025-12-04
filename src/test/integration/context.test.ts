@@ -1,9 +1,8 @@
-import test from 'ava';
-import * as nock from 'nock';
-import { tmpdir } from 'os';
-import { join } from 'path';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { mkdirp } from 'mkdirp';
-
+import nock from 'nock';
+import { expect, test } from 'vitest';
 import { Unleash } from '../../unleash';
 
 let counter = 1;
@@ -68,8 +67,8 @@ const FLAGS = {
   ],
 };
 
-test('should be enabled for string context field', (t) =>
-  new Promise((resolve, reject) => {
+test('should be enabled for string context field', async () => {
+  await new Promise<void>((resolve, reject) => {
     // Mock unleash-api
     const url = mockNetwork(FLAGS);
 
@@ -85,14 +84,15 @@ test('should be enabled for string context field', (t) =>
     instance.on('error', reject);
     instance.on('synchronized', () => {
       const result = instance.isEnabled(FLAG, { properties: { test: STRING_CTX } });
-      t.is(result, true);
+      expect(result).toBe(true);
       instance.destroy();
       resolve();
     });
-  }));
+  });
+});
 
-test('should be enabled for number context field', (t) =>
-  new Promise((resolve, reject) => {
+test('should be enabled for number context field', async () =>
+  await new Promise<void>((resolve, reject) => {
     // Mock unleash-api
     const url = mockNetwork(FLAGS);
 
@@ -108,14 +108,14 @@ test('should be enabled for number context field', (t) =>
     instance.on('error', reject);
     instance.on('synchronized', () => {
       const result = instance.isEnabled(FLAG, { properties: { test: NUMBER_SEVEN_CTX } });
-      t.is(result, true);
+      expect(result).toBe(true);
       instance.destroy();
       resolve();
     });
   }));
 
-test('should be enabled for boolean context field', (t) =>
-  new Promise((resolve, reject) => {
+test('should be enabled for boolean context field', async () => {
+  await new Promise<void>((resolve, reject) => {
     // Mock unleash-api
     const url = mockNetwork(FLAGS);
 
@@ -132,14 +132,15 @@ test('should be enabled for boolean context field', (t) =>
     instance.on('synchronized', () => {
       // @ts-expect-error
       const result = instance.isEnabled(FLAG, { properties: { test: BOOL_TRUE_CTX } });
-      t.is(result, true);
+      expect(result).toBe(true);
       instance.destroy();
       resolve();
     });
-  }));
+  });
+});
 
-test('should gracefully handle null or undefined context fields', (t) =>
-  new Promise((resolve, reject) => {
+test('should gracefully handle null or undefined context fields', async () => {
+  new Promise<void>((resolve, reject) => {
     // Mock unleash-api
     const url = mockNetwork(FLAGS);
 
@@ -156,16 +157,17 @@ test('should gracefully handle null or undefined context fields', (t) =>
     instance.on('synchronized', () => {
       // @ts-expect-error
       const result1 = instance.isEnabled(FLAG, { properties: { test: null } });
-      t.is(result1, false);
+      expect(result1).toBe(false);
       const result2 = instance.isEnabled(FLAG, { properties: { test: undefined } });
-      t.is(result2, false);
+      expect(result2).toBe(false);
       instance.destroy();
       resolve();
     });
-  }));
+  });
+});
 
-test('should support "0" as a number context field value', (t) =>
-  new Promise((resolve, reject) => {
+test('should support "0" as a number context field value', async () => {
+  await new Promise<void>((resolve, reject) => {
     // Mock unleash-api
     const url = mockNetwork(FLAGS);
 
@@ -181,14 +183,15 @@ test('should support "0" as a number context field value', (t) =>
     instance.on('error', reject);
     instance.on('synchronized', () => {
       const result = instance.isEnabled(FLAG_FALSY, { properties: { test: NUMBER_ZERO_CTX } });
-      t.is(result, true);
+      expect(result).toBe(true);
       instance.destroy();
       resolve();
     });
-  }));
+  });
+});
 
-test('should support "false" as a boolean context field value', (t) =>
-  new Promise((resolve, reject) => {
+test('should support "false" as a boolean context field value', async () => {
+  await new Promise<void>((resolve, reject) => {
     // Mock unleash-api
     const url = mockNetwork(FLAGS);
 
@@ -205,8 +208,9 @@ test('should support "false" as a boolean context field value', (t) =>
     instance.on('synchronized', () => {
       // @ts-expect-error
       const result = instance.isEnabled(FLAG_FALSY, { properties: { test: BOOL_FALSE_CTX } });
-      t.is(result, true);
+      expect(result).toBe(true);
       instance.destroy();
       resolve();
     });
-  }));
+  });
+});

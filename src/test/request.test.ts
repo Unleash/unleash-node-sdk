@@ -1,20 +1,19 @@
-import test from 'ava';
+import http from 'node:http';
+import https from 'node:https';
+import { expect, test } from 'vitest';
+import { buildHeaders, getDefaultAgent } from '../request';
 
-import * as http from 'http';
-import * as https from 'https';
-import { getDefaultAgent, buildHeaders } from '../request';
-
-test('http URLs should yield http.Agent', (t) => {
+test('http URLs should yield http.Agent', () => {
   const agent = getDefaultAgent(new URL('http://unleash-host1.com'));
-  t.true(agent instanceof http.Agent);
+  expect(agent).toBeInstanceOf(http.Agent);
 });
 
-test('https URLs should yield https.Agent', (t) => {
+test('https URLs should yield https.Agent', () => {
   const agent = getDefaultAgent(new URL('https://unleash.hosted.com'));
-  t.true(agent instanceof https.Agent);
+  expect(agent).toBeInstanceOf(https.Agent);
 });
 
-test('Correct headers should be included', (t) => {
+test('Correct headers should be included', () => {
   const headers = buildHeaders({
     appName: 'myApp',
     instanceId: 'instanceId',
@@ -26,10 +25,10 @@ test('Correct headers should be included', (t) => {
       hello: 'world',
     },
   });
-  t.is(headers.hello, 'world');
-  t.is(headers['UNLEASH-INSTANCEID'], 'instanceId');
-  t.is(headers['unleash-connection-id'], 'connectionId');
-  t.is(headers['unleash-interval'], '10000');
-  t.is(headers['unleash-appname'], 'myApp');
-  t.regex(headers['unleash-sdk'], /^unleash-node-sdk:\d+\.\d+\.\d+/);
+  expect(headers.hello).toEqual('world');
+  expect(headers['UNLEASH-INSTANCEID']).toEqual('instanceId');
+  expect(headers['unleash-connection-id']).toEqual('connectionId');
+  expect(headers['unleash-interval']).toEqual('10000');
+  expect(headers['unleash-appname']).toEqual('myApp');
+  expect(headers['unleash-sdk']).toMatch(/^unleash-node-sdk:\d+\.\d+\.\d+/);
 });

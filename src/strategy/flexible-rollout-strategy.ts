@@ -1,7 +1,7 @@
-import { Strategy } from './strategy';
-import { Context } from '../context';
-import { normalizedStrategyValue } from './util';
+import type { Context } from '../context';
 import { resolveContextValue } from '../helpers';
+import { Strategy } from './strategy';
+import { normalizedStrategyValue } from './util';
 
 const STICKINESS = {
   default: 'default',
@@ -9,16 +9,16 @@ const STICKINESS = {
 };
 
 export default class FlexibleRolloutStrategy extends Strategy {
-  private randomGenerator: Function = () => `${Math.round(Math.random() * 10000) + 1}`;
+  private randomGenerator: () => string = () => `${Math.round(Math.random() * 10000) + 1}`;
 
-  constructor(randomGenerator?: Function) {
+  constructor(randomGenerator?: () => string) {
     super('flexibleRollout');
     if (randomGenerator) {
       this.randomGenerator = randomGenerator;
     }
   }
 
-  resolveStickiness(stickiness: string, context: Context): any {
+  resolveStickiness(stickiness: string, context: Context): string | undefined {
     switch (stickiness) {
       case STICKINESS.default:
         return context.userId || context.sessionId || this.randomGenerator();
@@ -29,7 +29,10 @@ export default class FlexibleRolloutStrategy extends Strategy {
     }
   }
 
-  isEnabled(parameters: any, context: Context) {
+  isEnabled(
+    parameters: { groupId?: string; rollout?: number | string; stickiness?: string },
+    context: Context,
+  ) {
     const groupId = parameters.groupId || context.featureToggle || '';
     const percentage = Number(parameters.rollout);
     const stickiness: string = parameters.stickiness || STICKINESS.default;
@@ -38,7 +41,7 @@ export default class FlexibleRolloutStrategy extends Strategy {
     if (!stickinessId) {
       return false;
     }
-    const normalizedUserId = normalizedStrategyValue(stickinessId, groupId);
+    const normalizedUserId = normalizedStrategyValue(stickinessId, groupId as string);
     return percentage > 0 && normalizedUserId <= percentage;
   }
 }

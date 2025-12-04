@@ -1,13 +1,11 @@
-import { HttpProxyAgent } from 'http-proxy-agent';
-import { HttpsProxyAgent } from 'https-proxy-agent';
-import * as http from 'http';
-import * as https from 'https';
-import { URL } from 'url';
+import http from 'node:http';
+import https from 'node:https';
+import type { URL } from 'node:url';
 import { getProxyForUrl } from 'proxy-from-env';
-import { CustomHeaders } from './headers';
-import { HttpOptions } from './http-options';
+import details from './details.json';
+import type { CustomHeaders } from './headers';
 import { defaultRetry, getKyClient } from './http-client';
-const details = require('./details.json');
+import type { HttpOptions } from './http-options';
 
 export interface RequestOptions {
   url: string;
@@ -26,7 +24,7 @@ export interface GetRequestOptions extends RequestOptions {
 }
 
 export interface Data {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface PostRequestOptions extends RequestOptions {
@@ -38,9 +36,7 @@ export interface PostRequestOptions extends RequestOptions {
   httpOptions?: HttpOptions;
 }
 
-type AgentOptions = http.AgentOptions & https.AgentOptions;
-
-const httpAgentOptions: AgentOptions = {
+const httpAgentOptions: http.AgentOptions = {
   keepAlive: true,
   keepAliveMsecs: 30 * 1000,
   timeout: 10 * 1000,
@@ -64,9 +60,8 @@ export const getDefaultAgent = (url: URL, rejectUnauthorized?: boolean) => {
     return isHttps ? httpsNoProxyAgent : httpNoProxyAgent;
   }
 
-  return isHttps
-    ? new HttpsProxyAgent(proxy, agentOptions)
-    : new HttpProxyAgent(proxy, agentOptions);
+  // Fallback for callers that still expect a Node.js Agent (non-ky usage).
+  return isHttps ? new https.Agent(agentOptions) : new http.Agent(agentOptions);
 };
 
 type HeaderOptions = {
@@ -132,6 +127,26 @@ const resolveAgent = (httpOptions?: HttpOptions) =>
   httpOptions?.agent ||
   ((targetUrl: URL) => getDefaultAgent(targetUrl, httpOptions?.rejectUnauthorized));
 
+const withRejectUnauthorized = async <T>(
+  rejectUnauthorized: boolean | undefined,
+  fn: () => Promise<T>,
+): Promise<T> => {
+  if (rejectUnauthorized === false) {
+    const prev = process.env.NODE_TLS_REJECT_UNAUTHORIZED;
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+    try {
+      return await fn();
+    } finally {
+      if (prev === undefined) {
+        delete process.env.NODE_TLS_REJECT_UNAUTHORIZED;
+      } else {
+        process.env.NODE_TLS_REJECT_UNAUTHORIZED = prev;
+      }
+    }
+  }
+  return fn();
+};
+
 export const post = async ({
   url,
   appName,
@@ -161,12 +176,14 @@ export const post = async ({
     retry: defaultRetry,
   } as const;
 
-  return ky.post(url, requestOptions as any).catch((err: any) => {
-    if (err?.response) {
-      return err.response;
-    }
-    throw err;
-  });
+  return withRejectUnauthorized(httpOptions?.rejectUnauthorized, () =>
+    ky.post(url, requestOptions as any).catch((err: any) => {
+      if (err?.response) {
+        return err.response;
+      }
+      throw err;
+    }),
+  );
 };
 
 export const get = async ({
@@ -198,10 +215,12 @@ export const get = async ({
     retry: defaultRetry,
   } as const;
 
-  return ky.get(url, requestOptions as any).catch((err: any) => {
-    if (err?.response) {
-      return err.response;
-    }
-    throw err;
-  });
+  return withRejectUnauthorized(httpOptions?.rejectUnauthorized, () =>
+    ky.get(url, requestOptions as any).catch((err: any) => {
+      if (err?.response) {
+        return err.response;
+      }
+      throw err;
+    }),
+  );
 };

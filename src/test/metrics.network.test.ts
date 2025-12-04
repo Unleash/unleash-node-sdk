@@ -1,36 +1,37 @@
-import test from 'ava';
-import * as nock from 'nock';
+import nock from 'nock';
+import { afterEach, beforeEach, expect, test } from 'vitest';
 import Metrics from '../metrics';
 
-test.before(() => nock.disableNetConnect());
-test.after(() => nock.enableNetConnect());
+beforeEach(() => nock.disableNetConnect());
+afterEach(() => nock.enableNetConnect());
 
-test('registerInstance should emit error when request error', (t) =>
-  new Promise((resolve) => {
-    t.plan(2);
+test('registerInstance should emit error when request error', async () => {
+  await new Promise<void>((resolve) => {
+    expect.assertions(2);
     const url = 'http://metrics1.app/';
 
     // @ts-expect-error
     const metrics = new Metrics({ url });
     metrics.on('warn', (e) => {
-      t.truthy(e);
+      expect(e).toBeTruthy();
     });
 
     metrics.registerInstance().then((result) => {
-      t.true(result);
+      expect(result).toBe(true);
       resolve();
     });
-  }));
+  });
+});
 
-test('sendMetrics should emit error when request error', (t) =>
-  new Promise((resolve) => {
-    t.plan(1);
+test('sendMetrics should emit error when request error', async () => {
+  await new Promise<void>((resolve) => {
+    expect.assertions(1);
     const url = 'http://metrics2.app/';
 
     // @ts-expect-error
     const metrics = new Metrics({ url });
     metrics.on('warn', (e) => {
-      t.truthy(e);
+      expect(e).toBeTruthy();
     });
 
     metrics.count('x', true);
@@ -38,4 +39,5 @@ test('sendMetrics should emit error when request error', (t) =>
     metrics.sendMetrics().then(() => {
       resolve();
     });
-  }));
+  });
+});

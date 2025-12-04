@@ -1,9 +1,9 @@
-import { promises } from 'fs';
-import { ClientFeaturesResponse, FeatureInterface } from '../feature';
-import { CustomHeaders } from '../headers';
-import { buildHeaders, getDefaultAgent } from '../request';
+import { promises } from 'node:fs';
+import type { ClientFeaturesResponse, FeatureInterface } from '../feature';
+import type { CustomHeaders } from '../headers';
 import { getKyClient } from '../http-client';
-import { Segment } from '../strategy/strategy';
+import { buildHeaders, getDefaultAgent } from '../request';
+import type { Segment } from '../strategy/strategy';
 
 export interface BootstrapProvider {
   readBootstrap(): Promise<ClientFeaturesResponse | undefined>;

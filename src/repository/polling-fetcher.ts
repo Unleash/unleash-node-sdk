@@ -1,9 +1,10 @@
-import { EventEmitter } from 'events';
-import { parseClientFeaturesDelta } from '../feature';
-import { get } from '../request';
-import getUrl from '../url-utils';
+import { EventEmitter } from 'node:events';
 import { UnleashEvents } from '../events';
-import { FetcherInterface, PollingFetchingOptions } from './fetcher';
+import { parseApiResponse } from '../feature';
+import { get } from '../request';
+import type { TagFilter } from '../tags';
+import getUrl from '../url-utils';
+import type { FetcherInterface, PollingFetchingOptions } from './fetcher';
 
 export class PollingFetcher extends EventEmitter implements FetcherInterface {
   private timer: NodeJS.Timeout | undefined;
@@ -68,7 +69,6 @@ export class PollingFetcher extends EventEmitter implements FetcherInterface {
       this.emit(
         UnleashEvents.Error,
         new Error(
-          // eslint-disable-next-line max-len
           `${url} responded ${statusCode} which means your API key is not allowed to connect. Stopping refresh of toggles`,
         ),
       );
@@ -77,7 +77,7 @@ export class PollingFetcher extends EventEmitter implements FetcherInterface {
   }
 
   private recoverableError(url: string, statusCode: number): number {
-    let nextFetch = this.backoff();
+    const nextFetch = this.backoff();
     if (statusCode === 429) {
       this.emit(UnleashEvents.Warn, `${url} responded TOO_MANY_CONNECTIONS (429). Backing off`);
     } else if (statusCode === 404) {
@@ -116,9 +116,9 @@ export class PollingFetcher extends EventEmitter implements FetcherInterface {
     if (this.stopped || !(this.options.refreshInterval > 0)) {
       return;
     }
-    let nextFetch = this.options.refreshInterval;
+    let nextFetch: number = this.options.refreshInterval;
     try {
-      let mergedTags;
+      let mergedTags: string[] | undefined;
       if (this.options.tags) {
         mergedTags = this.mergeTagsToStringArray(this.options.tags);
       }
@@ -166,12 +166,7 @@ export class PollingFetcher extends EventEmitter implements FetcherInterface {
             await this.options.onModeChange('streaming');
             return;
           }
-
-          if (this.options.mode.type === 'polling' && this.options.mode.format === 'delta') {
-            await this.options.onSaveDelta(parseClientFeaturesDelta(data));
-          } else {
-            await this.options.onSave(data, true);
-          }
+          await this.options.onSave(parseApiResponse(data), true);
         } catch (err) {
           this.emit(UnleashEvents.Error, err);
         }
@@ -191,7 +186,7 @@ export class PollingFetcher extends EventEmitter implements FetcherInterface {
     }
   }
 
-  mergeTagsToStringArray(tags: Array<any>): Array<string> {
+  mergeTagsToStringArray(tags: Array<TagFilter>): Array<string> {
     return tags.map((tag) => `${tag.name}:${tag.value}`);
   }
 

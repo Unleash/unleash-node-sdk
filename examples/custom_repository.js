@@ -1,4 +1,4 @@
-const { EventEmitter } = require('events');
+const { EventEmitter } = require('node:events');
 const { initialize, isEnabled, UnleashEvents } = require('../lib');
 
 class MyRepo extends EventEmitter {

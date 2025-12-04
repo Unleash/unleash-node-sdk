@@ -1,0 +1,14 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`should call methods 1`] = `false`;
+
+exports[`should call methods 2`] = `undefined`;
+
+exports[`should call methods 3`] = `
+{
+  "enabled": false,
+  "featureEnabled": false,
+  "feature_enabled": false,
+  "name": "disabled",
+}
+`;

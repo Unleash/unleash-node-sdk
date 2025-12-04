@@ -1,4 +1,4 @@
-import { Mode } from './unleash-config';
+import type { Mode } from './unleash-config';
 
 export function resolveUrl(from: string, to: string) {
   const resolvedUrl = new URL(to, new URL(from, 'resolve://'));
@@ -27,7 +27,9 @@ const getUrl = (
     params.append('namePrefix', namePrefix);
   }
   if (tags) {
-    tags.forEach((tag) => params.append('tag', tag));
+    tags.forEach((tag) => {
+      params.append('tag', tag);
+    });
   }
   if (params.toString().length > 0) {
     return `${url}?${params.toString()}`;

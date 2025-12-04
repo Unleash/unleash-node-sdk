@@ -1,12 +1,11 @@
-import { CustomHeaders, CustomHeadersFunction } from './headers';
-import { Strategy } from './strategy';
-
-import { ClientFeaturesResponse } from './feature';
-import { HttpOptions } from './http-options';
-import { TagFilter } from './tags';
-import { BootstrapOptions } from './repository/bootstrap-provider';
-import { StorageProvider } from './repository/storage-provider';
-import { RepositoryInterface } from './repository';
+import type { ClientFeaturesResponse } from './feature';
+import type { CustomHeaders, CustomHeadersFunction } from './headers';
+import type { HttpOptions } from './http-options';
+import type { RepositoryInterface } from './repository';
+import type { BootstrapOptions } from './repository/bootstrap-provider';
+import type { StorageProvider } from './repository/storage-provider';
+import type { Strategy } from './strategy';
+import type { TagFilter } from './tags';
 
 export type Mode = { type: 'polling'; format: 'delta' | 'full' } | { type: 'streaming' };
 

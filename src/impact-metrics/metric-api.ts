@@ -1,7 +1,7 @@
-import { EventEmitter } from 'stream';
-import { StaticContext, UnleashEvents } from '../unleash';
-import { ImpactMetricRegistry, MetricFlagContext, MetricLabels } from './metric-types';
-import Client from '../client';
+import { EventEmitter } from 'node:stream';
+import type Client from '../client';
+import { type StaticContext, UnleashEvents } from '../unleash';
+import type { ImpactMetricRegistry, MetricFlagContext, MetricLabels } from './metric-types';
 
 export class MetricsAPI extends EventEmitter {
   constructor(
@@ -40,7 +40,7 @@ export class MetricsAPI extends EventEmitter {
   }
 
   private getFlagLabels(flagContext?: MetricFlagContext): MetricLabels {
-    let flagLabels: MetricLabels = {};
+    const flagLabels: MetricLabels = {};
     if (flagContext) {
       for (const flag of flagContext.flagNames) {
         const variant = this.variantResolver.forceGetVariant(flag, flagContext.context);

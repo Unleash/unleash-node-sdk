@@ -1,4 +1,4 @@
-import { Context } from '../context';
+import type { Context } from '../context';
 
 type LabelValuesKey = string;
 
@@ -77,6 +77,13 @@ class CounterImpl implements Counter {
     }));
 
     this.values.clear();
+
+    if (samples.length === 0) {
+      samples.push({
+        labels: {},
+        value: 0,
+      });
+    }
 
     return {
       name: this.opts.name,
@@ -180,7 +187,7 @@ class HistogramImpl implements Histogram {
 
     for (const bucket of this.buckets) {
       if (value <= bucket) {
-        const currentCount = data.buckets.get(bucket)!;
+        const currentCount = data.buckets.get(bucket) ?? 0;
         data.buckets.set(bucket, currentCount + 1);
       }
     }
@@ -198,6 +205,18 @@ class HistogramImpl implements Histogram {
     }));
 
     this.values.clear();
+
+    if (samples.length === 0) {
+      samples.push({
+        labels: {},
+        count: 0,
+        sum: 0,
+        buckets: this.buckets.map((le) => ({
+          le: le === Infinity ? '+Inf' : le,
+          count: 0,
+        })),
+      });
+    }
 
     return {
       name: this.opts.name,
@@ -260,26 +279,32 @@ export class InMemoryMetricRegistry implements ImpactMetricsDataSource, ImpactMe
 
   counter(opts: MetricOptions): Counter {
     const key = opts.name;
-    if (!this.counters.has(key)) {
-      this.counters.set(key, new CounterImpl(opts));
+    let counter = this.counters.get(key);
+    if (!counter) {
+      counter = new CounterImpl(opts);
+      this.counters.set(key, counter);
     }
-    return this.counters.get(key)!;
+    return counter;
   }
 
   gauge(opts: MetricOptions): Gauge {
     const key = opts.name;
-    if (!this.gauges.has(key)) {
-      this.gauges.set(key, new GaugeImpl(opts));
+    let gauge = this.gauges.get(key);
+    if (!gauge) {
+      gauge = new GaugeImpl(opts);
+      this.gauges.set(key, gauge);
     }
-    return this.gauges.get(key)!;
+    return gauge;
   }
 
   histogram(opts: BucketMetricOptions): Histogram {
     const key = opts.name;
-    if (!this.histograms.has(key)) {
-      this.histograms.set(key, new HistogramImpl(opts));
+    let histogram = this.histograms.get(key);
+    if (!histogram) {
+      histogram = new HistogramImpl(opts);
+      this.histograms.set(key, histogram);
     }
-    return this.histograms.get(key)!;
+    return histogram;
   }
 
   collect(): CollectedMetric[] {

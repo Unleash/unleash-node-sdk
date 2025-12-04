@@ -1,12 +1,11 @@
-import test from 'ava';
-import * as nock from 'nock';
-import { tmpdir } from 'os';
-import { join } from 'path';
+import { writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { mkdirp } from 'mkdirp';
-import { writeFileSync } from 'fs';
+import nock from 'nock';
+import { expect, test } from 'vitest';
+import { destroy, initialize, isEnabled } from '../index';
 import { Unleash } from '../unleash';
-
-import { initialize, isEnabled, destroy } from '../index';
 
 function getRandomBackupPath() {
   const path = join(tmpdir(), `test-tmp-${Math.round(Math.random() * 100000)}`);
@@ -30,7 +29,7 @@ function mockNetwork(toggles = defaultToggles) {
   return url;
 }
 
-test('should be able to call api', (t) => {
+test('should be able to call api', () => {
   const url = mockNetwork();
   initialize({
     appName: 'foo',
@@ -40,12 +39,12 @@ test('should be able to call api', (t) => {
   }).on('error', (err) => {
     throw err;
   });
-  t.true(isEnabled('unknown') === false);
+  expect(isEnabled('unknown')).toBe(false);
   destroy();
 });
 
-test('should load if backup file is corrupted', (t) =>
-  new Promise((resolve) => {
+test('should load if backup file is corrupted', () =>
+  new Promise<void>((resolve) => {
     const url = mockNetwork();
     const backupPath = join(tmpdir());
     const backupFile = join(backupPath, `/unleash-backup-with-corrupted-JSON.json`);
@@ -67,15 +66,14 @@ test('should load if backup file is corrupted', (t) =>
       .on('warn', (err) => {
         if (err?.message?.includes('Unleash storage failed parsing file')) {
           destroy();
-          t.pass();
           resolve();
         }
       });
   }));
 
 // FIXME: This test is flaky
-test.skip('should be able to call isEnabled eventually', (t) =>
-  new Promise((resolve) => {
+test.skip('should be able to call isEnabled eventually', () =>
+  new Promise<void>((resolve) => {
     const url = mockNetwork();
     initialize({
       appName: 'foo',
@@ -87,19 +85,15 @@ test.skip('should be able to call isEnabled eventually', (t) =>
         throw err;
       })
       .on('synchronized', async () => {
-        t.true(isEnabled('feature') === true);
-        t.pass();
+        expect(isEnabled('feature')).toBe(true);
         resolve();
         destroy();
       });
-
-    t.true(isEnabled('feature') === false);
+    expect(isEnabled('feature')).toBe(false);
   }));
 
-test('should return fallbackValue if init was not called', (t) =>
-  new Promise((resolve) => {
-    t.true(isEnabled('feature') === false);
-    t.true(isEnabled('feature', {}, false) === false);
-    t.true(isEnabled('feature', {}, true) === true);
-    resolve();
-  }));
+test('should return fallbackValue if init was not called', () => {
+  expect(isEnabled('feature')).toBe(false);
+  expect(isEnabled('feature', {}, false)).toBe(false);
+  expect(isEnabled('feature', {}, true)).toBe(true);
+});

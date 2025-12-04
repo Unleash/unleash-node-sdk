@@ -1,14 +1,12 @@
-import test from 'ava';
-import * as nock from 'nock';
-import { tmpdir } from 'os';
-import { join } from 'path';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { mkdirp } from 'mkdirp';
-import * as sinon from 'sinon';
-import FakeRepo from './fake_repo';
-
-import { Strategy, Unleash, UnleashEvents } from '../unleash';
+import nock from 'nock';
+import { assert, expect, test, vi } from 'vitest';
 import { InMemStorageProvider } from '..';
-import { RepositoryInterface } from '../repository';
+import type { RepositoryInterface } from '../repository';
+import { Strategy, Unleash, UnleashEvents } from '../unleash';
+import FakeRepo from './fake_repo';
 
 class EnvironmentStrategy extends Strategy {
   constructor() {
@@ -58,12 +56,12 @@ function mockNetwork(toggles = defaultToggles, url = getUrl()) {
   return url;
 }
 
-test('should error when missing url', (t) => {
+test('should error when missing url', () => {
   // @ts-expect-error
-  t.throws(() => new Unleash({ skipInstanceCountWarning: true }));
+  expect(() => new Unleash({ skipInstanceCountWarning: true })).toThrow();
   // @ts-expect-error
-  t.throws(() => new Unleash({ url: false, skipInstanceCountWarning: true }));
-  t.throws(
+  expect(() => new Unleash({ url: false, skipInstanceCountWarning: true })).toThrow();
+  expect(
     () =>
       new Unleash({
         url: 'http://unleash.github.io',
@@ -71,10 +69,10 @@ test('should error when missing url', (t) => {
         appName: false,
         skipInstanceCountWarning: true,
       }),
-  );
+  ).toThrow();
 });
 
-test('calling destroy synchronously should avoid network activity', (t) => {
+test('calling destroy synchronously should avoid network activity', () => {
   const url = getUrl();
   // Don't call mockNetwork. If destroy didn't work, then we would have an
   // uncaught exception.
@@ -85,11 +83,11 @@ test('calling destroy synchronously should avoid network activity', (t) => {
     disableMetrics: true,
   });
   instance.destroy();
-  t.true(true);
+  assert.ok(true);
 });
 
-test('should handle old url', (t) =>
-  new Promise((resolve) => {
+test('should handle old url', async () => {
+  await new Promise<void>((resolve) => {
     const url = mockNetwork([]);
 
     const instance = new Unleash({
@@ -101,16 +99,17 @@ test('should handle old url', (t) =>
       url: `${url}features`,
     });
 
-    t.plan(1);
+    expect.assertions(1);
     instance.on('warn', (e) => {
-      t.truthy(e);
+      expect(e).toBeTruthy();
       resolve();
     });
 
     instance.destroy();
-  }));
+  });
+});
 
-test('should handle url without ending /', (t) => {
+test('should handle url without ending /', () => {
   const baseUrl = `${getUrl()}api`;
 
   mockNetwork([], baseUrl);
@@ -125,14 +124,14 @@ test('should handle url without ending /', (t) => {
   });
 
   // @ts-expect-error
-  t.true(`${baseUrl}/` === instance.repository.url);
+  expect(`${baseUrl}/` === instance.repository.url).toBe(true);
   // @ts-expect-error
-  t.true(`${baseUrl}/` === instance.metrics.url);
+  expect(`${baseUrl}/` === instance.metrics.url).toBe(true);
 
   instance.destroy();
 });
 
-test('should re-emit error from repository and metrics', (t) => {
+test('should re-emit error from repository and metrics', () => {
   const url = mockNetwork([]);
 
   const instance = new Unleash({
@@ -144,9 +143,9 @@ test('should re-emit error from repository and metrics', (t) => {
     url,
   });
 
-  t.plan(2);
+  expect.assertions(2);
   instance.on('error', (e) => {
-    t.truthy(e);
+    expect(e).toBeTruthy();
   });
   // @ts-expect-error
   instance.repository.emit('error', new Error());
@@ -156,7 +155,7 @@ test('should re-emit error from repository and metrics', (t) => {
   instance.destroy();
 });
 
-test('should re-emit events from repository and metrics', (t) => {
+test('should re-emit events from repository and metrics', () => {
   const url = mockNetwork();
   const instance = new Unleash({
     appName: 'foo',
@@ -166,13 +165,13 @@ test('should re-emit events from repository and metrics', (t) => {
     url,
   });
 
-  t.plan(7);
-  instance.on(UnleashEvents.Warn, (e) => t.truthy(e));
-  instance.on(UnleashEvents.Sent, (e) => t.truthy(e));
-  instance.on(UnleashEvents.Registered, (e) => t.truthy(e));
-  instance.on(UnleashEvents.Count, (e) => t.truthy(e));
-  instance.on(UnleashEvents.Unchanged, (e) => t.truthy(e));
-  instance.on(UnleashEvents.Changed, (e) => t.truthy(e));
+  expect.assertions(7);
+  instance.on(UnleashEvents.Warn, (e) => expect(e).toBeTruthy());
+  instance.on(UnleashEvents.Sent, (e) => expect(e).toBeTruthy());
+  instance.on(UnleashEvents.Registered, (e) => expect(e).toBeTruthy());
+  instance.on(UnleashEvents.Count, (e) => expect(e).toBeTruthy());
+  instance.on(UnleashEvents.Unchanged, (e) => expect(e).toBeTruthy());
+  instance.on(UnleashEvents.Changed, (e) => expect(e).toBeTruthy());
 
   // @ts-expect-error
   instance.repository.emit(UnleashEvents.Warn, true);
@@ -192,8 +191,8 @@ test('should re-emit events from repository and metrics', (t) => {
   instance.destroy();
 });
 
-test('repository should surface error when invalid basePath', (t) =>
-  new Promise((resolve) => {
+test('repository should surface error when invalid basePath', async () => {
+  new Promise<void>((resolve) => {
     const url = 'http://unleash-surface.app/';
     nock(url).get('/client/features').delay(100).reply(200, { features: [] });
     const backupPath = join(tmpdir(), `test-tmp-${Math.round(Math.random() * 100000)}`);
@@ -206,16 +205,17 @@ test('repository should surface error when invalid basePath', (t) =>
     });
 
     instance.once('error', (err) => {
-      t.truthy(err);
-      t.is(err.code, 'ERR_NOCK_NO_MATCH');
+      expect(err).toBeTruthy();
+      expect(err.code).toEqual('ERR_NOCK_NO_MATCH');
 
       instance.destroy();
 
       resolve();
     });
-  }));
+  });
+});
 
-test('should allow request even before unleash is initialized', (t) => {
+test('should allow request even before unleash is initialized', () => {
   const url = mockNetwork();
   const instance = new Unleash({
     appName: 'foo',
@@ -226,12 +226,12 @@ test('should allow request even before unleash is initialized', (t) => {
   }).on('error', (err) => {
     throw err;
   });
-  t.true(instance.isEnabled('unknown') === false);
+  expect(instance.isEnabled('unknown')).toBe(false);
   instance.destroy();
 });
 
-test('should consider known feature-toggle as active', (t) =>
-  new Promise((resolve, reject) => {
+test('should consider known feature-toggle as active', async () => {
+  await new Promise<void>((resolve, reject) => {
     const url = mockNetwork();
     const instance = new Unleash({
       appName: 'foo',
@@ -242,14 +242,15 @@ test('should consider known feature-toggle as active', (t) =>
     }).on('error', reject);
 
     instance.on('synchronized', () => {
-      t.true(instance.isEnabled('feature') === true);
+      expect(instance.isEnabled('feature')).toBe(true);
       instance.destroy();
       resolve();
     });
-  }));
+  });
+});
 
-test('should consider unknown feature-toggle as disabled', (t) =>
-  new Promise((resolve, reject) => {
+test('should consider unknown feature-toggle as disabled', async () => {
+  await new Promise<void>((resolve, reject) => {
     const url = mockNetwork();
     const instance = new Unleash({
       appName: 'foo',
@@ -260,14 +261,15 @@ test('should consider unknown feature-toggle as disabled', (t) =>
     }).on('error', reject);
 
     instance.on('synchronized', () => {
-      t.true(instance.isEnabled('unknown') === false);
+      expect(instance.isEnabled('unknown')).toBe(false);
       instance.destroy();
       resolve();
     });
-  }));
+  });
+});
 
-test('should return fallback value until online', (t) =>
-  new Promise((resolve, reject) => {
+test('should return fallback value until online', async () => {
+  await new Promise<void>((resolve, reject) => {
     const url = mockNetwork();
     const instance = new Unleash({
       appName: 'foo',
@@ -281,23 +283,23 @@ test('should return fallback value until online', (t) =>
     instance.on('warn', () => {
       warnCounter++;
     });
-
-    t.true(instance.isEnabled('feature') === false);
-    t.is(warnCounter, 1);
-    t.true(instance.isEnabled('feature', {}, false) === false);
-    t.true(instance.isEnabled('feature', {}, true) === true);
-    t.is(warnCounter, 3);
+    expect(instance.isEnabled('feature')).toBe(false);
+    expect(warnCounter).toBe(1);
+    expect(instance.isEnabled('feature', {}, false)).toBe(false);
+    expect(instance.isEnabled('feature', {}, true)).toBe(true);
+    expect(warnCounter).toBe(3);
 
     instance.on('synchronized', () => {
-      t.true(instance.isEnabled('feature') === true);
-      t.true(instance.isEnabled('feature', {}, false) === true);
+      expect(instance.isEnabled('feature')).toBe(true);
+      expect(instance.isEnabled('feature', {}, false)).toBe(true);
       instance.destroy();
       resolve();
     });
-  }));
+  });
+});
 
-test('should call fallback function for unknown feature-toggle', (t) =>
-  new Promise((resolve, reject) => {
+test('should call fallback function for unknown feature-toggle', async () => {
+  await new Promise<void>((resolve, reject) => {
     const url = mockNetwork();
     const instance = new Unleash({
       appName: 'foo',
@@ -309,30 +311,26 @@ test('should call fallback function for unknown feature-toggle', (t) =>
     }).on('error', reject);
 
     instance.on('synchronized', () => {
-      const fallbackFunc = sinon.spy(() => false); // eslint-disable-line import/namespace
+      const fallbackFunc = vi.fn(() => false);
       const name = 'unknown';
       const result = instance.isEnabled(name, { userId: '123' }, fallbackFunc);
-      t.true(result === false);
-      t.true(fallbackFunc.called);
-      t.true(
-        // @ts-expect-error
-        fallbackFunc.firstCall.calledWith(name, {
-          appName: 'foo',
-          environment: 'test',
-          userId: '123',
-        }),
-      );
+      expect(result).toBe(false);
+      expect(fallbackFunc).toHaveBeenCalledWith(name, {
+        appName: 'foo',
+        environment: 'test',
+        userId: '123',
+      });
       instance.destroy();
       resolve();
     });
-  }));
+  });
+});
 
-test('should not throw when os.userInfo throws', (t) => {
-  t.plan(0);
+test('should not throw when os.userInfo throws', async () => {
+  expect.assertions(0);
 
-  return new Promise((resolve, reject) => {
-    // eslint-disable-next-line global-require
-    require('os').userInfo = () => {
+  await new Promise<void>((resolve, reject) => {
+    require('node:os').userInfo = () => {
       throw new Error('Test exception');
     };
     const url = mockNetwork();
@@ -350,8 +348,8 @@ test('should not throw when os.userInfo throws', (t) => {
   });
 });
 
-test('should return known feature-toggle definition', (t) =>
-  new Promise((resolve, reject) => {
+test('should return known feature-toggle definition', async () => {
+  await new Promise<void>((resolve, reject) => {
     const url = mockNetwork();
     const instance = new Unleash({
       appName: 'foo',
@@ -363,14 +361,15 @@ test('should return known feature-toggle definition', (t) =>
 
     instance.on('synchronized', () => {
       const toggle = instance.getFeatureToggleDefinition('feature');
-      t.truthy(toggle);
+      expect(toggle).toBeTruthy();
       instance.destroy();
       resolve();
     });
-  }));
+  });
+});
 
-test('should return feature-toggles', (t) =>
-  new Promise((resolve, reject) => {
+test('should return feature-toggles', async () => {
+  await new Promise<void>((resolve, reject) => {
     const url = mockNetwork();
     const instance = new Unleash({
       appName: 'foo',
@@ -382,14 +381,15 @@ test('should return feature-toggles', (t) =>
 
     instance.on('synchronized', () => {
       const toggles = instance.getFeatureToggleDefinitions();
-      t.deepEqual(toggles, defaultToggles);
+      expect(toggles).toStrictEqual(defaultToggles);
       instance.destroy();
       resolve();
     });
-  }));
+  });
+});
 
-test('returns undefined for unknown feature-toggle definition', (t) =>
-  new Promise((resolve, reject) => {
+test('returns undefined for unknown feature-toggle definition', async () => {
+  await new Promise<void>((resolve, reject) => {
     const url = mockNetwork();
     const instance = new Unleash({
       appName: 'foo',
@@ -401,14 +401,15 @@ test('returns undefined for unknown feature-toggle definition', (t) =>
 
     instance.on('synchronized', () => {
       const toggle = instance.getFeatureToggleDefinition('unknown');
-      t.falsy(toggle);
+      expect(toggle).toBeFalsy();
       instance.destroy();
       resolve();
     });
-  }));
+  });
+});
 
-test('should use the injected repository', (t) =>
-  new Promise((resolve, reject) => {
+test('should use the injected repository', async () => {
+  await new Promise<void>((resolve, reject) => {
     // @ts-expect-error
     const repo = new FakeRepo();
     const url = mockNetwork();
@@ -422,15 +423,16 @@ test('should use the injected repository', (t) =>
       repository: repo,
     }).on('error', reject);
     instance.on('ready', () => {
-      t.false(instance.isEnabled('fake-feature'));
+      expect(instance.isEnabled('fake-feature')).toBe(false);
       instance.destroy();
       resolve();
     });
     repo.emit('ready');
-  }));
+  });
+});
 
-test('should add static context fields', (t) =>
-  new Promise((resolve, reject) => {
+test('should add static context fields', async () => {
+  await new Promise<void>((resolve, reject) => {
     const url = mockNetwork();
     const instance = new Unleash({
       appName: 'foo',
@@ -443,14 +445,15 @@ test('should add static context fields', (t) =>
     }).on('error', reject);
 
     instance.on('synchronized', () => {
-      t.true(instance.isEnabled('f-context') === true);
+      expect(instance.isEnabled('f-context')).toBe(true);
       instance.destroy();
       resolve();
     });
-  }));
+  });
+});
 
-test('should local context should take precedence over static context fields', (t) =>
-  new Promise((resolve, reject) => {
+test('should local context should take precedence over static context fields', async () => {
+  await new Promise<void>((resolve, reject) => {
     const url = mockNetwork();
     const instance = new Unleash({
       appName: 'foo',
@@ -463,13 +466,14 @@ test('should local context should take precedence over static context fields', (
     }).on('error', reject);
 
     instance.on('ready', () => {
-      t.true(instance.isEnabled('f-context', { environment: 'dev' }) === false);
+      expect(instance.isEnabled('f-context', { environment: 'dev' })).toBe(false);
       instance.destroy();
       resolve();
     });
-  }));
+  });
+});
 
-test('should call client/features with projectName query parameter if projectName is set', (t) => {
+test('should call client/features with projectName query parameter if projectName is set', () => {
   const baseUrl = getUrl();
   const project = 'myProject';
 
@@ -485,12 +489,12 @@ test('should call client/features with projectName query parameter if projectNam
   });
 
   // @ts-expect-error
-  t.assert(instance.repository.projectName === 'myProject');
+  expect(instance.repository.projectName).toEqual('myProject');
 
   instance.destroy();
 });
 
-test('should call client/features if no projectname set', (t) => {
+test('should call client/features if no projectname set', () => {
   const baseUrl = getUrl();
   mockNetwork([], baseUrl);
 
@@ -503,11 +507,11 @@ test('should call client/features if no projectname set', (t) => {
   });
 
   // @ts-expect-error
-  t.assert(instance.repository.projectName === undefined);
+  expect(instance.repository.projectName).toBeUndefined();
   instance.destroy();
 });
 
-test('should distribute variants according to stickiness', async (t) => {
+test('should distribute variants according to stickiness', async () => {
   const baseUrl = getUrl();
   nock(baseUrl)
     .get('/client/features')
@@ -561,7 +565,7 @@ test('should distribute variants according to stickiness', async (t) => {
 
   const genRandomValue = () => String(Math.round(Math.random() * 100000));
 
-  return new Promise((resolve) => {
+  await new Promise<void>((resolve) => {
     unleash.on('synchronized', () => {
       for (let i = 0; i < 10000; i++) {
         const variant = unleash.getVariant('toggle-with-variants', { someField: genRandomValue() });
@@ -575,17 +579,17 @@ test('should distribute variants according to stickiness', async (t) => {
       const green = Math.round((counts.green / counts.sum) * 100);
       const yellow = Math.round((counts.yellow / counts.sum) * 100);
 
-      t.true(red > 23 && red < 27, `red not within range: ${red}`);
-      t.true(blue > 23 && blue < 27, `blue not within range: ${blue}`);
-      t.true(green > 23 && green < 27, `green not within range: ${green}`);
-      t.true(yellow > 23 && yellow < 27, `yellow not within range: ${yellow}`);
+      expect(red > 23 && red < 27, `red not within range: ${red}`).toBe(true);
+      expect(blue > 23 && blue < 27, `blue not within range: ${blue}`).toBe(true);
+      expect(green > 23 && green < 27, `green not within range: ${green}`).toBe(true);
+      expect(yellow > 23 && yellow < 27, `yellow not within range: ${yellow}`).toBe(true);
       unleash.destroy();
       resolve();
     });
   });
 });
 
-test('should distribute variants according to default stickiness', async (t) => {
+test('should distribute variants according to default stickiness', async () => {
   const baseUrl = getUrl();
   nock(baseUrl)
     .get('/client/features')
@@ -635,7 +639,7 @@ test('should distribute variants according to default stickiness', async (t) => 
 
   const genRandomValue = () => String(Math.round(Math.random() * 100000));
 
-  return new Promise((resolve) => {
+  await new Promise<void>((resolve) => {
     unleash.on('synchronized', () => {
       for (let i = 0; i < 10000; i++) {
         const variant = unleash.getVariant('toggle-with-variants', { userId: genRandomValue() });
@@ -649,17 +653,17 @@ test('should distribute variants according to default stickiness', async (t) => 
       const green = Math.round((counts.green / counts.sum) * 100);
       const yellow = Math.round((counts.yellow / counts.sum) * 100);
 
-      t.true(red > 23 && red < 27, `red not within range: ${red}`);
-      t.true(blue > 23 && blue < 27, `blue not within range: ${blue}`);
-      t.true(green > 23 && green < 27, `green not within range: ${green}`);
-      t.true(yellow > 23 && yellow < 27, `yellow not within range: ${yellow}`);
+      expect(red > 23 && red < 27, `red not within range: ${red}`).toBe(true);
+      expect(blue > 23 && blue < 27, `blue not within range: ${blue}`).toBe(true);
+      expect(green > 23 && green < 27, `green not within range: ${green}`).toBe(true);
+      expect(yellow > 23 && yellow < 27, `yellow not within range: ${yellow}`).toBe(true);
       unleash.destroy();
       resolve();
     });
   });
 });
-test('should emit "synchronized" when data is received', (t) =>
-  new Promise((resolve, reject) => {
+test('should emit "synchronized" when data is received', async () => {
+  new Promise<void>((resolve, reject) => {
     const url = mockNetwork();
     const instance = new Unleash({
       appName: 'foo',
@@ -670,14 +674,15 @@ test('should emit "synchronized" when data is received', (t) =>
     }).on('error', reject);
 
     instance.on('synchronized', () => {
-      t.is(instance.isEnabled('feature'), true);
+      expect(instance.isEnabled('feature')).toEqual(true);
       instance.destroy();
       resolve();
     });
-  }));
+  });
+});
 
-test('should emit "synchronized" only first time', (t) =>
-  new Promise((resolve, reject) => {
+test('should emit "synchronized" only first time', async () => {
+  await new Promise<void>((resolve, reject) => {
     let changedCount = 0;
     let synchronizedCount = 0;
 
@@ -696,7 +701,7 @@ test('should emit "synchronized" only first time', (t) =>
     instance.on('changed', () => {
       changedCount += 1;
       if (changedCount > 2) {
-        t.is(synchronizedCount, 1);
+        expect(synchronizedCount).toEqual(1);
         instance.destroy();
         resolve();
       }
@@ -705,10 +710,11 @@ test('should emit "synchronized" only first time', (t) =>
     instance.on('synchronized', () => {
       synchronizedCount += 1;
     });
-  }));
+  });
+});
 
-test('should use provided bootstrap data', (t) =>
-  new Promise((resolve) => {
+test('should use provided bootstrap data', async () => {
+  await new Promise<void>((resolve) => {
     const url = getUrl();
     nock(url).get('/client/features').times(3).reply(500);
     const instance = new Unleash({
@@ -732,13 +738,14 @@ test('should use provided bootstrap data', (t) =>
     instance.on('error', () => {});
 
     instance.on('ready', () => {
-      t.true(instance.isEnabled('bootstrappedToggle') === true);
+      expect(instance.isEnabled('bootstrappedToggle')).toBe(true);
       instance.destroy();
       resolve();
     });
-  }));
+  });
+});
 
-test('should emit impression events for isEnabled', async (t) => {
+test('should emit impression events for isEnabled', async () => {
   const baseUrl = getUrl();
   nock(baseUrl)
     .get('/client/features')
@@ -781,13 +788,13 @@ test('should emit impression events for isEnabled', async (t) => {
 
   const context = { userId: '123', properties: { tenantId: 't12' } };
 
-  return new Promise((resolve) => {
+  await new Promise<void>((resolve) => {
     unleash.on('impression', (evt) => {
-      t.is(evt.featureName, 'toggle-impressions');
-      t.is(evt.enabled, true);
-      t.is(evt.eventType, 'isEnabled');
-      t.is(evt.context.userId, context.userId);
-      t.deepEqual(evt.context.properties, context.properties);
+      expect(evt.featureName).toEqual('toggle-impressions');
+      expect(evt.enabled).toEqual(true);
+      expect(evt.eventType).toEqual('isEnabled');
+      expect(evt.context.userId).toEqual(context.userId);
+      expect(evt.context.properties).toStrictEqual(context.properties);
       unleash.destroy();
       resolve();
     });
@@ -798,7 +805,7 @@ test('should emit impression events for isEnabled', async (t) => {
   });
 });
 
-test('should emit impression events for getVariant', async (t) => {
+test('should emit impression events for getVariant', async () => {
   const baseUrl = getUrl();
   nock(baseUrl)
     .get('/client/features')
@@ -841,14 +848,14 @@ test('should emit impression events for getVariant', async (t) => {
 
   const context = { userId: '123', properties: { tenantId: 't12' } };
 
-  return new Promise((resolve) => {
+  await new Promise<void>((resolve) => {
     unleash.on('impression', (evt) => {
-      t.is(evt.featureName, 'toggle-impressions');
-      t.is(evt.enabled, true);
-      t.is(evt.eventType, 'getVariant');
-      t.is(evt.variant, 'yellow');
-      t.is(evt.context.userId, context.userId);
-      t.deepEqual(evt.context.properties, context.properties);
+      expect(evt.featureName).toEqual('toggle-impressions');
+      expect(evt.enabled).toEqual(true);
+      expect(evt.eventType).toEqual('getVariant');
+      expect(evt.variant).toEqual('yellow');
+      expect(evt.context.userId).toEqual(context.userId);
+      expect(evt.context.properties).toStrictEqual(context.properties);
       unleash.destroy();
       resolve();
     });
@@ -859,7 +866,7 @@ test('should emit impression events for getVariant', async (t) => {
   });
 });
 
-test('should only instantiate once', (t) => {
+test('should only instantiate once', () => {
   const baseUrl = `${getUrl()}api`;
   mockNetwork([], baseUrl);
 
@@ -878,13 +885,13 @@ test('should only instantiate once', (t) => {
     url: baseUrl,
   });
 
-  t.is(i1, i2);
+  expect(i1).toEqual(i2);
 
   i1.destroy();
   i2.destroy();
 });
 
-test('should throw when getInstantiate called with different unleash-config ', (t) => {
+test('should throw when getInstantiate called with different unleash-config ', () => {
   const baseUrl = `${getUrl()}api`;
   mockNetwork([], baseUrl);
 
@@ -896,7 +903,7 @@ test('should throw when getInstantiate called with different unleash-config ', (
     url: baseUrl,
   });
 
-  t.throws(() =>
+  expect(() =>
     Unleash.getInstance({
       appName: 'get-instance-2',
       refreshInterval: 0,
@@ -904,13 +911,13 @@ test('should throw when getInstantiate called with different unleash-config ', (
       skipInstanceCountWarning: true,
       url: baseUrl,
     }),
-  );
+  ).toThrow();
 
   i1.destroy();
 });
 
-test('should allow custom repository', (t) =>
-  new Promise((resolve) => {
+test('should allow custom repository', async () => {
+  await new Promise<void>((resolve) => {
     const url = getUrl();
 
     const instance = Unleash.getInstance({
@@ -953,13 +960,14 @@ test('should allow custom repository', (t) =>
     instance.on('error', () => {});
 
     instance.on('ready', () => {
-      t.true(instance.isEnabled('test') === true);
+      expect(instance.isEnabled('test')).toBe(true);
       instance.destroy();
       resolve();
     });
-  }));
+  });
+});
 
-const metricsCapturingUnleash = (input: any) => {
+const metricsCapturingUnleash = (input: unknown) => {
   const url = getUrl();
   const repository = new FakeRepo(input);
   const instance = new Unleash({
@@ -981,7 +989,7 @@ const metricsCapturingUnleash = (input: any) => {
   return { instance, capturedData };
 };
 
-test('should report variant metrics', async (t) => {
+test('should report variant metrics', async () => {
   const { instance, capturedData } = metricsCapturingUnleash({
     name: 'toggle-with-variants',
     enabled: true,
@@ -992,7 +1000,7 @@ test('should report variant metrics', async (t) => {
   instance.getVariant('toggle-with-variants');
 
   await instance.destroyWithFlush();
-  t.deepEqual(capturedData[0].bucket.toggles, {
+  expect(capturedData[0].bucket.toggles).toStrictEqual({
     'toggle-with-variants': {
       yes: 1,
       no: 0,
@@ -1001,7 +1009,7 @@ test('should report variant metrics', async (t) => {
   });
 });
 
-test('should report disabled variant metrics', async (t) => {
+test('should report disabled variant metrics', async () => {
   const { instance, capturedData } = metricsCapturingUnleash({
     name: 'toggle-without-variants',
     enabled: true,
@@ -1012,7 +1020,7 @@ test('should report disabled variant metrics', async (t) => {
   instance.getVariant('toggle-without-variants');
 
   await instance.destroyWithFlush();
-  t.deepEqual(capturedData[0].bucket.toggles, {
+  expect(capturedData[0].bucket.toggles).toStrictEqual({
     'toggle-without-variants': {
       yes: 1,
       no: 0,
@@ -1021,7 +1029,7 @@ test('should report disabled variant metrics', async (t) => {
   });
 });
 
-test('should report disabled toggle metrics', async (t) => {
+test('should report disabled toggle metrics', async () => {
   const { instance, capturedData } = metricsCapturingUnleash({
     name: 'disabled-toggle',
     enabled: false,
@@ -1032,7 +1040,7 @@ test('should report disabled toggle metrics', async (t) => {
   instance.getVariant('disabled-toggle');
 
   await instance.destroyWithFlush();
-  t.deepEqual(capturedData[0].bucket.toggles, {
+  expect(capturedData[0].bucket.toggles).toStrictEqual({
     'disabled-toggle': {
       yes: 0,
       no: 1,
@@ -1041,7 +1049,7 @@ test('should report disabled toggle metrics', async (t) => {
   });
 });
 
-test('should not report dependent feature metrics', async (t) => {
+test('should not report dependent feature metrics', async () => {
   const { instance, capturedData } = metricsCapturingUnleash({
     name: 'toggle-with-dependency',
     enabled: true,
@@ -1055,7 +1063,7 @@ test('should not report dependent feature metrics', async (t) => {
   instance.isEnabled('dependency');
 
   await instance.destroyWithFlush();
-  t.deepEqual(capturedData[0].bucket.toggles, {
+  expect(capturedData[0].bucket.toggles).toStrictEqual({
     'toggle-with-dependency': {
       yes: 0,
       no: 2, // one enabled and one variant check
@@ -1069,7 +1077,7 @@ test('should not report dependent feature metrics', async (t) => {
   });
 });
 
-test('should not allow to start twice', async (t) => {
+test('should not allow to start twice', async () => {
   const url = mockNetwork();
   let repositoryStartedCount = 0;
   const mockRepository = {
@@ -1090,5 +1098,5 @@ test('should not allow to start twice', async (t) => {
   await instance.start();
   await instance.start();
 
-  t.is(repositoryStartedCount, 1);
+  expect(repositoryStartedCount).toEqual(1);
 });

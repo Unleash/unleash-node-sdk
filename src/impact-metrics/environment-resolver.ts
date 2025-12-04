@@ -1,4 +1,4 @@
-import { CustomHeaders } from '../headers';
+import type { CustomHeaders } from '../headers';
 
 const findAuthorizationHeaderKey = (customHeaders: CustomHeaders): string | undefined => {
   const headerKeys = Object.keys(customHeaders);
