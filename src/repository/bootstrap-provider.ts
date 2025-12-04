@@ -46,7 +46,7 @@ export class DefaultBootstrapProvider implements BootstrapProvider {
 
   private async loadFromUrl(bootstrapUrl: string): Promise<ClientFeaturesResponse | undefined> {
     const ky = await getKyClient();
-    const response = await ky.get(bootstrapUrl, {
+    const requestOptions = {
       timeout: 10_000,
       headers: buildHeaders({
         appName: this.appName,
@@ -56,7 +56,8 @@ export class DefaultBootstrapProvider implements BootstrapProvider {
         custom: this.urlHeaders,
       }),
       agent: getDefaultAgent,
-    } as any);
+    } as const;
+    const response = await ky.get(bootstrapUrl, requestOptions);
     if (response.ok) {
       return response.json();
     }

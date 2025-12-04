@@ -1021,11 +1021,9 @@ test('bootstrap should not override load backup-file', async () => {
   expect(repo.getToggle('feature-backup')?.enabled).toEqual(true);
 });
 
-// Skipped because make-fetch-happens actually automatically retries two extra times on 404
-// with a timeout of 1000, this makes us have to wait up to 3 seconds for a single test to succeed
-test.skip('Failing two times and then succeed should decrease interval to 2 times initial interval (404)', async () => {
+test('Failing twice then succeeding should shrink interval to 2x initial (404)', async (_t) => {
   const url = 'http://unleash-test-fail5times.app';
-  nock(url).persist().get('/client/features').reply(404);
+  nock(url).get('/client/features').times(2).reply(404);
   const repo = new Repository({
     url,
     appName,
@@ -1042,9 +1040,7 @@ test.skip('Failing two times and then succeed should decrease interval to 2 time
   await repo.fetch();
   expect(2).toEqual(repo.getFailures());
   expect(30).toEqual(repo.nextFetch());
-  nock.cleanAll();
   nock(url)
-    .persist()
     .get('/client/features')
     .reply(200, {
       version: 2,
@@ -1067,11 +1063,12 @@ test.skip('Failing two times and then succeed should decrease interval to 2 time
   await repo.fetch();
   expect(1).toEqual(repo.getFailures());
   expect(20).toEqual(repo.nextFetch());
+  repo.stop();
 });
 
-// Skipped because make-fetch-happens actually automatically retries two extra times on 429
-// with a timeout of 1000, this makes us have to wait up to 3 seconds for a single test to succeed
-test.skip('Failing two times should increase interval to 3 times initial interval (initial interval + 2 * interval)', async () => {
+// Skipped because the HTTP client automatically retries 429 responses,
+// which makes the test very slow.
+test.skip('Failing twice should increase interval to initial + 2x interval (429)', async (_t) => {
   const url = 'http://unleash-test-fail5times.app';
   nock(url).persist().get('/client/features').reply(429);
   const repo = new Repository({
@@ -1090,11 +1087,12 @@ test.skip('Failing two times should increase interval to 3 times initial interva
   await repo.fetch();
   expect(2).toEqual(repo.getFailures());
   expect(30).toEqual(repo.nextFetch());
+  repo.stop();
 });
 
-// Skipped because make-fetch-happens actually automatically retries two extra times on 429
-// with a timeout of 1000, this makes us have to wait up to 3 seconds for a single test to succeed
-test.skip('Failing two times and then succeed should decrease interval to 2 times initial interval (429)', async () => {
+// Skipped because the HTTP client automatically retries 429 responses,
+// which makes the test very slow.
+test.skip('Failing twice then succeeding should shrink interval to 2x initial (429)', async (_t) => {
   const url = 'http://unleash-test-fail5times.app';
   nock(url).persist().get('/client/features').reply(429);
   const repo = new Repository({
@@ -1650,6 +1648,7 @@ test('Polling delta', async () => {
 
   const noSegment = repo.getSegment(1);
   expect(noSegment).toStrictEqual(undefined);
+  repo.stop();
 });
 
 test('Switch from polling to streaming mode via HTTP header', async () => {

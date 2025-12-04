@@ -177,7 +177,7 @@ export const post = async ({
   } as const;
 
   return withRejectUnauthorized(httpOptions?.rejectUnauthorized, () =>
-    ky.post(url, requestOptions as any).catch((err: any) => {
+    ky.post(url, requestOptions).catch((err: any) => {
       if (err?.response) {
         return err.response;
       }
