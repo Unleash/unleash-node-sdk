@@ -1,16 +1,15 @@
-import http from 'node:http';
-import https from 'node:https';
+import { Agent as UndiciAgent } from 'undici';
 import { expect, test } from 'vitest';
 import { buildHeaders, getDefaultAgent } from '../request';
 
-test('http URLs should yield http.Agent', () => {
+test('http URLs should yield undici Agent', () => {
   const agent = getDefaultAgent(new URL('http://unleash-host1.com'));
-  expect(agent).toBeInstanceOf(http.Agent);
+  expect(agent).toBeInstanceOf(UndiciAgent);
 });
 
-test('https URLs should yield https.Agent', () => {
+test('https URLs should yield undici Agent', () => {
   const agent = getDefaultAgent(new URL('https://unleash.hosted.com'));
-  expect(agent).toBeInstanceOf(https.Agent);
+  expect(agent).toBeInstanceOf(UndiciAgent);
 });
 
 test('Correct headers should be included', () => {
