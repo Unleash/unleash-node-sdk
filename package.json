@@ -40,7 +40,7 @@
     "semver": "^7.7.3"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=18"
   },
   "files": [
     "lib",
