@@ -1033,7 +1033,7 @@ test('bootstrap should not override load backup-file', async () => {
   expect(repo.getToggle('feature-backup')?.enabled).toEqual(true);
 });
 
-test('Failing twice then succeeding should shrink interval to 2x initial (404)', async (_t) => {
+test('Failing twice then succeeding should shrink interval to 2x initial (404)', async () => {
   const url = 'http://unleash-test-fail5times.app';
   nock(url).get('/client/features').times(2).reply(404);
   const repo = new Repository({
@@ -1078,9 +1078,7 @@ test('Failing twice then succeeding should shrink interval to 2x initial (404)',
   repo.stop();
 });
 
-// Skipped because the HTTP client automatically retries 429 responses,
-// which makes the test very slow.
-test.skip('Failing twice should increase interval to initial + 2x interval (429)', async (_t) => {
+test('Failing two times should increase interval to 3 times initial interval (initial interval + 2 * interval)', async () => {
   const url = 'http://unleash-test-fail5times.app';
   nock(url).persist().get('/client/features').reply(429);
   const repo = new Repository({
@@ -1089,6 +1087,7 @@ test.skip('Failing twice should increase interval to initial + 2x interval (429)
     instanceId,
     connectionId,
     refreshInterval: 10,
+    httpOptions: { maxRetries: 0 },
     bootstrapProvider,
     storageProvider: new InMemStorageProvider(),
     mode: { type: 'polling', format: 'full' },
@@ -1102,9 +1101,7 @@ test.skip('Failing twice should increase interval to initial + 2x interval (429)
   repo.stop();
 });
 
-// Skipped because the HTTP client automatically retries 429 responses,
-// which makes the test very slow.
-test.skip('Failing twice then succeeding should shrink interval to 2x initial (429)', async (_t) => {
+test('Failing two times and then succeed should decrease interval to 2 times initial interval (429)', async () => {
   const url = 'http://unleash-test-fail5times.app';
   nock(url).persist().get('/client/features').reply(429);
   const repo = new Repository({
@@ -1114,6 +1111,7 @@ test.skip('Failing twice then succeeding should shrink interval to 2x initial (4
     connectionId,
     refreshInterval: 10,
     bootstrapProvider,
+    httpOptions: { maxRetries: 0 },
     storageProvider: new InMemStorageProvider(),
     mode: { type: 'polling', format: 'full' },
   });

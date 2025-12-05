@@ -43,19 +43,17 @@ const createFetchWithDispatcher =
     });
   };
 
-interface KyClientOptions {
-  timeout?: number;
-  httpOptions?: HttpOptions;
-}
-
-const getKyClient = async ({ timeout, httpOptions }: KyClientOptions = {}) =>
-  ky.create({
+const getKyClient = async ({ timeout, httpOptions }: HttpClientConfig) => {
+  const retryOverrides: Partial<RetryOptions> = {
+    limit: httpOptions?.maxRetries,
+  };
+  return ky.create({
     throwHttpErrors: true,
-    retry: defaultRetry,
+    retry: { ...defaultRetry, ...retryOverrides },
     timeout: timeout ?? 10_000,
     fetch: createFetchWithDispatcher(httpOptions),
   });
-
+};
 export interface SDKData {
   appName: string;
   instanceId: string;
@@ -162,7 +160,7 @@ export const createHttpClient = async ({
   timeout,
   httpOptions,
 }: HttpClientConfig): Promise<HttpClient> => {
-  const ky = await getKyClient({ timeout, httpOptions });
+  const ky = await getKyClient({ appName, instanceId, connectionId, timeout, httpOptions });
 
   return {
     post: ({ url, interval, headers, json }: PostRequestOptions) => {

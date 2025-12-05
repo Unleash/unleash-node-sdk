@@ -33,5 +33,6 @@ test('Includes client spec header when version is available', () => {
     interval: 10000,
   });
 
+  expect(headers['Unleash-Client-Spec']).toBeDefined();
   expect(headers['Unleash-Client-Spec']).toEqual(supportedClientSpecVersion);
 });
