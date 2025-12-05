@@ -1,4 +1,5 @@
 import type { Options as KyOptions } from 'ky';
+import ky from 'ky';
 import type { Dispatcher } from 'undici';
 
 type KyRetryOptions = NonNullable<KyOptions['retry']>;
@@ -9,8 +10,10 @@ export const defaultRetry: KyRetryOptions = {
 };
 
 const createKyClient = async () => {
-  const { default: ky } = await import('ky');
-  const fetchWithDispatcher: typeof fetch = (input, init) => {
+  const fetchWithDispatcher: typeof fetch = (
+    input: string | URL | globalThis.Request,
+    init?: RequestInit,
+  ) => {
     const { agent, ...rest } = (init ?? {}) as { agent?: Dispatcher | ((url: URL) => unknown) };
 
     const resolveDispatcher = (): Dispatcher | undefined => {
@@ -18,15 +21,19 @@ const createKyClient = async () => {
       if (typeof agent === 'function') {
         const url =
           typeof input === 'string' || input instanceof URL ? new URL(input) : new URL(input.url);
-        return agent(url) as unknown as Dispatcher;
+        return agent(url) as Dispatcher;
       }
       return agent as Dispatcher;
     };
 
     const dispatcher = resolveDispatcher();
     return dispatcher
-      ? fetch(input, { ...(rest as RequestInit), dispatcher } as any)
-      : fetch(input, rest as RequestInit);
+      ? fetch(input, {
+          ...rest,
+          // @ts-expect-error - dispatcher is not in the type definition, but it's passed through to fetch.
+          dispatcher,
+        })
+      : fetch(input, rest);
   };
   return ky.create({
     throwHttpErrors: true,

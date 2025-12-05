@@ -2,7 +2,7 @@ import { promises } from 'node:fs';
 import type { ClientFeaturesResponse, FeatureInterface } from '../feature';
 import type { CustomHeaders } from '../headers';
 import { getKyClient } from '../http-client';
-import { buildHeaders, getDefaultAgent } from '../request';
+import { buildHeaders, getDefaultAgent, toResponse } from '../request';
 import type { Segment } from '../strategy/strategy';
 
 export interface BootstrapProvider {
@@ -29,11 +29,12 @@ export class DefaultBootstrapProvider implements BootstrapProvider {
 
   private segments?: Segment[];
 
-  private appName: string;
-
-  private instanceId: string;
-
-  constructor(options: BootstrapOptions, appName: string, instanceId: string) {
+  constructor(
+    options: BootstrapOptions,
+    readonly appName: string,
+    readonly instanceId: string,
+    readonly connectionId: string,
+  ) {
     this.url = options.url;
     this.urlHeaders = options.urlHeaders;
     this.filePath = options.filePath;
@@ -51,21 +52,14 @@ export class DefaultBootstrapProvider implements BootstrapProvider {
       headers: buildHeaders({
         appName: this.appName,
         instanceId: this.instanceId,
+        connectionId: this.connectionId,
         etag: undefined,
         contentType: undefined,
         custom: this.urlHeaders,
       }),
       agent: getDefaultAgent,
     } as const;
-    const response = await ky.get(bootstrapUrl, requestOptions).catch((err: unknown) => {
-      if (err && typeof err === 'object' && 'response' in err) {
-        const resp = (err as { response?: Response }).response;
-        if (resp) {
-          return resp;
-        }
-      }
-      throw err;
-    });
+    const response = await toResponse(ky.get(bootstrapUrl, requestOptions));
     if (response.ok) {
       return response.json();
     }
@@ -96,6 +90,10 @@ export function resolveBootstrapProvider(
   options: BootstrapOptions,
   appName: string,
   instanceId: string,
+  connectionId: string,
 ): BootstrapProvider {
-  return options.bootstrapProvider || new DefaultBootstrapProvider(options, appName, instanceId);
+  return (
+    options.bootstrapProvider ||
+    new DefaultBootstrapProvider(options, appName, instanceId, connectionId)
+  );
 }

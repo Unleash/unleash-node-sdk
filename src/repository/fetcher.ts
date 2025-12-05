@@ -2,6 +2,7 @@ import type { EventEmitter } from 'node:events';
 import type { ApiResponse } from '../feature';
 import type { CustomHeaders, CustomHeadersFunction } from '../headers';
 import type { HttpOptions } from '../http-options';
+import type { RequestOptions } from '../request';
 import type { TagFilter } from '../tags';
 import type { Mode } from '../unleash-config';
 
@@ -12,12 +13,8 @@ export interface FetcherInterface extends EventEmitter {
 
 export interface FetchingOptions extends PollingFetchingOptions, StreamingFetchingOptions {}
 
-export interface CommonFetchingOptions {
-  url: string;
-  appName: string;
-  instanceId: string;
+export interface CommonFetchingOptions extends RequestOptions {
   headers?: CustomHeaders;
-  connectionId: string;
   onSave: (response: ApiResponse, fromApi: boolean) => Promise<void>;
   onModeChange?: (mode: Mode['type']) => Promise<void>;
 }

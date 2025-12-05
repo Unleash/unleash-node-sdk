@@ -18,7 +18,7 @@ export class StreamingFetcher extends EventEmitter implements FetcherInterface {
 
   private readonly headers?: Record<string, string>;
 
-  private readonly connectionId?: string;
+  private readonly connectionId: string;
 
   private readonly onSave: StreamingFetchingOptions['onSave'];
 

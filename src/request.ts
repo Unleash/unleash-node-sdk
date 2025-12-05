@@ -6,20 +6,32 @@ import type { CustomHeaders } from './headers';
 import { defaultRetry, getKyClient } from './http-client';
 import type { HttpOptions } from './http-options';
 
-export interface RequestOptions {
+interface SDKData {
+  appName: string;
+  instanceId: string;
+}
+
+interface HeaderOptions extends SDKData {
+  etag?: string;
+  contentType?: string;
+  connectionId: string;
+  custom?: CustomHeaders;
+  interval?: number;
+  specVersionSupported?: string;
+}
+
+export interface RequestOptions extends SDKData {
   url: string;
+  connectionId: string;
   timeout?: number;
+  interval?: number;
   headers?: CustomHeaders;
+  httpOptions?: HttpOptions;
 }
 
 export interface GetRequestOptions extends RequestOptions {
   etag?: string;
-  appName?: string;
-  instanceId?: string;
-  connectionId: string;
   supportedSpecVersion?: string;
-  httpOptions?: HttpOptions;
-  interval?: number;
 }
 
 export interface Data {
@@ -28,11 +40,6 @@ export interface Data {
 
 export interface PostRequestOptions extends RequestOptions {
   json: Data;
-  appName?: string;
-  instanceId?: string;
-  connectionId?: string;
-  interval?: number;
-  httpOptions?: HttpOptions;
 }
 
 export const getDefaultAgent = (url: URL, rejectUnauthorized?: boolean): Dispatcher => {
@@ -44,17 +51,6 @@ export const getDefaultAgent = (url: URL, rejectUnauthorized?: boolean): Dispatc
   }
 
   return new ProxyAgent({ uri: proxy, connect });
-};
-
-type HeaderOptions = {
-  appName?: string;
-  instanceId?: string;
-  etag?: string;
-  contentType?: string;
-  custom?: CustomHeaders;
-  specVersionSupported?: string;
-  connectionId?: string;
-  interval?: number;
 };
 
 export const buildHeaders = ({
@@ -69,11 +65,8 @@ export const buildHeaders = ({
 }: HeaderOptions): Record<string, string> => {
   const head: Record<string, string> = {};
   if (appName) {
-    // TODO: delete
-    head['User-Agent'] = appName;
     head['unleash-appname'] = appName;
   }
-
   if (instanceId) {
     head['UNLEASH-INSTANCEID'] = instanceId;
   }
@@ -109,7 +102,7 @@ const resolveAgent = (httpOptions?: HttpOptions) =>
   httpOptions?.agent ||
   ((targetUrl: URL) => getDefaultAgent(targetUrl, httpOptions?.rejectUnauthorized));
 
-const toResponse = async <T extends Response>(promise: Promise<T>): Promise<T> =>
+export const toResponse = async <T extends Response>(promise: Promise<T>): Promise<T> =>
   promise.catch((err: unknown) => {
     if (err && typeof err === 'object' && 'response' in err) {
       const response = (err as { response?: T }).response;
@@ -172,7 +165,6 @@ export const get = async ({
       instanceId,
       interval,
       etag,
-      contentType: undefined,
       custom: headers,
       specVersionSupported: supportedSpecVersion,
       connectionId,
