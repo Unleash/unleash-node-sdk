@@ -1,8 +1,7 @@
 import { promises } from 'node:fs';
 import type { ClientFeaturesResponse, FeatureInterface } from '../feature';
 import type { CustomHeaders } from '../headers';
-import { getKyClient } from '../http-client';
-import { buildHeaders, getDefaultAgent, toResponse } from '../request';
+import { createHttpClient } from '../request';
 import type { Segment } from '../strategy/strategy';
 
 export interface BootstrapProvider {
@@ -46,20 +45,13 @@ export class DefaultBootstrapProvider implements BootstrapProvider {
   }
 
   private async loadFromUrl(bootstrapUrl: string): Promise<ClientFeaturesResponse | undefined> {
-    const ky = await getKyClient();
-    const requestOptions = {
+    const httpClient = await createHttpClient({
+      appName: this.appName,
+      instanceId: this.instanceId,
+      connectionId: this.connectionId,
       timeout: 10_000,
-      headers: buildHeaders({
-        appName: this.appName,
-        instanceId: this.instanceId,
-        connectionId: this.connectionId,
-        etag: undefined,
-        contentType: undefined,
-        custom: this.urlHeaders,
-      }),
-      agent: getDefaultAgent,
-    } as const;
-    const response = await toResponse(ky.get(bootstrapUrl, requestOptions));
+    });
+    const response = await httpClient.get({ url: bootstrapUrl, headers: this.urlHeaders });
     if (response.ok) {
       return response.json();
     }

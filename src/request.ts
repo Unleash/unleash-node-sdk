@@ -1,48 +1,19 @@
-import type { URL } from 'node:url';
+import { URL } from 'node:url';
+import type { RetryOptions } from 'ky';
+import ky from 'ky';
 import { getProxyForUrl } from 'proxy-from-env';
 import { type Dispatcher, ProxyAgent, Agent as UndiciAgent } from 'undici';
+import { supportedClientSpecVersion } from './client-spec-version';
 import details from './details.json';
 import type { CustomHeaders } from './headers';
-import { defaultRetry, getKyClient } from './http-client';
 import type { HttpOptions } from './http-options';
 
-interface SDKData {
-  appName: string;
-  instanceId: string;
-}
+export const defaultRetry: RetryOptions = {
+  limit: 2,
+  statusCodes: [408, 429, 500, 502, 503, 504],
+};
 
-interface HeaderOptions extends SDKData {
-  etag?: string;
-  contentType?: string;
-  connectionId: string;
-  custom?: CustomHeaders;
-  interval?: number;
-  specVersionSupported?: string;
-}
-
-export interface RequestOptions extends SDKData {
-  url: string;
-  connectionId: string;
-  timeout?: number;
-  interval?: number;
-  headers?: CustomHeaders;
-  httpOptions?: HttpOptions;
-}
-
-export interface GetRequestOptions extends RequestOptions {
-  etag?: string;
-  supportedSpecVersion?: string;
-}
-
-export interface Data {
-  [key: string]: unknown;
-}
-
-export interface PostRequestOptions extends RequestOptions {
-  json: Data;
-}
-
-export const getDefaultAgent = (url: URL, rejectUnauthorized?: boolean): Dispatcher => {
+const getDefaultAgent = (url: URL, rejectUnauthorized?: boolean): Dispatcher => {
   const proxy = getProxyForUrl(url.href);
   const connect = rejectUnauthorized === undefined ? undefined : { rejectUnauthorized };
 
@@ -53,13 +24,77 @@ export const getDefaultAgent = (url: URL, rejectUnauthorized?: boolean): Dispatc
   return new ProxyAgent({ uri: proxy, connect });
 };
 
+const createFetchWithDispatcher =
+  (httpOptions?: HttpOptions): typeof fetch =>
+  (input: string | URL | globalThis.Request, init?: RequestInit) => {
+    const resolveDispatcher =
+      httpOptions?.agent ||
+      ((targetUrl: URL) => getDefaultAgent(targetUrl, httpOptions?.rejectUnauthorized));
+
+    const getUrl = (): URL =>
+      typeof input === 'string' || input instanceof URL ? new URL(input) : new URL(input.url);
+
+    const dispatcher = resolveDispatcher(getUrl()) as Dispatcher;
+
+    return fetch(input, {
+      ...(init ?? {}),
+      // @ts-expect-error - dispatcher is not part of RequestInit, but undici accepts it.
+      dispatcher,
+    });
+  };
+
+interface KyClientOptions {
+  timeout?: number;
+  httpOptions?: HttpOptions;
+}
+
+const getKyClient = async ({ timeout, httpOptions }: KyClientOptions = {}) =>
+  ky.create({
+    throwHttpErrors: true,
+    retry: defaultRetry,
+    timeout: timeout ?? 10_000,
+    fetch: createFetchWithDispatcher(httpOptions),
+  });
+
+export interface SDKData {
+  appName: string;
+  instanceId: string;
+  connectionId: string;
+}
+
+interface HeaderOptions extends SDKData {
+  etag?: string;
+  contentType?: string;
+  custom?: CustomHeaders;
+  interval?: number;
+}
+
+export interface RequestOptions {
+  url: string;
+  timeout?: number;
+  interval?: number;
+  headers?: CustomHeaders;
+  httpOptions?: HttpOptions;
+}
+
+export interface GetRequestOptions extends RequestOptions {
+  etag?: string;
+}
+
+export interface Data {
+  [key: string]: unknown;
+}
+
+export interface PostRequestOptions extends RequestOptions {
+  json: Data;
+}
+
 export const buildHeaders = ({
   appName,
   instanceId,
   etag,
   contentType,
   custom,
-  specVersionSupported,
   connectionId,
   interval,
 }: HeaderOptions): Record<string, string> => {
@@ -76,8 +111,9 @@ export const buildHeaders = ({
   if (contentType) {
     head['Content-Type'] = contentType;
   }
-  if (specVersionSupported) {
-    head['Unleash-Client-Spec'] = specVersionSupported;
+
+  if (supportedClientSpecVersion) {
+    head['Unleash-Client-Spec'] = supportedClientSpecVersion;
   }
 
   const version = details.version;
@@ -98,11 +134,17 @@ export const buildHeaders = ({
   return head;
 };
 
-const resolveAgent = (httpOptions?: HttpOptions) =>
-  httpOptions?.agent ||
-  ((targetUrl: URL) => getDefaultAgent(targetUrl, httpOptions?.rejectUnauthorized));
+export interface HttpClientConfig extends SDKData {
+  timeout?: number;
+  httpOptions?: HttpOptions;
+}
 
-export const toResponse = async <T extends Response>(promise: Promise<T>): Promise<T> =>
+export interface HttpClient {
+  get(options: GetRequestOptions): Promise<Response>;
+  post(options: PostRequestOptions): Promise<Response>;
+}
+
+const toResponse = async <T extends Response>(promise: Promise<T>): Promise<T> =>
   promise.catch((err: unknown) => {
     if (err && typeof err === 'object' && 'response' in err) {
       const response = (err as { response?: T }).response;
@@ -113,65 +155,47 @@ export const toResponse = async <T extends Response>(promise: Promise<T>): Promi
     throw err;
   });
 
-export const post = async ({
-  url,
+export const createHttpClient = async ({
   appName,
-  timeout,
   instanceId,
   connectionId,
-  interval,
-  headers,
-  json,
-  httpOptions,
-}: PostRequestOptions) => {
-  const ky = await getKyClient();
-  const requestOptions = {
-    timeout: timeout || 10_000,
-    headers: buildHeaders({
-      appName,
-      instanceId,
-      connectionId,
-      interval,
-      etag: undefined,
-      contentType: 'application/json',
-      custom: headers,
-    }),
-    json,
-    // ky's types are browser-centric; agent is supported by the underlying fetch in Node.
-    agent: resolveAgent(httpOptions),
-    retry: defaultRetry,
-  } as const;
-
-  return toResponse(ky.post(url, requestOptions));
-};
-
-export const get = async ({
-  url,
-  etag,
-  appName,
   timeout,
-  instanceId,
-  connectionId,
-  interval,
-  headers,
   httpOptions,
-  supportedSpecVersion,
-}: GetRequestOptions) => {
-  const ky = await getKyClient();
-  const requestOptions = {
-    timeout: timeout || 10_000,
-    headers: buildHeaders({
-      appName,
-      instanceId,
-      interval,
-      etag,
-      custom: headers,
-      specVersionSupported: supportedSpecVersion,
-      connectionId,
-    }),
-    agent: resolveAgent(httpOptions),
-    retry: defaultRetry,
-  } as const;
+}: HttpClientConfig): Promise<HttpClient> => {
+  const ky = await getKyClient({ timeout, httpOptions });
 
-  return toResponse(ky.get(url, requestOptions));
+  return {
+    post: ({ url, interval, headers, json }: PostRequestOptions) => {
+      const requestOptions = {
+        headers: buildHeaders({
+          appName,
+          instanceId,
+          connectionId,
+          interval,
+          etag: undefined,
+          contentType: 'application/json',
+          custom: headers,
+        }),
+        json,
+        retry: defaultRetry,
+      } as const;
+
+      return toResponse(ky.post(url, requestOptions));
+    },
+    get: ({ url, etag, interval, headers }: GetRequestOptions) => {
+      const requestOptions = {
+        headers: buildHeaders({
+          appName,
+          instanceId,
+          interval,
+          etag,
+          custom: headers,
+          connectionId,
+        }),
+        retry: defaultRetry,
+      } as const;
+
+      return toResponse(ky.get(url, requestOptions));
+    },
+  };
 };

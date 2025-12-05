@@ -1,7 +1,7 @@
 import { EventEmitter } from 'node:events';
 import { UnleashEvents } from '../events';
 import { parseApiResponse } from '../feature';
-import { get } from '../request';
+import { createHttpClient, type HttpClient } from '../request';
 import type { TagFilter } from '../tags';
 import getUrl from '../url-utils';
 import type { FetcherInterface, PollingFetchingOptions } from './fetcher';
@@ -17,10 +17,19 @@ export class PollingFetcher extends EventEmitter implements FetcherInterface {
 
   private options: PollingFetchingOptions;
 
+  private httpClientPromise: Promise<HttpClient>;
+
   constructor(options: PollingFetchingOptions) {
     super();
     this.options = options;
     this.etag = options.etag;
+    this.httpClientPromise = createHttpClient({
+      appName: options.appName,
+      instanceId: options.instanceId,
+      connectionId: options.connectionId,
+      timeout: options.timeout,
+      httpOptions: options.httpOptions,
+    });
   }
 
   timedFetch(interval: number) {
@@ -133,17 +142,12 @@ export class PollingFetcher extends EventEmitter implements FetcherInterface {
       const headers = this.options.customHeadersFunction
         ? await this.options.customHeadersFunction()
         : this.options.headers;
-      const res = await get({
+      const httpClient = await this.httpClientPromise;
+      const res = await httpClient.get({
         url,
         etag: this.etag,
-        appName: this.options.appName,
-        timeout: this.options.timeout,
-        instanceId: this.options.instanceId,
-        connectionId: this.options.connectionId,
         interval: this.options.refreshInterval,
         headers,
-        httpOptions: this.options.httpOptions,
-        supportedSpecVersion: '5.2.0',
       });
       if (res.status === 304) {
         this.emit(UnleashEvents.Unchanged);

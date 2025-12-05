@@ -1,16 +1,6 @@
-import { Agent as UndiciAgent } from 'undici';
 import { expect, test } from 'vitest';
-import { buildHeaders, getDefaultAgent } from '../request';
-
-test('http URLs should yield undici Agent', () => {
-  const agent = getDefaultAgent(new URL('http://unleash-host1.com'));
-  expect(agent).toBeInstanceOf(UndiciAgent);
-});
-
-test('https URLs should yield undici Agent', () => {
-  const agent = getDefaultAgent(new URL('https://unleash.hosted.com'));
-  expect(agent).toBeInstanceOf(UndiciAgent);
-});
+import { supportedClientSpecVersion } from '../client-spec-version';
+import { buildHeaders } from '../request';
 
 test('Correct headers should be included', () => {
   const headers = buildHeaders({
@@ -30,4 +20,18 @@ test('Correct headers should be included', () => {
   expect(headers['unleash-interval']).toEqual('10000');
   expect(headers['unleash-appname']).toEqual('myApp');
   expect(headers['unleash-sdk']).toMatch(/^unleash-node-sdk:\d+\.\d+\.\d+/);
+});
+
+test('Includes client spec header when version is available', () => {
+  const headers = buildHeaders({
+    appName: 'myApp',
+    instanceId: 'instanceId',
+    etag: undefined,
+    contentType: undefined,
+    custom: undefined,
+    connectionId: 'connectionId',
+    interval: 10000,
+  });
+
+  expect(headers['Unleash-Client-Spec']).toEqual(supportedClientSpecVersion);
 });
