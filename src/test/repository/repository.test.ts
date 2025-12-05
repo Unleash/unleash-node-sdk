@@ -1080,7 +1080,7 @@ test('Failing twice then succeeding should shrink interval to 2x initial (404)',
 
 test('Failing two times should increase interval to 3 times initial interval (initial interval + 2 * interval)', async () => {
   const url = 'http://unleash-test-fail5times.app';
-  nock(url).persist().get('/client/features').reply(429);
+  nock(url).get('/client/features').times(2).reply(429);
   const repo = new Repository({
     url,
     appName,
@@ -1103,7 +1103,7 @@ test('Failing two times should increase interval to 3 times initial interval (in
 
 test('Failing two times and then succeed should decrease interval to 2 times initial interval (429)', async () => {
   const url = 'http://unleash-test-fail5times.app';
-  nock(url).persist().get('/client/features').reply(429);
+  nock(url).get('/client/features').times(2).reply(429);
   const repo = new Repository({
     url,
     appName,
@@ -1121,9 +1121,7 @@ test('Failing two times and then succeed should decrease interval to 2 times ini
   await repo.fetch();
   expect(2).toEqual(repo.getFailures());
   expect(30).toEqual(repo.nextFetch());
-  nock.cleanAll();
   nock(url)
-    .persist()
     .get('/client/features')
     .reply(200, {
       version: 2,

@@ -34,7 +34,7 @@ const createFetchWithDispatcher =
     const getUrl = (): URL =>
       typeof input === 'string' || input instanceof URL ? new URL(input) : new URL(input.url);
 
-    const dispatcher = resolveDispatcher(getUrl()) as Dispatcher;
+    const dispatcher = resolveDispatcher(getUrl());
 
     return fetch(input, {
       ...(init ?? {}),
@@ -44,9 +44,8 @@ const createFetchWithDispatcher =
   };
 
 const getKyClient = async ({ timeout, httpOptions }: HttpClientConfig) => {
-  const retryOverrides: Partial<RetryOptions> = {
-    limit: httpOptions?.maxRetries,
-  };
+  const retryOverrides =
+    httpOptions?.maxRetries !== undefined ? { limit: httpOptions.maxRetries } : {};
   return ky.create({
     throwHttpErrors: true,
     retry: { ...defaultRetry, ...retryOverrides },
@@ -175,7 +174,6 @@ export const createHttpClient = async ({
           headers,
         }),
         json,
-        retry: defaultRetry,
       } as const;
 
       return toResponse(ky.post(url, requestOptions));
@@ -190,7 +188,6 @@ export const createHttpClient = async ({
           headers,
           connectionId,
         }),
-        retry: defaultRetry,
       } as const;
 
       return toResponse(ky.get(url, requestOptions));
