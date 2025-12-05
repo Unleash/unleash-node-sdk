@@ -28,7 +28,7 @@ const createFetchWithDispatcher =
   (httpOptions?: HttpOptions): typeof fetch =>
   (input: string | URL | globalThis.Request, init?: RequestInit) => {
     const resolveDispatcher =
-      httpOptions?.agent ||
+      httpOptions?.dispatcher ||
       ((targetUrl: URL) => getDefaultAgent(targetUrl, httpOptions?.rejectUnauthorized));
 
     const getUrl = (): URL =>
@@ -67,7 +67,7 @@ interface HeaderOptions extends SDKData {
   interval?: number;
 }
 
-export interface RequestOptions {
+interface RequestOptions {
   url: string;
   timeout?: number;
   interval?: number;

@@ -1,8 +1,8 @@
-import type { Agent } from 'node:http';
 import type { URL } from 'node:url';
+import type { Dispatcher } from 'undici';
 
 export interface HttpOptions {
-  agent?: (url: URL) => Agent;
+  dispatcher?: (url: URL) => Dispatcher; // this is a breaking change from 'agent'. Ref: https://github.com/Unleash/unleash-node-sdk/pull/332
   rejectUnauthorized?: boolean;
   maxRetries?: number;
 }
