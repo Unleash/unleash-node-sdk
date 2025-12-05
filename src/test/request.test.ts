@@ -10,7 +10,7 @@ test('Correct headers should be included', () => {
     contentType: undefined,
     connectionId: 'connectionId',
     interval: 10000,
-    custom: {
+    headers: {
       hello: 'world',
     },
   });
@@ -28,7 +28,7 @@ test('Includes client spec header when version is available', () => {
     instanceId: 'instanceId',
     etag: undefined,
     contentType: undefined,
-    custom: undefined,
+    headers: undefined,
     connectionId: 'connectionId',
     interval: 10000,
   });

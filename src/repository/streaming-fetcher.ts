@@ -178,7 +178,7 @@ export class StreamingFetcher extends EventEmitter implements FetcherInterface {
         instanceId: this.instanceId,
         etag: undefined,
         contentType: undefined,
-        custom: this.headers,
+        headers: this.headers,
         connectionId: this.connectionId,
       }),
       readTimeoutMillis: 60000,

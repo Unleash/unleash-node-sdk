@@ -65,7 +65,7 @@ export interface SDKData {
 interface HeaderOptions extends SDKData {
   etag?: string;
   contentType?: string;
-  custom?: CustomHeaders;
+  headers?: CustomHeaders;
   interval?: number;
 }
 
@@ -94,7 +94,7 @@ export const buildHeaders = ({
   instanceId,
   etag,
   contentType,
-  custom,
+  headers,
   connectionId,
   interval,
 }: HeaderOptions): Record<string, string> => {
@@ -119,8 +119,8 @@ export const buildHeaders = ({
   const version = details.version;
   head['unleash-sdk'] = `unleash-node-sdk:${version}`;
 
-  if (custom) {
-    Object.assign(head, custom);
+  if (headers) {
+    Object.assign(head, headers);
   }
   // unleash-connection-id and unleash-sdk should not be overwritten
   if (connectionId) {
@@ -174,7 +174,7 @@ export const createHttpClient = async ({
           interval,
           etag: undefined,
           contentType: 'application/json',
-          custom: headers,
+          headers,
         }),
         json,
         retry: defaultRetry,
@@ -189,7 +189,7 @@ export const createHttpClient = async ({
           instanceId,
           interval,
           etag,
-          custom: headers,
+          headers,
           connectionId,
         }),
         retry: defaultRetry,
