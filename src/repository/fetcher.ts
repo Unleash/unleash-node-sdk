@@ -1,7 +1,7 @@
 import type { EventEmitter } from 'node:events';
 import type { ApiResponse } from '../feature';
-import type { CustomHeaders, CustomHeadersFunction } from '../headers';
-import type { HttpOptions } from '../http-options';
+import type { CustomHeadersFunction } from '../headers';
+import type { GetRequestOptions, SDKData } from '../request';
 import type { TagFilter } from '../tags';
 import type { Mode } from '../unleash-config';
 
@@ -12,12 +12,7 @@ export interface FetcherInterface extends EventEmitter {
 
 export interface FetchingOptions extends PollingFetchingOptions, StreamingFetchingOptions {}
 
-export interface CommonFetchingOptions {
-  url: string;
-  appName: string;
-  instanceId: string;
-  headers?: CustomHeaders;
-  connectionId: string;
+export interface CommonFetchingOptions extends GetRequestOptions, SDKData {
   onSave: (response: ApiResponse, fromApi: boolean) => Promise<void>;
   onModeChange?: (mode: Mode['type']) => Promise<void>;
 }
@@ -29,9 +24,6 @@ export interface PollingFetchingOptions extends CommonFetchingOptions {
   mode: Mode;
   namePrefix?: string;
   projectName?: string;
-  etag?: string;
-  timeout?: number;
-  httpOptions?: HttpOptions;
 }
 
 export interface StreamingFetchingOptions extends CommonFetchingOptions {

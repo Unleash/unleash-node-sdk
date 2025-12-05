@@ -1,17 +1,6 @@
-import http from 'node:http';
-import https from 'node:https';
 import { expect, test } from 'vitest';
-import { buildHeaders, getDefaultAgent } from '../request';
-
-test('http URLs should yield http.Agent', () => {
-  const agent = getDefaultAgent(new URL('http://unleash-host1.com'));
-  expect(agent).toBeInstanceOf(http.Agent);
-});
-
-test('https URLs should yield https.Agent', () => {
-  const agent = getDefaultAgent(new URL('https://unleash.hosted.com'));
-  expect(agent).toBeInstanceOf(https.Agent);
-});
+import { supportedClientSpecVersion } from '../client-spec-version';
+import { buildHeaders } from '../request';
 
 test('Correct headers should be included', () => {
   const headers = buildHeaders({
@@ -21,7 +10,7 @@ test('Correct headers should be included', () => {
     contentType: undefined,
     connectionId: 'connectionId',
     interval: 10000,
-    custom: {
+    headers: {
       hello: 'world',
     },
   });
@@ -31,4 +20,19 @@ test('Correct headers should be included', () => {
   expect(headers['unleash-interval']).toEqual('10000');
   expect(headers['unleash-appname']).toEqual('myApp');
   expect(headers['unleash-sdk']).toMatch(/^unleash-node-sdk:\d+\.\d+\.\d+/);
+});
+
+test('Includes client spec header when version is available', () => {
+  const headers = buildHeaders({
+    appName: 'myApp',
+    instanceId: 'instanceId',
+    etag: undefined,
+    contentType: undefined,
+    headers: undefined,
+    connectionId: 'connectionId',
+    interval: 10000,
+  });
+
+  expect(headers['Unleash-Client-Spec']).toBeDefined();
+  expect(headers['Unleash-Client-Spec']).toEqual(supportedClientSpecVersion);
 });
