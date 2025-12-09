@@ -1,6 +1,6 @@
 import { URL } from 'node:url';
+import type kyFactory from 'ky';
 import type { RetryOptions } from 'ky';
-import ky from 'ky';
 import { getProxyForUrl } from 'proxy-from-env';
 import { type Dispatcher, ProxyAgent, Agent as UndiciAgent } from 'undici';
 import { supportedClientSpecVersion } from './client-spec-version';
@@ -11,6 +11,17 @@ import type { HttpOptions } from './http-options';
 export const defaultRetry: RetryOptions = {
   limit: 2,
   statusCodes: [408, 429, 500, 502, 503, 504],
+};
+
+type KyInstance = typeof kyFactory;
+let kyPromise: Promise<KyInstance> | undefined;
+
+// Lazy-load ky to keep CommonJS compatibility while using the ESM-only package.
+const loadKy = async (): Promise<KyInstance> => {
+  if (!kyPromise) {
+    kyPromise = import('ky').then((module) => (module.default ?? module) as KyInstance);
+  }
+  return kyPromise;
 };
 
 const getDefaultAgent = (url: URL, rejectUnauthorized?: boolean): Dispatcher => {
@@ -44,6 +55,7 @@ const createFetchWithDispatcher =
   };
 
 const getKyClient = async ({ timeout, httpOptions }: HttpClientConfig) => {
+  const ky = await loadKy();
   const retryOverrides =
     httpOptions?.maxRetries !== undefined ? { limit: httpOptions.maxRetries } : {};
   return ky.create({
