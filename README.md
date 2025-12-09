@@ -350,6 +350,63 @@ unleash.once('changed', () => {
 unleash.on('count', (name, enabled) => console.log(`isEnabled(${name})`));
 ```
 
+## Impact metrics
+
+Impact metrics are lightweight, application-level time-series metrics stored and visualized directly inside Unleash. They allow you to connect specific application data, such as request counts, error rates, or memory usage, to your feature flags and release plans.
+
+Use impact metrics to validate feature impact and automate your release process. For example, you can monitor usage patterns or performance to see if a feature is meeting its goals. By combining impact metrics with release templates, you can reduce manual release operations and automate milestone progression based on metric thresholds.
+
+The SDK automatically attaches the following context labels to your metrics: `appName`, `environment`, and `origin` (for example, `origin=sdk` or `origin=Edge`).
+
+### Counters
+
+Use counters for cumulative values that only increase, such as the total number of requests or errors.
+
+```js
+const unleash = initialize({
+  url: 'https://YOUR-API-URL',
+  appName: 'my-node-name',
+  customHeaders: { Authorization: '<YOUR_API_TOKEN>' },
+});
+
+unleash.impactMetrics.defineCounter(
+  'request_count',
+  'Total number of HTTP requests processed'
+);
+
+unleash.impactMetrics.incrementCounter('request_count');
+```
+
+### Gauges
+
+Use gauges for values that can go up and down, such as current memory usage or active thread count.
+
+```js
+unleash.impactMetrics.defineGauge(
+  'heap_memory_total',
+  'Current heap memory usage in bytes'
+);
+
+const currentHeap = process.memoryUsage().heapUsed;
+unleash.impactMetrics.updateGauge('heap_memory_total', currentHeap);
+```
+
+### Histograms
+
+Use histograms to measure the distribution of values, such as request duration or response size. Unleash automatically calculates percentiles (p50, p95, p99).
+
+```js
+unleash.impactMetrics.defineHistogram(
+  'request_time_ms',
+  'Time taken to process a request in milliseconds'
+);
+
+const duration = 125;
+unleash.impactMetrics.observeHistogram('request_time_ms', duration);
+```
+
+Impact metrics are batched and sent on the same interval as regular SDK metrics. They are ingested via the regular metrics endpoint.
+
 ## Bootstrap
 
 > Available from v3.11.x
