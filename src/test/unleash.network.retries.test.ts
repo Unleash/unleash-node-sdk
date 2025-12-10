@@ -31,7 +31,7 @@ test('should retry on error', async () => {
       unleash.on('error', () => {
         if (finished || calls < expectedCalls) return;
         finished = true;
-        expect(calls).toBeGreaterThanOrEqual(expectedCalls);
+        expect(calls).toEqual(expectedCalls);
         unleash.destroy();
         server.close();
         resolve();
