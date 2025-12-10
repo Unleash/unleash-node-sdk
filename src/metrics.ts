@@ -6,7 +6,7 @@ import { getAppliedJitter } from './helpers';
 import type { HttpOptions } from './http-options';
 import type { CollectedMetric, ImpactMetricsDataSource } from './impact-metrics/metric-types';
 import { SUPPORTED_SPEC_VERSION } from './repository';
-import { post } from './request';
+import { createHttpClient, type HttpClient } from './request';
 import { resolveUrl, suffixSlash } from './url-utils';
 
 export interface MetricsOptions {
@@ -109,13 +109,11 @@ export default class Metrics extends EventEmitter {
 
   private customHeadersFunction?: CustomHeadersFunction;
 
-  private timeout?: number;
-
-  private httpOptions?: HttpOptions;
-
   private platformData: PlatformData;
 
   private metricRegistry?: ImpactMetricsDataSource;
+
+  private httpClientPromise: Promise<HttpClient>;
 
   constructor({
     appName,
@@ -145,11 +143,16 @@ export default class Metrics extends EventEmitter {
     this.headers = headers;
     this.customHeadersFunction = customHeadersFunction;
     this.started = new Date();
-    this.timeout = timeout;
     this.bucket = this.createBucket();
-    this.httpOptions = httpOptions;
     this.platformData = this.getPlatformData();
     this.metricRegistry = metricRegistry;
+    this.httpClientPromise = createHttpClient({
+      appName,
+      instanceId,
+      connectionId,
+      timeout,
+      httpOptions,
+    });
   }
 
   private getAppliedJitter(): number {
@@ -206,15 +209,11 @@ export default class Metrics extends EventEmitter {
     const headers = this.customHeadersFunction ? await this.customHeadersFunction() : this.headers;
 
     try {
-      const res = await post({
+      const httpClient = await this.httpClientPromise;
+      const res = await httpClient.post({
         url,
         json: payload as unknown as Record<string, unknown>,
-        appName: this.appName,
-        instanceId: this.instanceId,
-        connectionId: this.connectionId,
         headers,
-        timeout: this.timeout,
-        httpOptions: this.httpOptions,
       });
       if (!res.ok) {
         // status code outside 200 range
@@ -261,16 +260,12 @@ export default class Metrics extends EventEmitter {
     const headers = this.customHeadersFunction ? await this.customHeadersFunction() : this.headers;
 
     try {
-      const res = await post({
+      const httpClient = await this.httpClientPromise;
+      const res = await httpClient.post({
         url,
         json: payload as unknown as Record<string, unknown>,
-        appName: this.appName,
-        instanceId: this.instanceId,
-        connectionId: this.connectionId,
         interval: this.metricsInterval,
         headers,
-        timeout: this.timeout,
-        httpOptions: this.httpOptions,
       });
       if (!res.ok) {
         if (res.status === 403 || res.status === 401) {

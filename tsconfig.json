@@ -1,5 +1,5 @@
 {
-  "extends": "@tsconfig/node18/tsconfig.json",
+  "extends": "@tsconfig/node20/tsconfig.json",
   "compilerOptions": {
     "rootDir": "./src",
     "outDir": "./lib",
@@ -11,7 +11,8 @@
     "esModuleInterop": true,
     "allowJs": true,
     "skipLibCheck": true,
-    "allowSyntheticDefaultImports": true
+    "allowSyntheticDefaultImports": true,
+    "lib": ["es2019", "es2020.promise", "es2020.bigint", "es2020.string", "dom", "dom.iterable"]
   },
   "exclude": ["examples/", "lib/", "node_modules/", "vitest.config.ts"],
   "include": ["src/**/*.ts", "src/**/*.js"]

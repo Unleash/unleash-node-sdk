@@ -114,7 +114,12 @@ export class Unleash extends EventEmitter {
 
     this.staticContext = { appName, environment };
 
-    const bootstrapProvider = resolveBootstrapProvider(bootstrap, appName, unleashInstanceId);
+    const bootstrapProvider = resolveBootstrapProvider(
+      bootstrap,
+      appName,
+      unleashInstanceId,
+      unleashConnectionId,
+    );
 
     this.repository =
       repository ||

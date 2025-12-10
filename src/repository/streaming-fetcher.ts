@@ -18,7 +18,7 @@ export class StreamingFetcher extends EventEmitter implements FetcherInterface {
 
   private readonly headers?: Record<string, string>;
 
-  private readonly connectionId?: string;
+  private readonly connectionId: string;
 
   private readonly onSave: StreamingFetchingOptions['onSave'];
 
@@ -30,8 +30,8 @@ export class StreamingFetcher extends EventEmitter implements FetcherInterface {
     url,
     appName,
     instanceId,
-    headers,
     connectionId,
+    headers,
     eventSource,
     maxFailuresUntilFailover = 5,
     failureWindowMs = 60_000,
@@ -178,8 +178,7 @@ export class StreamingFetcher extends EventEmitter implements FetcherInterface {
         instanceId: this.instanceId,
         etag: undefined,
         contentType: undefined,
-        custom: this.headers,
-        specVersionSupported: '5.2.0',
+        headers: this.headers,
         connectionId: this.connectionId,
       }),
       readTimeoutMillis: 60000,
