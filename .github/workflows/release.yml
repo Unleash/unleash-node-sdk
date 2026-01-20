@@ -15,11 +15,10 @@ on:
 
 jobs:
   from-template:
-    uses: Unleash/.github/.github/workflows/npm-release.yml@v2.0.0
+    uses: Unleash/.github/.github/workflows/npm-release.yml@v3.0.0
     with:
       version: ${{ github.event.inputs.version }}
       tag: ${{ github.event.inputs.tag }}
     secrets:
-      NPM_ACCESS_TOKEN: ${{ secrets.NPM_TOKEN }}
       UNLEASH_BOT_APP_ID: ${{ secrets.UNLEASH_BOT_APP_ID }}
       UNLEASH_BOT_PRIVATE_KEY: ${{ secrets.UNLEASH_BOT_PRIVATE_KEY }}
