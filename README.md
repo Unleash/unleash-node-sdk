@@ -379,30 +379,29 @@ unleash.impactMetrics.incrementCounter('request_count');
 
 ### Gauges
 
-Use gauges for values that can go up and down, such as current memory usage or active thread count.
+Use gauges for point-in-time values that can go up or down:
 
 ```js
 unleash.impactMetrics.defineGauge(
-  'heap_memory_total',
-  'Current heap memory usage in bytes'
+  'total_users',
+  'Total number of registered users'
 );
 
-const currentHeap = process.memoryUsage().heapUsed;
-unleash.impactMetrics.updateGauge('heap_memory_total', currentHeap);
+unleash.impactMetrics.updateGauge('total_users', userCount);
 ```
 
 ### Histograms
 
-Use histograms to measure the distribution of values, such as request duration or response size. Unleash automatically calculates percentiles (p50, p95, p99).
+Histograms measure value distribution (request duration, response size):
 
 ```js
 unleash.impactMetrics.defineHistogram(
   'request_time_ms',
-  'Time taken to process a request in milliseconds'
+  'Time taken to process a request in milliseconds',
+  [50, 100, 200, 500, 1000]
 );
 
-const duration = 125;
-unleash.impactMetrics.observeHistogram('request_time_ms', duration);
+unleash.impactMetrics.observeHistogram('request_time_ms', 125);
 ```
 
 Impact metrics are batched and sent on the same interval as regular SDK metrics. They are ingested via the regular metrics endpoint.
