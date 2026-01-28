@@ -1,8 +1,7 @@
 import type { Context } from '../context';
 
 function isInvalidValue(value: number | undefined): boolean {
-  if (value === undefined) return false;
-  return !Number.isFinite(value);
+  return value !== undefined && !Number.isFinite(value);
 }
 
 type LabelValuesKey = string;
