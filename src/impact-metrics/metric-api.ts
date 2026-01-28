@@ -57,6 +57,9 @@ export class MetricsAPI extends EventEmitter {
     return flagLabels;
   }
 
+  /**
+   * @param flagContext - @deprecated This parameter will be removed in a future release.
+   */
   incrementCounter(name: string, value?: number, flagContext?: MetricFlagContext): void {
     const counter = this.metricRegistry.getCounter(name);
     if (!counter) {
@@ -77,6 +80,9 @@ export class MetricsAPI extends EventEmitter {
     counter.inc(value, labels);
   }
 
+  /**
+   * @param flagContext - @deprecated This parameter will be removed in a future release.
+   */
   updateGauge(name: string, value: number, flagContext?: MetricFlagContext): void {
     const gauge = this.metricRegistry.getGauge(name);
     if (!gauge) {
@@ -94,6 +100,9 @@ export class MetricsAPI extends EventEmitter {
     gauge.set(value, labels);
   }
 
+  /**
+   * @param flagContext - @deprecated This parameter will be removed in a future release.
+   */
   observeHistogram(name: string, value: number, flagContext?: MetricFlagContext): void {
     const histogram = this.metricRegistry.getHistogram(name);
     if (!histogram) {

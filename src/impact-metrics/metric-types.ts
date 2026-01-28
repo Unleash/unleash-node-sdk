@@ -382,6 +382,7 @@ export interface BucketMetricOptions extends MetricOptions {
   buckets: number[];
 }
 
+/** @deprecated MetricFlagContext will be removed in a future release. */
 export interface MetricFlagContext {
   flagNames: string[];
   context: Context;
