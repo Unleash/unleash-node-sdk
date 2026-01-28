@@ -339,3 +339,42 @@ test('Histogram restoration preserves exact data', () => {
   const restoredCollect = registry.collect();
   expect(restoredCollect).toStrictEqual(firstCollect);
 });
+
+test.each([Infinity, -Infinity, NaN])('all metric operations silently drop %s', (invalid) => {
+  const registry = new InMemoryMetricRegistry();
+  const counter = registry.counter({ name: 'c', help: 'h' });
+  const gauge = registry.gauge({ name: 'g', help: 'h' });
+  const histogram = registry.histogram({ name: 'h', help: 'h', buckets: [1] });
+
+  counter.inc(1);
+  counter.inc(invalid);
+  gauge.set(5);
+  gauge.set(invalid);
+  gauge.inc(invalid);
+  gauge.dec(invalid);
+  histogram.observe(0.5);
+  histogram.observe(invalid);
+
+  const result = registry.collect();
+
+  expect(result).toStrictEqual([
+    { name: 'c', help: 'h', type: 'counter', samples: [{ labels: {}, value: 1 }] },
+    { name: 'g', help: 'h', type: 'gauge', samples: [{ labels: {}, value: 5 }] },
+    {
+      name: 'h',
+      help: 'h',
+      type: 'histogram',
+      samples: [
+        {
+          labels: {},
+          count: 1,
+          sum: 0.5,
+          buckets: [
+            { le: 1, count: 1 },
+            { le: '+Inf', count: 1 },
+          ],
+        },
+      ],
+    },
+  ]);
+});
