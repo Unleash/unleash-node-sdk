@@ -1,5 +1,10 @@
 import type { Context } from '../context';
 
+function isInvalidValue(value: number | undefined): boolean {
+  if (value === undefined) return false;
+  return !Number.isFinite(value);
+}
+
 type LabelValuesKey = string;
 
 function getLabelKey(labels?: MetricLabels): LabelValuesKey {
@@ -64,6 +69,7 @@ class CounterImpl implements Counter {
   constructor(private opts: MetricOptions) {}
 
   inc(value?: number, labels?: MetricLabels): void {
+    if (isInvalidValue(value)) return;
     const delta = value ?? 1;
     const key = getLabelKey(labels);
     const current = this.values.get(key) ?? 0;
@@ -100,6 +106,7 @@ class GaugeImpl implements Gauge {
   constructor(private opts: MetricOptions) {}
 
   inc(value?: number, labels?: MetricLabels): void {
+    if (isInvalidValue(value)) return;
     const delta = value ?? 1;
     const key = getLabelKey(labels);
     const current = this.values.get(key) ?? 0;
@@ -107,6 +114,7 @@ class GaugeImpl implements Gauge {
   }
 
   dec(value?: number, labels?: MetricLabels): void {
+    if (isInvalidValue(value)) return;
     const delta = value ?? 1;
     const key = getLabelKey(labels);
     const current = this.values.get(key) ?? 0;
@@ -114,6 +122,7 @@ class GaugeImpl implements Gauge {
   }
 
   set(value: number, labels?: MetricLabels): void {
+    if (isInvalidValue(value)) return;
     const key = getLabelKey(labels);
     this.values.set(key, value);
   }
@@ -165,6 +174,7 @@ class HistogramImpl implements Histogram {
   }
 
   observe(value: number, labels?: MetricLabels): void {
+    if (isInvalidValue(value)) return;
     const key = getLabelKey(labels);
     let data = this.values.get(key);
 
