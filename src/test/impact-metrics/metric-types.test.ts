@@ -347,6 +347,7 @@ test.each([Infinity, -Infinity, NaN])('all metric operations silently drop %s', 
   const histogram = registry.histogram({ name: 'h', help: 'h', buckets: [1] });
 
   counter.inc(1);
+  counter.inc(-1); // dropped
   counter.inc(invalid);
   gauge.set(5);
   gauge.set(invalid);

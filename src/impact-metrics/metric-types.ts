@@ -70,6 +70,7 @@ class CounterImpl implements Counter {
   inc(value?: number, labels?: MetricLabels): void {
     if (isInvalidValue(value)) return;
     const delta = value ?? 1;
+    if (delta < 0) return;
     const key = getLabelKey(labels);
     const current = this.values.get(key) ?? 0;
     this.values.set(key, current + delta);
