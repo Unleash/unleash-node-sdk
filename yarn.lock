@@ -484,10 +484,10 @@
   resolved "https://registry.yarnpkg.com/@standard-schema/spec/-/spec-1.0.0.tgz#f193b73dc316c4170f2e82a881da0f550d551b9c"
   integrity sha512-m2bOd0f2RT9k8QJx1JN85cZYyH1RqFBdlwtkSlf4tBDYLCiiZnv1fIIwacK6cqwXavOydf0NPToMQgpKq+dVlA==
 
-"@tsconfig/node20@^20.1.0":
-  version "20.1.9"
-  resolved "https://registry.yarnpkg.com/@tsconfig/node20/-/node20-20.1.9.tgz#29716bc9ce538f0e5b5fea30b6481a0b0b7955df"
-  integrity sha512-IjlTv1RsvnPtUcjTqtVsZExKVq+KQx4g5pCP5tI7rAs6Xesl2qFwSz/tPDBC4JajkL/MlezBu3gPUwqRHl+RIg==
+"@tsconfig/node22@^22.0.0":
+  version "22.0.5"
+  resolved "https://registry.yarnpkg.com/@tsconfig/node22/-/node22-22.0.5.tgz#56be9f34ccffd3aa85f9cc7365ad9765d5829adb"
+  integrity sha512-hLf2ld+sYN/BtOJjHUWOk568dvjFQkHnLNa6zce25GIH+vxKfvTgm3qpaH6ToF5tu/NN0IH66s+Bb5wElHrLcw==
 
 "@types/body-parser@*":
   version "1.19.6"
