@@ -36,7 +36,7 @@
     "launchdarkly-eventsource": "2.2.0",
     "make-fetch-happen": "^15.0.3",
     "murmurhash3js": "^3.0.1",
-    "proxy-from-env": "^1.1.0",
+    "proxy-from-env": "^2.0.0",
     "semver": "^7.7.3"
   },
   "engines": {
