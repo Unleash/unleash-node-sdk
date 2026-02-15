@@ -48,7 +48,7 @@
     "examples"
   ],
   "devDependencies": {
-    "@biomejs/biome": "2.3.8",
+    "@biomejs/biome": "2.4.0",
     "@tsconfig/node20": "^20.1.0",
     "@types/express": "^4.17.25",
     "@types/jsbn": "^1.2.33",
