@@ -1,3 +1,4 @@
+import RE2 from 're2';
 import { eq as semverEq, gt as semverGt, lt as semverLt, valid as validSemver } from 'semver';
 import type { Context } from '../context';
 import { resolveContextValue } from '../helpers';
@@ -46,6 +47,7 @@ export enum Operator {
   SEMVER_EQ = 'SEMVER_EQ',
   SEMVER_GT = 'SEMVER_GT',
   SEMVER_LT = 'SEMVER_LT',
+  REGEX = 'REGEX',
 }
 
 export type OperatorImpl = (constraint: Constraint, context: Context) => boolean;
@@ -88,6 +90,23 @@ const StringOperator = (constraint: Constraint, context: Context) => {
     return values.some((val) => contextValue?.includes(val));
   }
   return false;
+};
+
+const RegexOperator = (constraint: Constraint, context: Context) => {
+  const field = constraint.contextName;
+  const value = constraint.value as string;
+  const contextValue = resolveContextValue(context, field);
+
+  if (typeof contextValue !== 'string') {
+    return false;
+  }
+
+  try {
+    const regex = new RE2(value);
+    return regex.test(contextValue);
+  } catch (_e) {
+    return false;
+  }
 };
 
 const SemverOperator = (constraint: Constraint, context: Context) => {
@@ -175,6 +194,7 @@ operators.set(Operator.DATE_BEFORE, DateOperator);
 operators.set(Operator.SEMVER_EQ, SemverOperator);
 operators.set(Operator.SEMVER_GT, SemverOperator);
 operators.set(Operator.SEMVER_LT, SemverOperator);
+operators.set(Operator.REGEX, RegexOperator);
 
 export type StrategyResult = { enabled: true; variant?: Variant } | { enabled: false };
 

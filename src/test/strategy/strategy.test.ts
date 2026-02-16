@@ -302,6 +302,42 @@ test('should be enabled when email does not contain (inverted)', () => {
   expect(strategy.isEnabledWithConstraints(params, context, constraints)).toBe(true);
 });
 
+test('should be enabled when value matches regex', () => {
+  const strategy = new Strategy('test', true);
+  const params = {};
+  const constraints = [{ contextName: 'email', operator: 'REGEX', value: '.*@getunleash\\.ai$' }];
+  const context = {
+    environment: 'dev',
+    properties: { email: 'example@getunleash.ai' },
+  };
+  // @ts-expect-error
+  expect(strategy.isEnabledWithConstraints(params, context, constraints)).toBe(true);
+});
+
+test('should be disabled when regex is invalid', () => {
+  const strategy = new Strategy('test', true);
+  const params = {};
+  const constraints = [{ contextName: 'email', operator: 'REGEX', value: '[' }];
+  const context = {
+    environment: 'dev',
+    properties: { email: 'example@getunleash.ai' },
+  };
+  // @ts-expect-error
+  expect(strategy.isEnabledWithConstraints(params, context, constraints)).toBe(false);
+});
+
+test('should be disabled when regex field is missing', () => {
+  const strategy = new Strategy('test', true);
+  const params = {};
+  const constraints = [{ contextName: 'userId', operator: 'REGEX', value: '\\d+' }];
+  const context = {
+    environment: 'dev',
+    properties: {},
+  };
+  // @ts-expect-error
+  expect(strategy.isEnabledWithConstraints(params, context, constraints)).toBe(false);
+});
+
 test('should be enabled when someVal "equals"', () => {
   const strategy = new Strategy('test', true);
   const params = {};
