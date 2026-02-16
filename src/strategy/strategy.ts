@@ -1,5 +1,5 @@
 import { LRUCache } from 'lru-cache';
-import RE2 from 're2';
+import { RE2 } from 're2-wasm';
 import { eq as semverEq, gt as semverGt, lt as semverLt, valid as validSemver } from 'semver';
 import type { Context } from '../context';
 import { resolveContextValue } from '../helpers';
@@ -108,7 +108,7 @@ const RegexOperator = (constraint: Constraint, context: Context) => {
   try {
     let regex = regexCache.get(value);
     if (!regex) {
-      regex = new RE2(value);
+      regex = new RE2(value, 'u');
       regexCache.set(value, regex);
     }
     return regex.test(contextValue);
