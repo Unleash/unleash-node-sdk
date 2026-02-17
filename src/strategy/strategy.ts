@@ -105,11 +105,13 @@ const RegexOperator = (constraint: Constraint, context: Context) => {
     return false;
   }
 
+  const cacheKey = constraint.caseInsensitive ? `${value}i` : value;
+
   try {
-    let regex = regexCache.get(value);
+    let regex = regexCache.get(cacheKey);
     if (!regex) {
       regex = RE2JS.compile(value, constraint.caseInsensitive ? RE2JS.CASE_INSENSITIVE : undefined);
-      regexCache.set(value, regex);
+      regexCache.set(cacheKey, regex);
     }
     return regex.matcher(contextValue).find() as boolean;
   } catch (_e) {
