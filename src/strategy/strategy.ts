@@ -108,7 +108,7 @@ const RegexOperator = (constraint: Constraint, context: Context) => {
   try {
     let regex = regexCache.get(value);
     if (!regex) {
-      regex = RE2JS.compile(value);
+      regex = RE2JS.compile(value, constraint.caseInsensitive ? RE2JS.CASE_INSENSITIVE : undefined);
       regexCache.set(value, regex);
     }
     return regex.matcher(contextValue).find() as boolean;
