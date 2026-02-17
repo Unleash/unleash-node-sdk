@@ -5,6 +5,9 @@ import type { Context } from '../context';
 import { resolveContextValue } from '../helpers';
 import { selectVariantDefinition, type Variant, type VariantDefinition } from '../variant';
 
+const MAX_REGEX_CACHE_SIZE = 100;
+const regexCache = new LRUCache<string, RE2JS>({ max: MAX_REGEX_CACHE_SIZE });
+
 export interface StrategyTransportInterface {
   name: string;
   parameters: Record<string, unknown>;
@@ -92,9 +95,6 @@ const StringOperator = (constraint: Constraint, context: Context) => {
   }
   return false;
 };
-
-const MAX_REGEX_CACHE_SIZE = 100;
-const regexCache = new LRUCache<string, RE2JS>({ max: MAX_REGEX_CACHE_SIZE });
 
 const RegexOperator = (constraint: Constraint, context: Context) => {
   const field = constraint.contextName;

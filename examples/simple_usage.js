@@ -1,7 +1,7 @@
 const { initialize, isEnabled } = require('../lib');
 
-const url = 'http://localhost:4242/api/';
-const apiToken = '*:development.54dfdf58f08d0dc76ce3a68c4e6d90c6c3bdbe56d379de0bada35805';
+const url = 'https://app.unleash-hosted.com/demo/api/';
+const apiToken = '943ca9171e2c884c545c5d82417a655fb77cec970cc3b78a8ff87f4406b495d0';
 const toggleName = 'demo001';
 const unleashContext = { userId: '1232' };
 
@@ -9,9 +9,6 @@ const unleash = initialize({
   appName: 'my-application',
   url,
   refreshInterval: 1000,
-  tags: [{name: 'simple', value: 'true'}],
-  projectName: 'default',
-  namePrefix: 'my-',
   customHeaders: {
     Authorization: apiToken,
   },
