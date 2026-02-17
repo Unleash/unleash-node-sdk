@@ -1,5 +1,5 @@
 import { LRUCache } from 'lru-cache';
-import { RE2 } from 're2-wasm';
+import { RE2JS } from 're2js';
 import { eq as semverEq, gt as semverGt, lt as semverLt, valid as validSemver } from 'semver';
 import type { Context } from '../context';
 import { resolveContextValue } from '../helpers';
@@ -94,7 +94,7 @@ const StringOperator = (constraint: Constraint, context: Context) => {
 };
 
 const MAX_REGEX_CACHE_SIZE = 100;
-const regexCache = new LRUCache<string, RE2>({ max: MAX_REGEX_CACHE_SIZE });
+const regexCache = new LRUCache<string, RE2JS>({ max: MAX_REGEX_CACHE_SIZE });
 
 const RegexOperator = (constraint: Constraint, context: Context) => {
   const field = constraint.contextName;
@@ -108,7 +108,7 @@ const RegexOperator = (constraint: Constraint, context: Context) => {
   try {
     let regex = regexCache.get(value);
     if (!regex) {
-      regex = new RE2(value, 'u');
+      regex = new RE2JS.compile(value);
       regexCache.set(value, regex);
     }
     return regex.test(contextValue);
