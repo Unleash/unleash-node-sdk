@@ -111,7 +111,7 @@ const RegexOperator = (constraint: Constraint, context: Context) => {
       regex = new RE2JS.compile(value);
       regexCache.set(value, regex);
     }
-    return regex.test(contextValue);
+    return regex.matcher(contextValue).find() as boolean;
   } catch (_e) {
     return false;
   }

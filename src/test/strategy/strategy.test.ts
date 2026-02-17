@@ -305,7 +305,7 @@ test('should be enabled when email does not contain (inverted)', () => {
 test('should be enabled when value matches regex', () => {
   const strategy = new Strategy('test', true);
   const params = {};
-  const constraints = [{ contextName: 'email', operator: 'REGEX', value: `.*@getunleash\\.ai$` }];
+  const constraints = [{ contextName: 'email', operator: 'REGEX', value: '.*@getunleash\\.ai$' }];
   const context = {
     environment: 'dev',
     properties: { email: 'example@getunleash.ai' },
