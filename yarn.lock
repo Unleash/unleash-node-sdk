@@ -1735,10 +1735,10 @@ queue-microtask@^1.2.2:
   resolved "https://registry.yarnpkg.com/queue-microtask/-/queue-microtask-1.2.3.tgz#4929228bbc724dfac43e0efb058caf7b6cfb6243"
   integrity sha512-NuaNSa6flKT5JaSYQzJok04JzTL1CA6aGhv5rfLW3PgqA+M2ChpZQnAC8h8i4ZFkBS8X5RqkDBHA7r4hej3K9A==
 
-re2js@^1.2.1:
-  version "1.2.1"
-  resolved "https://registry.yarnpkg.com/re2js/-/re2js-1.2.1.tgz#31d1653f8e776516c2505f990690d116a1036fbc"
-  integrity sha512-pMQCWm/GsGambkqCl0l02SZUUd5yQ4u8D72K90TJWHMALuYg8BWCdcfXdXIvEQYGEM8K9QrxYAFtVgeQ+LZKFw==
+re2js@^1.2.2:
+  version "1.2.2"
+  resolved "https://registry.yarnpkg.com/re2js/-/re2js-1.2.2.tgz#6609181fdcd45369e9a3b3aeaa8e9e527e49cdf2"
+  integrity sha512-xvy4uuynAZWg9SuHbg0lgQncOuK6wssLmbHs8L8+YRbWLKY8Pe1avaHjNaFLOjErq8Oh0HvwQRWqIOCRL7uDDw==
 
 redis@^4.6.7:
   version "4.6.14"
