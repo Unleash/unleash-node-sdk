@@ -1,7 +1,12 @@
+import { LRUCache } from 'lru-cache';
+import { RE2JS } from 're2js';
 import { eq as semverEq, gt as semverGt, lt as semverLt, valid as validSemver } from 'semver';
 import type { Context } from '../context';
 import { resolveContextValue } from '../helpers';
 import { selectVariantDefinition, type Variant, type VariantDefinition } from '../variant';
+
+const MAX_REGEX_CACHE_SIZE = 100;
+const regexCache = new LRUCache<string, RE2JS>({ max: MAX_REGEX_CACHE_SIZE });
 
 export interface StrategyTransportInterface {
   name: string;
@@ -46,6 +51,7 @@ export enum Operator {
   SEMVER_EQ = 'SEMVER_EQ',
   SEMVER_GT = 'SEMVER_GT',
   SEMVER_LT = 'SEMVER_LT',
+  REGEX = 'REGEX',
 }
 
 export type OperatorImpl = (constraint: Constraint, context: Context) => boolean;
@@ -88,6 +94,29 @@ const StringOperator = (constraint: Constraint, context: Context) => {
     return values.some((val) => contextValue?.includes(val));
   }
   return false;
+};
+
+const RegexOperator = (constraint: Constraint, context: Context) => {
+  const field = constraint.contextName;
+  const value = constraint.value as string;
+  const contextValue = resolveContextValue(context, field);
+
+  if (typeof contextValue !== 'string') {
+    return false;
+  }
+
+  const cacheKey = `${constraint.caseInsensitive ? '1' : '0'}:${value}`;
+
+  try {
+    let regex = regexCache.get(cacheKey);
+    if (!regex) {
+      regex = RE2JS.compile(value, constraint.caseInsensitive ? RE2JS.CASE_INSENSITIVE : undefined);
+      regexCache.set(cacheKey, regex);
+    }
+    return regex.matcher(contextValue).find() as boolean;
+  } catch (_e) {
+    return false;
+  }
 };
 
 const SemverOperator = (constraint: Constraint, context: Context) => {
@@ -175,6 +204,7 @@ operators.set(Operator.DATE_BEFORE, DateOperator);
 operators.set(Operator.SEMVER_EQ, SemverOperator);
 operators.set(Operator.SEMVER_GT, SemverOperator);
 operators.set(Operator.SEMVER_LT, SemverOperator);
+operators.set(Operator.REGEX, RegexOperator);
 
 export type StrategyResult = { enabled: true; variant?: Variant } | { enabled: false };
 

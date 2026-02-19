@@ -302,6 +302,68 @@ test('should be enabled when email does not contain (inverted)', () => {
   expect(strategy.isEnabledWithConstraints(params, context, constraints)).toBe(true);
 });
 
+test('should be enabled when value matches regex', () => {
+  const strategy = new Strategy('test', true);
+  const params = {};
+  const constraints = [{ contextName: 'email', operator: 'REGEX', value: '.*@getunleash\\.ai$' }];
+  const context = {
+    environment: 'dev',
+    properties: { email: 'example@getunleash.ai' },
+  };
+  expect(
+    // @ts-expect-error
+    strategy.isEnabledWithConstraints(params, context, constraints),
+    `R2 ${constraints[0].value} should match ${context.properties.email}.`,
+  ).toBe(true);
+});
+
+test('should be disabled when regex is invalid', () => {
+  const strategy = new Strategy('test', true);
+  const params = {};
+  const constraints = [{ contextName: 'email', operator: 'REGEX', value: '[' }];
+  const context = {
+    environment: 'dev',
+    properties: { email: 'example@getunleash.ai' },
+  };
+  expect(
+    // @ts-expect-error
+    strategy.isEnabledWithConstraints(params, context, constraints),
+    `R2 ${constraints[0].value} should NOT match ${context.properties.email}.`,
+  ).toBe(false);
+});
+
+test('should be disabled when regex tries to pass flags', () => {
+  const strategy = new Strategy('test', true);
+  const params = {};
+  const constraints = [
+    { contextName: 'email', operator: 'REGEX', value: '/.*@getunleash\\.ai$/i' },
+  ];
+  const context = {
+    environment: 'dev',
+    properties: { email: 'example@getunleash.ai' },
+  };
+  expect(
+    // @ts-expect-error
+    strategy.isEnabledWithConstraints(params, context, constraints),
+    `R2 ${constraints[0].value} should NOT match ${context.properties.email}.`,
+  ).toBe(false);
+});
+
+test('should be disabled when regex field is missing', () => {
+  const strategy = new Strategy('test', true);
+  const params = {};
+  const constraints = [{ contextName: 'userId', operator: 'REGEX', value: '\\d+' }];
+  const context = {
+    environment: 'dev',
+    properties: {},
+  };
+  expect(
+    // @ts-expect-error
+    strategy.isEnabledWithConstraints(params, context, constraints),
+    `R2 ${constraints[0].value} should NOT match missing field.`,
+  ).toBe(false);
+});
+
 test('should be enabled when someVal "equals"', () => {
   const strategy = new Strategy('test', true);
   const params = {};
