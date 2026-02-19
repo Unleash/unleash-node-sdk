@@ -332,6 +332,23 @@ test('should be disabled when regex is invalid', () => {
   ).toBe(false);
 });
 
+test('should be disabled when regex tries to pass flags', () => {
+  const strategy = new Strategy('test', true);
+  const params = {};
+  const constraints = [
+    { contextName: 'email', operator: 'REGEX', value: '/.*@getunleash\\.ai$/i' },
+  ];
+  const context = {
+    environment: 'dev',
+    properties: { email: 'example@getunleash.ai' },
+  };
+  expect(
+    // @ts-expect-error
+    strategy.isEnabledWithConstraints(params, context, constraints),
+    `R2 ${constraints[0].value} should NOT match ${context.properties.email}.`,
+  ).toBe(false);
+});
+
 test('should be disabled when regex field is missing', () => {
   const strategy = new Strategy('test', true);
   const params = {};
