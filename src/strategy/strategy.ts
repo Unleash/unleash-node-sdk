@@ -105,7 +105,7 @@ const RegexOperator = (constraint: Constraint, context: Context) => {
     return false;
   }
 
-const cacheKey = `${constraint.caseInsensitive ? "1" : "0"}:${value}`;
+  const cacheKey = `${constraint.caseInsensitive ? '1' : '0'}:${value}`;
 
   try {
     let regex = regexCache.get(cacheKey);
