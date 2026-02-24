@@ -33,23 +33,8 @@ const bootstrap = {
   ],
 };
 
-async function createUnleashWithFixtureRepository() {
-  const unleash = new Unleash({
-    appName: 'bench-app',
-    url: 'http://127.0.0.1:4242/api/',
-    refreshInterval: 0,
-    bootstrap,
-    storageProvider: new InMemStorageProvider(),
-    disableMetrics: true,
-    skipInstanceCountWarning: true,
-  });
-
-  await once(unleash, UnleashEvents.Synchronized);
-  return unleash;
-}
 
 async function run() {
-  const instance = await createUnleashWithFixtureRepository();
   const globalInstance = initialize({
     appName: 'bench-app-global',
     url: 'http://127.0.0.1:4242/api/',
@@ -57,7 +42,6 @@ async function run() {
     bootstrap,
     storageProvider: new InMemStorageProvider(),
     disableMetrics: true,
-    skipInstanceCountWarning: true,
   });
   await once(globalInstance, UnleashEvents.Synchronized);
 
@@ -67,18 +51,13 @@ async function run() {
   });
 
   bench.add('instance.isEnabled', () => {
-    instance.isEnabled(TOGGLE_NAME, CONTEXT);
-  });
-
-  bench.add('module isEnabled', () => {
-    isEnabled(TOGGLE_NAME, CONTEXT);
+    globalInstance.isEnabled(TOGGLE_NAME, CONTEXT);
   });
 
   await bench.warmup();
   await bench.run();
   console.table(bench.table());
 
-  instance.destroy();
   destroy();
 }
 
