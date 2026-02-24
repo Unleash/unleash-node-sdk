@@ -14,7 +14,8 @@
     "build": "tsc -p .",
     "prepare": "husky && yarn run build",
     "test": "vitest run",
-    "coverage": "vitest run --coverage"
+    "coverage": "vitest run --coverage",
+    "bench:isEnabled": "node ./bench/is-enabled.bench.js"
   },
   "repository": {
     "type": "git",
@@ -70,6 +71,7 @@
     "nock": "^14.0.10",
     "redis": "^4.6.7",
     "sinon": "^21.0.0",
+    "tinybench": "^2.9.0",
     "typescript": "^5.9.3",
     "vitest": "^4.0.14"
   },
