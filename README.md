@@ -271,7 +271,7 @@ The initialize method takes the following arguments:
   options as they may compromise your application security.
 - **namePrefix** - Only fetch feature toggles with the provided name prefix.
 - **tags** - Only fetch feature toggles tagged with the list of tags, such as:
-  `[{type: 'simple', value: 'proxy'}]`.
+  `[{name: 'simple', value: 'proxy'}]`.
 
 ## Custom strategies
 
