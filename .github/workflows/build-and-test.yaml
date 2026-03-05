@@ -56,7 +56,9 @@ jobs:
       - name: Setup node
         uses: actions/setup-node@v6
         with:
-          node-version: 20.x
+          # Pin to a pre-require(esm) Node 20 release to catch ESM-only transitive deps
+          # that would otherwise pass on newer Node 20 patches.
+          node-version: 20.18.0
           cache: yarn
       - name: Yarn
         run: yarn

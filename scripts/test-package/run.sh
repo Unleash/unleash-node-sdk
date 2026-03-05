@@ -39,6 +39,7 @@ if [ "$cjs_output" != "CommonJS load works" ]; then
   (cd .. && rm -rf "$TEST_DIR")
   exit 1
 fi
+echo "$cjs_output"
 
 if [ "$(node . 2>&1)" = "Hello world" ]; then
   echo "Output is correct"
