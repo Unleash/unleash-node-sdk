@@ -61,7 +61,9 @@ jobs:
       - name: Yarn
         run: yarn
       - name: Pack SDK tarball
-        run: echo "SDK_TARBALL=$(npm pack --silent)" >> "$GITHUB_ENV"
+        run: |
+          SDK_TARBALL="$(npm pack --silent --ignore-scripts | tail -n 1)"
+          echo "SDK_TARBALL=$SDK_TARBALL" >> "$GITHUB_ENV"
       - name: Setup node for CJS compatibility check
         uses: actions/setup-node@v6
         with:
