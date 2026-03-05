@@ -60,5 +60,15 @@ jobs:
           cache: yarn
       - name: Yarn
         run: yarn
+      - name: Pack SDK tarball
+        run: |
+          SDK_TARBALL="$(npm pack --silent --ignore-scripts | tail -n 1)"
+          echo "SDK_TARBALL=$SDK_TARBALL" >> "$GITHUB_ENV"
+      - name: Setup node for CJS compatibility check
+        uses: actions/setup-node@v6
+        with:
+          # Pin to a pre-require(esm) Node 20 release to catch ESM-only transitive deps
+          # that would otherwise pass on newer Node 20 patches.
+          node-version: 20.18.0
       - name: Test install in other package
-        run: ./scripts/test-package/run.sh
+        run: ./scripts/test-package/run.sh "file:../${SDK_TARBALL}"
