@@ -4,10 +4,27 @@ set -e
 echo -e "\nTesting that the package can be installed in another project, loaded with CommonJS and compiled with TypeScript without errors"
 
 TEST_DIR="test-package"
+PACKAGE_SPEC="${1:-file:..}"
 mkdir "$TEST_DIR"
 
 cp scripts/test-package/test-tsconfig.json "$TEST_DIR/tsconfig.json"
-cp scripts/test-package/test-package.json "$TEST_DIR/package.json"
+cat <<EOF > "$TEST_DIR/package.json"
+{
+  "name": "test",
+  "version": "1.0.0",
+  "main": "lib/index.js",
+  "scripts": {
+    "build": "tsc"
+  },
+  "license": "ISC",
+  "devDependencies": {
+    "typescript": "^5.7.3"
+  },
+  "dependencies": {
+    "unleash-client": "$PACKAGE_SPEC"
+  }
+}
+EOF
 cd "$TEST_DIR"
 npm install --install-links
 mkdir src
