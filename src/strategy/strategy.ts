@@ -1,6 +1,14 @@
+import { Address4 } from 'ip-address';
 import { LRUCache } from 'lru-cache';
 import { RE2JS } from 're2js';
-import { eq as semverEq, gt as semverGt, lt as semverLt, valid as validSemver } from 'semver';
+import {
+  eq as semverEq,
+  gt as semverGt,
+  gte as semverGte,
+  lt as semverLt,
+  lte as semverLte,
+  valid as validSemver,
+} from 'semver';
 import type { Context } from '../context';
 import { resolveContextValue } from '../helpers';
 import { selectVariantDefinition, type Variant, type VariantDefinition } from '../variant';
@@ -51,7 +59,10 @@ export enum Operator {
   SEMVER_EQ = 'SEMVER_EQ',
   SEMVER_GT = 'SEMVER_GT',
   SEMVER_LT = 'SEMVER_LT',
+  SEMVER_GTE = 'SEMVER_GTE',
+  SEMVER_LTE = 'SEMVER_LTE',
   REGEX = 'REGEX',
+  IN_CIDR = 'IN_CIDR',
 }
 
 export type OperatorImpl = (constraint: Constraint, context: Context) => boolean;
@@ -140,10 +151,39 @@ const SemverOperator = (constraint: Constraint, context: Context) => {
     if (operator === Operator.SEMVER_GT) {
       return semverGt(contextValue, value);
     }
+    if (operator === Operator.SEMVER_LTE) {
+      return semverLte(contextValue, value);
+    }
+    if (operator === Operator.SEMVER_GTE) {
+      return semverGte(contextValue, value);
+    }
   } catch (_e) {
     return false;
   }
   return false;
+};
+
+const CidrOperator = (constraint: Constraint, context: Context) => {
+  const field = constraint.contextName;
+  const values = cleanValues(constraint.values);
+  const contextValue = resolveContextValue(context, field);
+
+  if (typeof contextValue !== 'string') {
+    return false;
+  }
+
+  return values.some((range) => {
+    if (range === contextValue) {
+      return true;
+    }
+    try {
+      const subnetRange = new Address4(range);
+      const remoteAddress = new Address4(contextValue);
+      return remoteAddress.isInSubnet(subnetRange);
+    } catch (_err) {
+      return false;
+    }
+  });
 };
 
 const DateOperator = (constraint: Constraint, context: Context) => {
@@ -204,7 +244,10 @@ operators.set(Operator.DATE_BEFORE, DateOperator);
 operators.set(Operator.SEMVER_EQ, SemverOperator);
 operators.set(Operator.SEMVER_GT, SemverOperator);
 operators.set(Operator.SEMVER_LT, SemverOperator);
+operators.set(Operator.SEMVER_GTE, SemverOperator);
+operators.set(Operator.SEMVER_LTE, SemverOperator);
 operators.set(Operator.REGEX, RegexOperator);
+operators.set(Operator.IN_CIDR, CidrOperator);
 
 export type StrategyResult = { enabled: true; variant?: Variant } | { enabled: false };
 

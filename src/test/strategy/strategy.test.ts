@@ -573,6 +573,30 @@ test('should be enabled when semver gt', () => {
   expect(strategy.isEnabledWithConstraints(params, context, constraints)).toBe(true);
 });
 
+test('should be enabled when semver gte', () => {
+  const strategy = new Strategy('test', true);
+  const params = {};
+  const constraints = [{ contextName: 'version', operator: 'SEMVER_GTE', value: '1.2.2' }];
+  const context = {
+    environment: 'dev',
+    properties: { version: '1.2.2' },
+  };
+  // @ts-expect-error
+  expect(strategy.isEnabledWithConstraints(params, context, constraints)).toBe(true);
+});
+
+test('should be enabled when semver lte', () => {
+  const strategy = new Strategy('test', true);
+  const params = {};
+  const constraints = [{ contextName: 'version', operator: 'SEMVER_LTE', value: '1.2.2' }];
+  const context = {
+    environment: 'dev',
+    properties: { version: '1.2.2' },
+  };
+  // @ts-expect-error
+  expect(strategy.isEnabledWithConstraints(params, context, constraints)).toBe(true);
+});
+
 test('should be enabled when semver in range', () => {
   const strategy = new Strategy('test', true);
   const params = {};
@@ -635,6 +659,65 @@ test('should return false when passed an invalid semver', () => {
   const context = {
     environment: 'dev',
     properties: { version: 'also_not_a_semver' },
+  };
+  // @ts-expect-error
+  expect(strategy.isEnabledWithConstraints(params, context, constraints)).toBe(false);
+});
+
+test('should be enabled when ip matches IN_CIDR', () => {
+  const strategy = new Strategy('test', true);
+  const params = {};
+  const constraints = [
+    { contextName: 'remoteAddress', operator: 'IN_CIDR', values: ['127.0.0.1'] },
+  ];
+  const context = {
+    environment: 'dev',
+    remoteAddress: '127.0.0.1',
+  };
+  // @ts-expect-error
+  expect(strategy.isEnabledWithConstraints(params, context, constraints)).toBe(true);
+});
+
+test('should be enabled when ip is within IN_CIDR range', () => {
+  const strategy = new Strategy('test', true);
+  const params = {};
+  const constraints = [
+    { contextName: 'remoteAddress', operator: 'IN_CIDR', values: ['160.33.0.0/16'] },
+  ];
+  const context = {
+    environment: 'dev',
+    remoteAddress: '160.33.0.33',
+  };
+  // @ts-expect-error
+  expect(strategy.isEnabledWithConstraints(params, context, constraints)).toBe(true);
+});
+
+test('should ignore invalid CIDR values', () => {
+  const strategy = new Strategy('test', true);
+  const params = {};
+  const constraints = [
+    {
+      contextName: 'remoteAddress',
+      operator: 'IN_CIDR',
+      values: ['127.invalid', '192.168.1.0/24'],
+    },
+  ];
+  const context = {
+    environment: 'dev',
+    remoteAddress: '192.168.1.42',
+  };
+  // @ts-expect-error
+  expect(strategy.isEnabledWithConstraints(params, context, constraints)).toBe(true);
+});
+
+test('should be disabled when remoteAddress is missing for IN_CIDR', () => {
+  const strategy = new Strategy('test', true);
+  const params = {};
+  const constraints = [
+    { contextName: 'remoteAddress', operator: 'IN_CIDR', values: ['127.0.0.1'] },
+  ];
+  const context = {
+    environment: 'dev',
   };
   // @ts-expect-error
   expect(strategy.isEnabledWithConstraints(params, context, constraints)).toBe(false);
