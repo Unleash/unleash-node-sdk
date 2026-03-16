@@ -1,4 +1,4 @@
-import { Address4 } from 'ip-address';
+import { Address4, Address6 } from 'ip-address';
 import { LRUCache } from 'lru-cache';
 import { RE2JS } from 're2js';
 import {
@@ -42,6 +42,16 @@ export interface Segment {
   id: number;
   constraints: Constraint[];
 }
+
+type SubnetAddress<T> = {
+  correctForm(): string;
+  isInSubnet(other: T): boolean;
+};
+
+type AddressConstructor<T> = {
+  isValid(input: string): boolean;
+  new (input: string): T;
+};
 
 export enum Operator {
   IN = 'IN',
@@ -164,6 +174,23 @@ const SemverOperator = (constraint: Constraint, context: Context) => {
 };
 
 const CidrOperator = (constraint: Constraint, context: Context) => {
+  const matchesRange = <T extends SubnetAddress<T>>(
+    remoteAddress: T,
+    range: string,
+    Address: AddressConstructor<T>,
+  ): boolean => {
+    if (!Address.isValid(range)) {
+      return false;
+    }
+
+    const subnetRange = new Address(range);
+
+    return (
+      remoteAddress.correctForm() === subnetRange.correctForm() ||
+      remoteAddress.isInSubnet(subnetRange)
+    );
+  };
+
   const field = constraint.contextName;
   const values = cleanValues(constraint.values);
   const contextValue = resolveContextValue(context, field);
@@ -172,18 +199,17 @@ const CidrOperator = (constraint: Constraint, context: Context) => {
     return false;
   }
 
-  return values.some((range) => {
-    if (range === contextValue) {
-      return true;
-    }
-    try {
-      const subnetRange = new Address4(range);
-      const remoteAddress = new Address4(contextValue);
-      return remoteAddress.isInSubnet(subnetRange);
-    } catch (_err) {
-      return false;
-    }
-  });
+  if (Address4.isValid(contextValue)) {
+    const remoteAddress = new Address4(contextValue);
+    return values.some((range) => matchesRange(remoteAddress, range, Address4));
+  }
+
+  if (Address6.isValid(contextValue)) {
+    const remoteAddress = new Address6(contextValue);
+    return values.some((range) => matchesRange(remoteAddress, range, Address6));
+  }
+
+  return false;
 };
 
 const DateOperator = (constraint: Constraint, context: Context) => {

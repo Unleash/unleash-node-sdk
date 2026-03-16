@@ -673,10 +673,10 @@
   dependencies:
     "@types/node" "*"
 
-"@unleash/client-specification@5.2.2":
-  version "5.2.2"
-  resolved "https://registry.yarnpkg.com/@unleash/client-specification/-/client-specification-5.2.2.tgz#a40601b22f5ceff745ce3871a3317dd83de59729"
-  integrity sha512-0BDc/K9MHMUFaZti9w0niUuOH+plg5lWVj0yd3KK6WppEmvFwDdHMP8ND36Vyjn22ABraYYftDu7MVvgavSUIw==
+"@unleash/client-specification@6.1.0":
+  version "6.1.0"
+  resolved "https://registry.yarnpkg.com/@unleash/client-specification/-/client-specification-6.1.0.tgz#b1f52205c7c4d8e60509f5ead89cf4853f9f6e67"
+  integrity sha512-1LG5IPFb9ocM5yDpPBjZdNDtO8fC7UeRY+8wQgwtmuTL1fM+ZL7qqK7otV1fUQsKpioYG5vxN4EN7I57quygkQ==
 
 "@vitest/coverage-v8@4.0.14":
   version "4.0.14"
