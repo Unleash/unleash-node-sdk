@@ -1,6 +1,14 @@
+import { Address4, Address6 } from 'ip-address';
 import { LRUCache } from 'lru-cache';
 import { RE2JS } from 're2js';
-import { eq as semverEq, gt as semverGt, lt as semverLt, valid as validSemver } from 'semver';
+import {
+  eq as semverEq,
+  gt as semverGt,
+  gte as semverGte,
+  lt as semverLt,
+  lte as semverLte,
+  valid as validSemver,
+} from 'semver';
 import type { Context } from '../context';
 import { resolveContextValue } from '../helpers';
 import { selectVariantDefinition, type Variant, type VariantDefinition } from '../variant';
@@ -35,6 +43,16 @@ export interface Segment {
   constraints: Constraint[];
 }
 
+type SubnetAddress<T> = {
+  correctForm(): string;
+  isInSubnet(other: T): boolean;
+};
+
+type AddressConstructor<T> = {
+  isValid(input: string): boolean;
+  new (input: string): T;
+};
+
 export enum Operator {
   IN = 'IN',
   NOT_IN = 'NOT_IN',
@@ -51,7 +69,10 @@ export enum Operator {
   SEMVER_EQ = 'SEMVER_EQ',
   SEMVER_GT = 'SEMVER_GT',
   SEMVER_LT = 'SEMVER_LT',
+  SEMVER_GTE = 'SEMVER_GTE',
+  SEMVER_LTE = 'SEMVER_LTE',
   REGEX = 'REGEX',
+  IN_CIDR = 'IN_CIDR',
 }
 
 export type OperatorImpl = (constraint: Constraint, context: Context) => boolean;
@@ -140,9 +161,54 @@ const SemverOperator = (constraint: Constraint, context: Context) => {
     if (operator === Operator.SEMVER_GT) {
       return semverGt(contextValue, value);
     }
+    if (operator === Operator.SEMVER_LTE) {
+      return semverLte(contextValue, value);
+    }
+    if (operator === Operator.SEMVER_GTE) {
+      return semverGte(contextValue, value);
+    }
   } catch (_e) {
     return false;
   }
+  return false;
+};
+
+const CidrOperator = (constraint: Constraint, context: Context) => {
+  const matchesRange = <T extends SubnetAddress<T>>(
+    remoteAddress: T,
+    range: string,
+    Address: AddressConstructor<T>,
+  ): boolean => {
+    if (!Address.isValid(range)) {
+      return false;
+    }
+
+    const subnetRange = new Address(range);
+
+    return (
+      remoteAddress.correctForm() === subnetRange.correctForm() ||
+      remoteAddress.isInSubnet(subnetRange)
+    );
+  };
+
+  const field = constraint.contextName;
+  const values = cleanValues(constraint.values);
+  const contextValue = resolveContextValue(context, field);
+
+  if (typeof contextValue !== 'string') {
+    return false;
+  }
+
+  if (Address4.isValid(contextValue)) {
+    const remoteAddress = new Address4(contextValue);
+    return values.some((range) => matchesRange(remoteAddress, range, Address4));
+  }
+
+  if (Address6.isValid(contextValue)) {
+    const remoteAddress = new Address6(contextValue);
+    return values.some((range) => matchesRange(remoteAddress, range, Address6));
+  }
+
   return false;
 };
 
@@ -204,7 +270,10 @@ operators.set(Operator.DATE_BEFORE, DateOperator);
 operators.set(Operator.SEMVER_EQ, SemverOperator);
 operators.set(Operator.SEMVER_GT, SemverOperator);
 operators.set(Operator.SEMVER_LT, SemverOperator);
+operators.set(Operator.SEMVER_GTE, SemverOperator);
+operators.set(Operator.SEMVER_LTE, SemverOperator);
 operators.set(Operator.REGEX, RegexOperator);
+operators.set(Operator.IN_CIDR, CidrOperator);
 
 export type StrategyResult = { enabled: true; variant?: Variant } | { enabled: false };
 
