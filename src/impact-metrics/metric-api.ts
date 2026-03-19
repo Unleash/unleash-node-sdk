@@ -36,7 +36,7 @@ export class MetricsAPI extends EventEmitter {
       return;
     }
     const labelNames = ['featureName', 'appName', 'environment'];
-    this.metricRegistry.histogram({ name, help, labelNames, buckets: buckets || [] });
+    this.metricRegistry.histogram({ name, help, labelNames, buckets });
   }
 
   private getFlagLabels(flagContext?: MetricFlagContext): MetricLabels {
