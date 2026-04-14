@@ -50,12 +50,7 @@ export default class UnleashClient extends EventEmitter {
     this.warnedDependencies = {};
 
     this.strategies.forEach((strategy: Strategy) => {
-      if (
-        !strategy ||
-        !strategy.name ||
-        !strategy.isEnabled ||
-        typeof strategy.isEnabled !== 'function'
-      ) {
+      if (!strategy?.name || !strategy.isEnabled || typeof strategy.isEnabled !== 'function') {
         throw new Error('Invalid strategy data / interface');
       }
     });

@@ -9,12 +9,21 @@ import { Unleash } from './unleash';
 import type { UnleashConfig } from './unleash-config';
 import { defaultVariant, PayloadType, Variant } from './variant';
 
+export { UnleashMetricClient } from './impact-metrics/metric-client';
 // exports
 export { Strategy } from './strategy/index';
-export { Context, Variant, PayloadType, Unleash, TagFilter, InMemStorageProvider, UnleashEvents };
 export type { ClientFeaturesResponse, UnleashConfig };
-export { UnleashMetricClient } from './impact-metrics/metric-client';
-export { UnleashTypes, Name };
+export {
+  Context,
+  InMemStorageProvider,
+  Name,
+  PayloadType,
+  TagFilter,
+  Unleash,
+  UnleashEvents,
+  UnleashTypes,
+  Variant,
+};
 
 let instance: undefined | Unleash;
 

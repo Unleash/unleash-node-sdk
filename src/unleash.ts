@@ -21,7 +21,8 @@ import { defaultStrategies, Strategy } from './strategy';
 import { UnleashConfig } from './unleash-config';
 import { uuidv4 } from './uuidv4';
 import { defaultVariant, type Variant, type VariantWithFeatureStatus } from './variant';
-export { Strategy, UnleashEvents, UnleashConfig };
+
+export { Strategy, UnleashConfig, UnleashEvents };
 
 const BACKUP_PATH: string = tmpdir();
 
