@@ -33,7 +33,7 @@
   "dependencies": {
     "http-proxy-agent": "^7.0.2",
     "https-proxy-agent": "^7.0.5",
-    "ip-address": "^9.0.5",
+    "ip-address": "^10.1.1",
     "launchdarkly-eventsource": "2.2.0",
     "lru-cache": "^11.2.5",
     "make-fetch-happen": "^15.0.3",
@@ -79,7 +79,7 @@
     "ansi-regex": "^5.0.1",
     "debug": "^4.0.0",
     "braces": "^3.0.3",
-    "ip-address": "^9.0.5",
+    "ip-address": "^10.1.1",
     "json-schema": "^0.4.0",
     "json5": "^2.0.0",
     "qs": "^6.5.3",
