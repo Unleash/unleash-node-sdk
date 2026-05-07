@@ -1021,9 +1021,7 @@ test('bootstrap should not override load backup-file', async () => {
   expect(repo.getToggle('feature-backup')?.enabled).toEqual(true);
 });
 
-// Skipped because make-fetch-happens actually automatically retries two extra times on 404
-// with a timeout of 1000, this makes us have to wait up to 3 seconds for a single test to succeed
-test.skip('Failing two times and then succeed should decrease interval to 2 times initial interval (404)', async () => {
+test('Failing two times and then succeed should decrease interval to 2 times initial interval (404)', async () => {
   const url = 'http://unleash-test-fail5times.app';
   nock(url).persist().get('/client/features').reply(404);
   const repo = new Repository({
@@ -1065,6 +1063,7 @@ test.skip('Failing two times and then succeed should decrease interval to 2 time
     });
 
   await repo.fetch();
+
   expect(1).toEqual(repo.getFailures());
   expect(20).toEqual(repo.nextFetch());
 });
@@ -1084,10 +1083,14 @@ test.skip('Failing two times should increase interval to 3 times initial interva
     storageProvider: new InMemStorageProvider(),
     mode: { type: 'polling', format: 'full' },
   });
+
   await repo.fetch();
+
   expect(1).toEqual(repo.getFailures());
   expect(20).toEqual(repo.nextFetch());
+
   await repo.fetch();
+
   expect(2).toEqual(repo.getFailures());
   expect(30).toEqual(repo.nextFetch());
 });
