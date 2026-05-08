@@ -398,7 +398,8 @@ test('should handle 500 request error and emit warn event', () =>
     });
     repo.start();
   }));
-test.skip('should handle 502 request error and emit warn event', () =>
+
+test('should handle 502 request error and emit warn event', () =>
   new Promise<void>((resolve) => {
     const url = 'http://unleash-test-6-502.app';
     nock(url).persist().get('/client/features').reply(502, 'blabla');
@@ -414,14 +415,13 @@ test.skip('should handle 502 request error and emit warn event', () =>
     });
     repo.on('warn', (warn) => {
       expect(warn).toBeTruthy();
-      expect(warn).toEqual(
-        `${url}/client/features responded 502. Waiting for 20ms before trying again.`,
-      );
+      expect(warn).toEqual(`${url}/client/features responded 502. Backing off`);
       resolve();
     });
     repo.start();
   }));
-test.skip('should handle 503 request error and emit warn event', () =>
+
+test('should handle 503 request error and emit warn event', () =>
   new Promise<void>((resolve) => {
     const url = 'http://unleash-test-6-503.app';
     nock(url).persist().get('/client/features').reply(503, 'blabla');
@@ -437,14 +437,13 @@ test.skip('should handle 503 request error and emit warn event', () =>
     });
     repo.on('warn', (warn) => {
       expect(warn).toBeTruthy();
-      expect(warn).toEqual(
-        `${url}/client/features responded 503. Waiting for 20ms before trying again.`,
-      );
+      expect(warn).toEqual(`${url}/client/features responded 503. Backing off`);
       resolve();
     });
     repo.start();
   }));
-test.skip('should handle 504 request error and emit warn event', () =>
+
+test('should handle 504 request error and emit warn event', () =>
   new Promise<void>((resolve) => {
     const url = 'http://unleash-test-6-504.app';
     nock(url).persist().get('/client/features').reply(504, 'blabla');
@@ -460,9 +459,7 @@ test.skip('should handle 504 request error and emit warn event', () =>
     });
     repo.on('warn', (warn) => {
       expect(warn).toBeTruthy();
-      expect(warn).toEqual(
-        `${url}/client/features responded 504. Waiting for 20ms before trying again.`,
-      );
+      expect(warn).toEqual(`${url}/client/features responded 504. Backing off`);
       resolve();
     });
     repo.start();
