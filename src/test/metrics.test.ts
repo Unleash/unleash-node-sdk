@@ -212,15 +212,12 @@ test('request with customHeadersFunction should take precedence over customHeade
   expect(regEP.isDone()).toBe(true);
 });
 
-test.skip('should respect timeout', async () => {
+test('should respect timeout', async () => {
   await new Promise<void>((resolve, reject) => {
     expect.assertions(2);
     const url = getUrl();
-    // @ts-expect-error
-    nock(url).post(metricsUrl).socketDelay(100).reply(200, '');
-
-    // @ts-expect-error
-    nock(url).post(registerUrl).socketDelay(100).reply(200, '');
+    nock(url).post(metricsUrl).delay(100).reply(200, '');
+    nock(url).post(registerUrl).delay(100).reply(200, '');
 
     // @ts-expect-error
     const metrics = new Metrics({
@@ -229,9 +226,9 @@ test.skip('should respect timeout', async () => {
       timeout: 50,
     });
 
-    metrics.on('error', (err) => {
+    metrics.once('warn', (err) => {
       expect(err).toBeTruthy();
-      expect(err.message.indexOf('ESOCKETTIMEDOUT') > -1).toBe(true);
+      expect(err.message.indexOf('network timeout at') > -1).toBe(true);
       resolve();
     });
     metrics.on('sent', reject);
