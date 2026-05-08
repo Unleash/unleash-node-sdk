@@ -3,7 +3,7 @@ import { writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import nock from 'nock';
-import { assert, expect, test, vi } from 'vitest';
+import { afterEach, assert, expect, test, vi } from 'vitest';
 import type { ClientFeaturesResponse, DeltaEvent, EnhancedFeatureInterface } from '../../feature';
 import Repository from '../../repository';
 import { DefaultBootstrapProvider } from '../../repository/bootstrap-provider';
@@ -54,6 +54,13 @@ function createSSEResponse(events: Array<{ event: string; data: unknown }>) {
     })
     .join('');
 }
+
+afterEach(() => {
+  // vi.clearAllTimers();
+  // vi.clearAllMocks();
+  // vi.useRealTimers();
+  // nock.cleanAll();
+});
 
 test('should fetch from endpoint', async () => {
   const url = 'http://unleash-test-0.app';
@@ -398,7 +405,8 @@ test('should handle 500 request error and emit warn event', () =>
     });
     repo.start();
   }));
-test.skip('should handle 502 request error and emit warn event', () =>
+
+test('should handle 502 request error and emit warn event', () =>
   new Promise<void>((resolve) => {
     const url = 'http://unleash-test-6-502.app';
     nock(url).persist().get('/client/features').reply(502, 'blabla');
@@ -414,14 +422,13 @@ test.skip('should handle 502 request error and emit warn event', () =>
     });
     repo.on('warn', (warn) => {
       expect(warn).toBeTruthy();
-      expect(warn).toEqual(
-        `${url}/client/features responded 502. Waiting for 20ms before trying again.`,
-      );
+      expect(warn).toEqual(`${url}/client/features responded 502. Backing off`);
       resolve();
     });
     repo.start();
   }));
-test.skip('should handle 503 request error and emit warn event', () =>
+
+test('should handle 503 request error and emit warn event', () =>
   new Promise<void>((resolve) => {
     const url = 'http://unleash-test-6-503.app';
     nock(url).persist().get('/client/features').reply(503, 'blabla');
@@ -437,14 +444,13 @@ test.skip('should handle 503 request error and emit warn event', () =>
     });
     repo.on('warn', (warn) => {
       expect(warn).toBeTruthy();
-      expect(warn).toEqual(
-        `${url}/client/features responded 503. Waiting for 20ms before trying again.`,
-      );
+      expect(warn).toEqual(`${url}/client/features responded 503. Backing off`);
       resolve();
     });
     repo.start();
   }));
-test.skip('should handle 504 request error and emit warn event', () =>
+
+test('should handle 504 request error and emit warn event', () =>
   new Promise<void>((resolve) => {
     const url = 'http://unleash-test-6-504.app';
     nock(url).persist().get('/client/features').reply(504, 'blabla');
@@ -460,9 +466,7 @@ test.skip('should handle 504 request error and emit warn event', () =>
     });
     repo.on('warn', (warn) => {
       expect(warn).toBeTruthy();
-      expect(warn).toEqual(
-        `${url}/client/features responded 504. Waiting for 20ms before trying again.`,
-      );
+      expect(warn).toEqual(`${url}/client/features responded 504. Backing off`);
       resolve();
     });
     repo.start();
@@ -520,32 +524,33 @@ test('should handle invalid JSON response', () =>
     repo.on('changed', reject);
     repo.start();
   }));
-/*
-test('should respect timeout', t =>
-    new Promise<void>((resolve, reject) => {
-        const url = 'http://unleash-test-8.app';
-        nock(url)
-            .persist()
-            .get('/client/features')
-            .socketDelay(2000)
-            .reply(200, 'OK');
 
-        const repo = new Repository({
-            url,
-            appName,
-            instanceId,
-            refreshInterval: 0,
-            StorageImpl: MockStorage,
-            timeout: 50,
-        });
-        repo.on('error', err => {
-            expect(err).toBeTruthy();
-            expect(err.message.indexOf('ESOCKETTIMEDOUT') > -1).toBe(true);
-            resolve();
-        });
-        repo.on('data', reject);
-    }));
-*/
+// TODO: bring back this test
+// should we add a `request-timeout` catch on `polling-fetcher`?
+test.skip('should respect timeout', (t) =>
+  new Promise<void>((resolve, reject) => {
+    const url = 'http://unleash-test-8.app';
+    nock(url).persist().get('/client/features').delay(2000).reply(200, 'OK');
+
+    const repo = new Repository({
+      url,
+      appName,
+      instanceId,
+      connectionId,
+      refreshInterval: 1000,
+      bootstrapProvider: new DefaultBootstrapProvider({}, appName, instanceId),
+      storageProvider: new InMemStorageProvider(),
+      mode: { type: 'polling', format: 'full' },
+      timeout: 50,
+    });
+
+    repo.once('error', (err) => {
+      expect(err).toBeTruthy();
+      expect(err.message.indexOf('ECONNRESET') > -1).toBe(true);
+      resolve();
+    });
+    repo.on('data', reject);
+  }));
 
 test('should emit errors on invalid features', () =>
   new Promise<void>((resolve) => {
@@ -1021,9 +1026,7 @@ test('bootstrap should not override load backup-file', async () => {
   expect(repo.getToggle('feature-backup')?.enabled).toEqual(true);
 });
 
-// Skipped because make-fetch-happens actually automatically retries two extra times on 404
-// with a timeout of 1000, this makes us have to wait up to 3 seconds for a single test to succeed
-test.skip('Failing two times and then succeed should decrease interval to 2 times initial interval (404)', async () => {
+test('Failing two times and then succeed should decrease interval to 2 times initial interval (404)', async () => {
   const url = 'http://unleash-test-fail5times.app';
   nock(url).persist().get('/client/features').reply(404);
   const repo = new Repository({
@@ -1065,15 +1068,28 @@ test.skip('Failing two times and then succeed should decrease interval to 2 time
     });
 
   await repo.fetch();
+
   expect(1).toEqual(repo.getFailures());
   expect(20).toEqual(repo.nextFetch());
 });
 
-// Skipped because make-fetch-happens actually automatically retries two extra times on 429
+// make-fetch-happens actually automatically retries two extra times on 429
 // with a timeout of 1000, this makes us have to wait up to 3 seconds for a single test to succeed
+// TODO: unskip it when new transport layer is added on the migration of make-fetch-happen
+// Once we have a new transport with `baseDelay` and `maxBackoffMs` re-enable this test.
 test.skip('Failing two times should increase interval to 3 times initial interval (initial interval + 2 * interval)', async () => {
+  vi.useFakeTimers({
+    toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date'],
+    loopLimit: 15001,
+  });
+
   const url = 'http://unleash-test-fail5times.app';
-  nock(url).persist().get('/client/features').reply(429);
+  nock(url)
+    .persist()
+    .get('/client/features')
+    .times(3) // Handle the 3 retry attempts
+    .reply(429);
+
   const repo = new Repository({
     url,
     appName,
@@ -1084,16 +1100,62 @@ test.skip('Failing two times should increase interval to 3 times initial interva
     storageProvider: new InMemStorageProvider(),
     mode: { type: 'polling', format: 'full' },
   });
-  await repo.fetch();
+
+  try {
+    const p1 = repo.fetch();
+    // await vi.advanceTimersByTimeAsync(999999); // Skip everything
+    await vi.waitFor<void>(() => {
+      timeout: 5000;
+    });
+
+    await vi.runAllTimersAsync();
+    await p1;
+    expect(repo.getFailures()).toEqual(1);
+    expect(repo.nextFetch()).toEqual(20);
+
+    const p2 = repo.fetch();
+    // await vi.runAllTimersAsync();
+    await vi.waitFor<void>(() => {
+      timeout: 5000;
+    });
+
+    await p2;
+    expect(repo.getFailures()).toEqual(2);
+    expect(repo.nextFetch()).toEqual(30);
+  } finally {
+    vi.clearAllTimers();
+    vi.useRealTimers();
+    nock.cleanAll();
+  }
+
+  // fetch 1
+  const p1 = repo.fetch();
+  await vi.runAllTimersAsync();
+
+  await p1;
+
+  // retries 2 extra times with 1000ms + 2000ms delays = ~3 seconds per repo.fetch()
+  // 2 calls ~6sec, 15000ms timeout
+  // await vi.advanceTimersByTimeAsync(15001); // fast-forwards fake time past timeout
+
   expect(1).toEqual(repo.getFailures());
   expect(20).toEqual(repo.nextFetch());
-  await repo.fetch();
+
+  // fetch 1
+  const p2 = repo.fetch();
+  // await vi.advanceTimersByTimeAsync(15001);
+  await vi.runAllTimersAsync();
+
+  await p2;
+
   expect(2).toEqual(repo.getFailures());
   expect(30).toEqual(repo.nextFetch());
 });
 
 // Skipped because make-fetch-happens actually automatically retries two extra times on 429
 // with a timeout of 1000, this makes us have to wait up to 3 seconds for a single test to succeed
+// TODO: unskip it when new transport layer is added on the migration of make-fetch-happen
+// Once we have a new transport with `baseDelay` and `maxBackoffMs` re-enable this test.
 test.skip('Failing two times and then succeed should decrease interval to 2 times initial interval (429)', async () => {
   const url = 'http://unleash-test-fail5times.app';
   nock(url).persist().get('/client/features').reply(429);
