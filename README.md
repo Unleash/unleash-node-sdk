@@ -47,6 +47,64 @@ if (variant.name === 'blue') {
 }
 ```
 
+## Streaming beta
+
+Streaming support is available as a beta feature for non-production customer environments. It is documented and recommended so you can test and validate the behavior early, but it is not recommended for production customer traffic yet.
+
+Streaming only works when the SDK connects to Unleash Enterprise Edge. It is not supported against Unleash Open Source, the regular Unleash API, or non-Enterprise Edge endpoints. Point the SDK `url` at the Enterprise Edge API root and use a valid Edge client token.
+
+Use the Enterprise Edge `/api/` URL as the SDK base URL:
+
+```txt
+https://mycompany.example/edge/api/
+```
+
+The trailing slash is recommended for clarity. If you configure `https://mycompany.example/edge/api` without the trailing slash, the SDK normalizes it to `https://mycompany.example/edge/api/` before connecting. The streaming connection is then opened against `https://mycompany.example/edge/api/client/streaming`.
+
+Enable streaming with `experimentalMode: { type: 'streaming' }`:
+
+```js
+import { startUnleash } from 'unleash-client';
+
+const unleash = await startUnleash({
+  url: 'https://mycompany.example/edge/api/',
+  appName: 'my-node-service',
+  instanceId: process.env.UNLEASH_INSTANCE_ID,
+  customHeaders: {
+    Authorization: process.env.UNLEASH_API_KEY,
+  },
+  experimentalMode: {
+    type: 'streaming',
+  },
+});
+
+const enabled = unleash.isEnabled('my-feature', {
+  userId: 'beta-user',
+});
+```
+
+Streaming failure handling is automatic:
+
+- If the connection drops or receives transient network errors, the SDK reconnects with backoff.
+- If the stream fails repeatedly, the SDK emits a warning and falls back to polling against the same Edge API URL.
+- If Enterprise Edge explicitly asks the SDK to use polling, the SDK switches from streaming to polling automatically.
+- If a stream event cannot be processed, the SDK emits a warning and reconnects to request a full rehydration, so it does not continue from a potentially incomplete event sequence.
+- During reconnects or polling fallback, flag evaluation continues from the SDK's latest known data. If the SDK has not synchronized any data yet, normal default evaluation behavior applies.
+
+You can observe these transitions with SDK events:
+
+```js
+unleash.on('warn', (message) => {
+  console.warn(message);
+});
+
+unleash.on('mode', ({ from, to }) => {
+  console.log(`Unleash SDK switched from ${from} to ${to}`);
+});
+```
+
+For a complete runnable example, see [`examples/streaming.js`](examples/streaming.js).
+
 ## Contributing
 
 ### Local development
