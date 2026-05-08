@@ -414,7 +414,7 @@ test('getMetricsData should return a bucket', () => {
   expect(typeof result.bucket === 'object').toBe(true);
 });
 
-test.skip('should keep metrics if send is failing', async () => {
+test('should keep metrics if send is failing', async () => {
   await new Promise<void>((resolve) => {
     const url = getUrl();
     expect.assertions(4);
@@ -450,6 +450,7 @@ test.skip('should keep metrics if send is failing', async () => {
       expect(metrics.bucket.toggles['toggle-y'].variants.a).toEqual(1);
       resolve();
     });
+
     metrics.start();
   });
 });
