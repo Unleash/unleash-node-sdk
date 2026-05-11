@@ -129,7 +129,7 @@ export const post = ({
   headers,
   json,
   httpOptions,
-}: PostRequestOptions) =>
+}: PostRequestOptions): ReturnType<typeof fetch> =>
   fetch(url, {
     timeout: timeout || 10000,
     method: 'POST',
@@ -158,7 +158,7 @@ export const get = ({
   headers,
   httpOptions,
   supportedSpecVersion,
-}: GetRequestOptions) =>
+}: GetRequestOptions): ReturnType<typeof fetch> =>
   fetch(url, {
     method: 'GET',
     timeout: timeout || 10_000,

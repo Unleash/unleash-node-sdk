@@ -11,35 +11,39 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [20.x, 22.x, 24.x]
+        node-version: [22.x, 24.x, 26.x]
 
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v5
       - name: Setup node
         uses: actions/setup-node@v6
         with:
           node-version: ${{matrix.node-version}}
-          cache: yarn
-      - name: Yarn
-        run: yarn
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
       - name: Test
-        run: yarn lint && yarn test
+        run: pnpm lint && pnpm test
 
   report-coverage:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v5
       - name: Setup node
         uses: actions/setup-node@v6
         with:
           node-version: 22.x
-          cache: yarn
-      - name: Yarn
-        run: yarn
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
       - name: Test
-        run: yarn coverage
+        run: pnpm coverage
       - name: Coveralls
         uses: coverallsapp/github-action@v2
         with:
@@ -53,13 +57,15 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v5
       - name: Setup node
         uses: actions/setup-node@v6
         with:
           node-version: 20.x
-          cache: yarn
-      - name: Yarn
-        run: yarn
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
       - name: Pack SDK tarball
         run: |
           SDK_TARBALL="$(npm pack --silent --ignore-scripts | tail -n 1)"
