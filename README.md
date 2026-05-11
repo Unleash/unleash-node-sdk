@@ -56,7 +56,7 @@ Clone the repository and install dependencies:
 ```bash
 git clone https://github.com/Unleash/unleash-node-sdk.git
 cd unleash-node-sdk
-yarn install
+pnpm install
 ```
 
 The [client specification](https://github.com/Unleash/client-specification) test data is included as a dev dependency (`@unleash/client-specification`). It defines a shared contract that all Unleash SDKs test against.
@@ -64,8 +64,8 @@ The [client specification](https://github.com/Unleash/client-specification) test
 ### Running tests
 
 ```bash
-yarn test        # run tests
-yarn coverage    # run tests with coverage
+pnpm test        # run tests
+pnpm coverage    # run tests with coverage
 ```
 
 ### Benchmarking
@@ -73,7 +73,7 @@ yarn coverage    # run tests with coverage
 Run the feature flag evaluation benchmark:
 
 ```bash
-yarn bench:isEnabled
+pnpm bench:isEnabled
 ```
 
 ### Code style and formatting
@@ -81,14 +81,14 @@ yarn bench:isEnabled
 The project uses [Biome](https://biomejs.dev/) for linting and formatting:
 
 ```bash
-yarn lint        # check for issues
-yarn lint:fix    # auto-fix issues
+pnpm lint        # check for issues
+pnpm lint:fix    # auto-fix issues
 ```
 
 ### Building
 
 ```bash
-yarn build       # compile TypeScript to lib/
+pnpm build       # compile TypeScript to lib/
 ```
 
 ## License
