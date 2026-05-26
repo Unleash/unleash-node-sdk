@@ -1077,6 +1077,27 @@ test('should not report dependent feature metrics', async () => {
   });
 });
 
+test('should emit correctly formatted warn for isEnabled before initialized', () => {
+  const url = mockNetwork();
+  const instance = new Unleash({
+    appName: 'foo',
+    disableMetrics: true,
+    skipInstanceCountWarning: true,
+    url,
+    backupPath: getRandomBackupPath(),
+  });
+
+  const warnings: string[] = [];
+  instance.on('warn', (msg) => warnings.push(msg));
+
+  expect(instance.isEnabled('my-feature')).toBe(false);
+  expect(warnings).toHaveLength(1);
+  expect(warnings[0]).toContain("isEnabled('my-feature')");
+  expect(warnings[0]).toContain('false');
+
+  instance.destroy();
+});
+
 test('should emit correctly serialized warn for getVariant before initialized', () => {
   const url = mockNetwork();
   const instance = new Unleash({
@@ -1092,7 +1113,7 @@ test('should emit correctly serialized warn for getVariant before initialized', 
 
   instance.getVariant('my-feature');
   expect(warnings).toHaveLength(1);
-  expect(warnings[0]).toContain('getVariant(my-feature)');
+  expect(warnings[0]).toContain("getVariant('my-feature')");
   expect(warnings[0]).not.toContain('[object Object]');
   expect(warnings[0]).toContain('"name":"disabled"');
 
@@ -1115,7 +1136,7 @@ test('should emit correctly serialized warn for getVariant with custom fallback 
   const fallback = { name: 'custom', enabled: true, feature_enabled: true };
   instance.getVariant('my-feature', {}, fallback);
   expect(warnings).toHaveLength(1);
-  expect(warnings[0]).toContain('getVariant(my-feature)');
+  expect(warnings[0]).toContain("getVariant('my-feature')");
   expect(warnings[0]).not.toContain('[object Object]');
   expect(warnings[0]).toContain('"name":"custom"');
 
@@ -1137,7 +1158,7 @@ test('should emit correctly serialized warn for forceGetVariant before initializ
 
   instance.forceGetVariant('my-feature');
   expect(warnings).toHaveLength(1);
-  expect(warnings[0]).toContain('forceGetVariant(my-feature)');
+  expect(warnings[0]).toContain("forceGetVariant('my-feature')");
   expect(warnings[0]).not.toContain('[object Object]');
   expect(warnings[0]).toContain('"name":"disabled"');
 

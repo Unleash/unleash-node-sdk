@@ -291,7 +291,7 @@ export class Unleash extends EventEmitter {
       result = fallbackFunc();
       this.emit(
         UnleashEvents.Warn,
-        `Unleash has not been initialized yet. isEnabled(${name}) defaulted to ${result}`,
+        `Unleash has not been initialized yet. isEnabled('${name}') defaulted to ${result}`,
       );
     }
     this.count(name, result);
@@ -314,7 +314,7 @@ export class Unleash extends EventEmitter {
           : { ...defaultVariant, featureEnabled: defaultVariant.feature_enabled ?? false };
       this.emit(
         UnleashEvents.Warn,
-        `Unleash has not been initialized yet. getVariant(${name}) defaulted to ${JSON.stringify(variant)}`,
+        `Unleash has not been initialized yet. getVariant('${name}') defaulted to ${JSON.stringify(variant)}`,
       );
     }
 
@@ -339,7 +339,7 @@ export class Unleash extends EventEmitter {
           : defaultVariant;
       this.emit(
         UnleashEvents.Warn,
-        `Unleash has not been initialized yet. forceGetVariant(${name}) defaulted to ${JSON.stringify(variant)}`,
+        `Unleash has not been initialized yet. forceGetVariant('${name}') defaulted to ${JSON.stringify(variant)}`,
       );
     }
     if (variant.name) {
