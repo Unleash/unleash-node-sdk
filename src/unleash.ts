@@ -314,7 +314,7 @@ export class Unleash extends EventEmitter {
           : { ...defaultVariant, featureEnabled: defaultVariant.feature_enabled ?? false };
       this.emit(
         UnleashEvents.Warn,
-        `Unleash has not been initialized yet. isEnabled(${name}) defaulted to ${variant}`,
+        `Unleash has not been initialized yet. getVariant(${name}) defaulted to ${JSON.stringify(variant)}`,
       );
     }
 
@@ -339,7 +339,7 @@ export class Unleash extends EventEmitter {
           : defaultVariant;
       this.emit(
         UnleashEvents.Warn,
-        `Unleash has not been initialized yet. isEnabled(${name}) defaulted to ${variant}`,
+        `Unleash has not been initialized yet. forceGetVariant(${name}) defaulted to ${JSON.stringify(variant)}`,
       );
     }
     if (variant.name) {
