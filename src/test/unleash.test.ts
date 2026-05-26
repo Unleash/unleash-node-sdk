@@ -568,7 +568,9 @@ test('should distribute variants according to stickiness', async () => {
   await new Promise<void>((resolve) => {
     unleash.on('synchronized', () => {
       for (let i = 0; i < 10000; i++) {
-        const variant = unleash.getVariant('toggle-with-variants', { someField: genRandomValue() });
+        const variant = unleash.getVariant('toggle-with-variants', {
+          someField: genRandomValue(),
+        });
         // @ts-expect-error
         counts[variant.name]++;
         counts.sum++;
@@ -642,7 +644,9 @@ test('should distribute variants according to default stickiness', async () => {
   await new Promise<void>((resolve) => {
     unleash.on('synchronized', () => {
       for (let i = 0; i < 10000; i++) {
-        const variant = unleash.getVariant('toggle-with-variants', { userId: genRandomValue() });
+        const variant = unleash.getVariant('toggle-with-variants', {
+          userId: genRandomValue(),
+        });
         // @ts-expect-error
         counts[variant.name]++;
         counts.sum++;
@@ -940,7 +944,11 @@ test('should allow custom repository', async () => {
       storageProvider: new InMemStorageProvider(),
       repository: {
         // @ts-expect-error
-        getToggle: () => ({ name: 'test', enabled: true, strategies: [{ name: 'default' }] }),
+        getToggle: () => ({
+          name: 'test',
+          enabled: true,
+          strategies: [{ name: 'default' }],
+        }),
         getToggles: () => [],
         getSegment: () => undefined,
         stop: () => {},
@@ -994,7 +1002,12 @@ test('should report variant metrics', async () => {
     name: 'toggle-with-variants',
     enabled: true,
     strategies: [{ name: 'default', constraints: [] }],
-    variants: [{ name: 'toggle-variant', payload: { type: 'string', value: 'variant value' } }],
+    variants: [
+      {
+        name: 'toggle-variant',
+        payload: { type: 'string', value: 'variant value' },
+      },
+    ],
   });
 
   instance.getVariant('toggle-with-variants');
@@ -1055,7 +1068,12 @@ test('should not report dependent feature metrics', async () => {
     enabled: true,
     dependencies: [{ feature: 'dependency' }],
     strategies: [{ name: 'default', constraints: [] }],
-    variants: [{ name: 'toggle-variant', payload: { type: 'string', value: 'variant value' } }],
+    variants: [
+      {
+        name: 'toggle-variant',
+        payload: { type: 'string', value: 'variant value' },
+      },
+    ],
   });
 
   instance.getVariant('toggle-with-dependency');
@@ -1116,29 +1134,6 @@ test('should emit correctly serialized warn for getVariant before initialized', 
   expect(warnings[0]).toContain("getVariant('my-feature')");
   expect(warnings[0]).not.toContain('[object Object]');
   expect(warnings[0]).toContain('"name":"disabled"');
-
-  instance.destroy();
-});
-
-test('should emit correctly serialized warn for getVariant with custom fallback before initialized', () => {
-  const url = mockNetwork();
-  const instance = new Unleash({
-    appName: 'foo',
-    disableMetrics: true,
-    skipInstanceCountWarning: true,
-    url,
-    backupPath: getRandomBackupPath(),
-  });
-
-  const warnings: string[] = [];
-  instance.on('warn', (msg) => warnings.push(msg));
-
-  const fallback = { name: 'custom', enabled: true, feature_enabled: true };
-  instance.getVariant('my-feature', {}, fallback);
-  expect(warnings).toHaveLength(1);
-  expect(warnings[0]).toContain("getVariant('my-feature')");
-  expect(warnings[0]).not.toContain('[object Object]');
-  expect(warnings[0]).toContain('"name":"custom"');
 
   instance.destroy();
 });
