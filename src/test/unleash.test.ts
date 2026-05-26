@@ -568,9 +568,7 @@ test('should distribute variants according to stickiness', async () => {
   await new Promise<void>((resolve) => {
     unleash.on('synchronized', () => {
       for (let i = 0; i < 10000; i++) {
-        const variant = unleash.getVariant('toggle-with-variants', {
-          someField: genRandomValue(),
-        });
+        const variant = unleash.getVariant('toggle-with-variants', { someField: genRandomValue() });
         // @ts-expect-error
         counts[variant.name]++;
         counts.sum++;
@@ -644,9 +642,7 @@ test('should distribute variants according to default stickiness', async () => {
   await new Promise<void>((resolve) => {
     unleash.on('synchronized', () => {
       for (let i = 0; i < 10000; i++) {
-        const variant = unleash.getVariant('toggle-with-variants', {
-          userId: genRandomValue(),
-        });
+        const variant = unleash.getVariant('toggle-with-variants', { userId: genRandomValue() });
         // @ts-expect-error
         counts[variant.name]++;
         counts.sum++;
@@ -944,11 +940,7 @@ test('should allow custom repository', async () => {
       storageProvider: new InMemStorageProvider(),
       repository: {
         // @ts-expect-error
-        getToggle: () => ({
-          name: 'test',
-          enabled: true,
-          strategies: [{ name: 'default' }],
-        }),
+        getToggle: () => ({ name: 'test', enabled: true, strategies: [{ name: 'default' }] }),
         getToggles: () => [],
         getSegment: () => undefined,
         stop: () => {},
@@ -1002,12 +994,7 @@ test('should report variant metrics', async () => {
     name: 'toggle-with-variants',
     enabled: true,
     strategies: [{ name: 'default', constraints: [] }],
-    variants: [
-      {
-        name: 'toggle-variant',
-        payload: { type: 'string', value: 'variant value' },
-      },
-    ],
+    variants: [{ name: 'toggle-variant', payload: { type: 'string', value: 'variant value' } }],
   });
 
   instance.getVariant('toggle-with-variants');
@@ -1068,12 +1055,7 @@ test('should not report dependent feature metrics', async () => {
     enabled: true,
     dependencies: [{ feature: 'dependency' }],
     strategies: [{ name: 'default', constraints: [] }],
-    variants: [
-      {
-        name: 'toggle-variant',
-        payload: { type: 'string', value: 'variant value' },
-      },
-    ],
+    variants: [{ name: 'toggle-variant', payload: { type: 'string', value: 'variant value' } }],
   });
 
   instance.getVariant('toggle-with-dependency');
