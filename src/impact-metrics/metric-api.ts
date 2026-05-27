@@ -58,8 +58,11 @@ export class MetricsAPI extends EventEmitter {
   }
 
   /**
-   * @param flagContext - @deprecated This parameter will be removed in a future release.
+   * @deprecated The flagContext parameter will be removed in a future release.
+   *             Call without flagContext.
    */
+  incrementCounter(name: string, value: number | undefined, flagContext: MetricFlagContext): void;
+  incrementCounter(name: string, value?: number): void;
   incrementCounter(name: string, value?: number, flagContext?: MetricFlagContext): void {
     const counter = this.metricRegistry.getCounter(name);
     if (!counter) {
@@ -81,8 +84,11 @@ export class MetricsAPI extends EventEmitter {
   }
 
   /**
-   * @param flagContext - @deprecated This parameter will be removed in a future release.
+   * @deprecated The flagContext parameter will be removed in a future release.
+   *             Call without flagContext.
    */
+  updateGauge(name: string, value: number, flagContext: MetricFlagContext): void;
+  updateGauge(name: string, value: number): void;
   updateGauge(name: string, value: number, flagContext?: MetricFlagContext): void {
     const gauge = this.metricRegistry.getGauge(name);
     if (!gauge) {
@@ -101,8 +107,11 @@ export class MetricsAPI extends EventEmitter {
   }
 
   /**
-   * @param flagContext - @deprecated This parameter will be removed in a future release.
+   * @deprecated The flagContext parameter will be removed in a future release.
+   *             Call without flagContext.
    */
+  observeHistogram(name: string, value: number, flagContext: MetricFlagContext): void;
+  observeHistogram(name: string, value: number): void;
   observeHistogram(name: string, value: number, flagContext?: MetricFlagContext): void {
     const histogram = this.metricRegistry.getHistogram(name);
     if (!histogram) {

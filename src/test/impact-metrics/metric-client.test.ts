@@ -108,7 +108,7 @@ test('should increment counter with valid parameters', () => {
   const staticContext = { appName: 'my-app', environment: 'dev' };
   const api = new MetricsAPI(fakeRegistry, fakeVariantResolver(), staticContext);
 
-  api.incrementCounter('valid_counter', 5, { flagNames: ['featureX'], context: staticContext });
+  api.incrementCounter('valid_counter', 5);
   expect(counterIncremented, 'Counter should be incremented with valid parameters').toBe(true);
   expect(recordedLabels).toStrictEqual({
     appName: 'my-app',
