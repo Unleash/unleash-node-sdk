@@ -91,13 +91,11 @@ test('should register a gauge with valid name and help', () => {
 });
 
 test('should increment counter with valid parameters', () => {
-  let counterIncremented = false;
-  let recordedLabels: MetricLabels = {};
+  const calls: MetricLabels[] = [];
 
   const fakeCounter = {
     inc: (_value: number, labels: MetricLabels) => {
-      counterIncremented = true;
-      recordedLabels = labels;
+      calls.push(labels);
     },
   };
 
@@ -109,12 +107,12 @@ test('should increment counter with valid parameters', () => {
   const api = new MetricsAPI(fakeRegistry, fakeVariantResolver(), staticContext);
 
   api.incrementCounter('valid_counter', 5);
-  expect(counterIncremented, 'Counter should be incremented with valid parameters').toBe(true);
-  expect(recordedLabels).toStrictEqual({
-    appName: 'my-app',
-    environment: 'dev',
-    featureX: 'enabled',
-  });
+  api.incrementCounter('valid_counter', 5, { flagNames: ['featureX'], context: staticContext });
+
+  expect(calls).toStrictEqual([
+    { appName: 'my-app', environment: 'dev' },
+    { appName: 'my-app', environment: 'dev', featureX: 'enabled' },
+  ]);
 });
 
 test('should set gauge with valid parameters', () => {
