@@ -84,7 +84,8 @@
     "json5": "^2.0.0",
     "qs": "^6.5.3",
     "minimatch": "^9.0.0",
-    "semver": "^7.5.3"
+    "semver": "^7.5.3",
+    "picomatch": "^4.0.4"
   },
   "lint-staged": {
     "*.{js,ts,jsx,tsx,json,md}": [
