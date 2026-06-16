@@ -19,7 +19,7 @@ permissions:
 
 jobs:
   from-template:
-    uses: Unleash/.github/.github/workflows/npm-release.yml@v3.0.1
+    uses: Unleash/.github/.github/workflows/npm-release.yml@v4.0.2
     with:
       version: ${{ github.event.inputs.version }}
       tag: ${{ github.event.inputs.tag }}
