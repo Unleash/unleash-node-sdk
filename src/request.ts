@@ -29,6 +29,16 @@ export interface Data {
   [key: string]: unknown;
 }
 
+export interface RequestResponse {
+  ok: boolean;
+  status: number;
+  headers: {
+    get(name: string): string | null;
+  };
+  json(): Promise<unknown>;
+  text(): Promise<string>;
+}
+
 export interface PostRequestOptions extends RequestOptions {
   json: Data;
   appName?: string;
@@ -129,7 +139,7 @@ export const post = ({
   headers,
   json,
   httpOptions,
-}: PostRequestOptions) =>
+}: PostRequestOptions): Promise<RequestResponse> =>
   fetch(url, {
     timeout: timeout || 10000,
     method: 'POST',
@@ -158,7 +168,7 @@ export const get = ({
   headers,
   httpOptions,
   supportedSpecVersion,
-}: GetRequestOptions) =>
+}: GetRequestOptions): Promise<RequestResponse> =>
   fetch(url, {
     method: 'GET',
     timeout: timeout || 10_000,

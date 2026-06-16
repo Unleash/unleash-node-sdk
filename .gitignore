@@ -25,6 +25,7 @@ build/Release
 
 # typescript lives in src, output in lib
 lib/
+sbom.cdx.json
 .vscode
 
 # test files
