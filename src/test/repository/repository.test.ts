@@ -527,7 +527,7 @@ test('should handle invalid JSON response', () =>
 
 // TODO: bring back this test
 // should we add a `request-timeout` catch on `polling-fetcher`?
-test.skip('should respect timeout', (t) =>
+test.skip('should respect timeout', (_t) =>
   new Promise<void>((resolve, reject) => {
     const url = 'http://unleash-test-8.app';
     nock(url).persist().get('/client/features').delay(2000).reply(200, 'OK');
@@ -1104,9 +1104,6 @@ test.skip('Failing two times should increase interval to 3 times initial interva
   try {
     const p1 = repo.fetch();
     // await vi.advanceTimersByTimeAsync(999999); // Skip everything
-    await vi.waitFor<void>(() => {
-      timeout: 5000;
-    });
 
     await vi.runAllTimersAsync();
     await p1;
@@ -1115,9 +1112,6 @@ test.skip('Failing two times should increase interval to 3 times initial interva
 
     const p2 = repo.fetch();
     // await vi.runAllTimersAsync();
-    await vi.waitFor<void>(() => {
-      timeout: 5000;
-    });
 
     await p2;
     expect(repo.getFailures()).toEqual(2);

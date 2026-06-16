@@ -1,0 +1,14 @@
+allowBuilds:
+  esbuild: true
+onlyBuiltDependencies:
+  - esbuild
+overrides:
+  ansi-regex: ^5.0.1
+  debug: ^4.0.0
+  braces: ^3.0.3
+  ip-address: ^10.0.0
+  json-schema: ^0.4.0
+  json5: ^2.0.0
+  qs: ^6.5.3
+  minimatch: ^9.0.0
+  semver: ^7.5.3

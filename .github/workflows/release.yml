@@ -11,7 +11,7 @@ on:
         description: NPM tag
         required: false
         type: string
-        default: 'latest'
+        default: "latest"
 
 permissions:
   contents: write
@@ -19,10 +19,47 @@ permissions:
 
 jobs:
   from-template:
-    uses: Unleash/.github/.github/workflows/npm-release.yml@v3.0.1
+    uses: Unleash/.github/.github/workflows/npm-release.yml@v4.0.2
     with:
       version: ${{ github.event.inputs.version }}
       tag: ${{ github.event.inputs.tag }}
     secrets:
       UNLEASH_BOT_APP_ID: ${{ secrets.UNLEASH_BOT_APP_ID }}
       UNLEASH_BOT_PRIVATE_KEY: ${{ secrets.UNLEASH_BOT_PRIVATE_KEY }}
+
+  sbom:
+    needs: from-template
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Resolve release tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ github.event.inputs.version }}
+        run: |
+          if gh release view "v${VERSION}" >/dev/null 2>&1; then
+            echo "RELEASE_TAG=v${VERSION}" >> "$GITHUB_ENV"
+          else
+            gh release view "${VERSION}" >/dev/null
+            echo "RELEASE_TAG=${VERSION}" >> "$GITHUB_ENV"
+          fi
+      - name: Checkout release tag
+        run: |
+          git fetch --depth=1 origin "refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}"
+          git checkout "${RELEASE_TAG}"
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+      - name: Setup node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22.x
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Generate SBOM
+        run: pnpm run sbom
+      - name: Attach SBOM to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${RELEASE_TAG}" sbom.cdx.json --clobber
