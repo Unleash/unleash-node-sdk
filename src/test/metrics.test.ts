@@ -411,6 +411,49 @@ test('getMetricsData should return a bucket', () => {
   expect(typeof result.bucket === 'object').toBe(true);
 });
 
+test('sdkFlavor exists in both register and metrics payloads when set', () => {
+  const url = getUrl();
+  // @ts-expect-error partial options for test
+  const metrics = new Metrics({
+    url,
+    sdkFlavor: 'unleash-openfeature-node-provider',
+    sdkFlavorVersion: '1.2.3',
+  });
+  metrics.start();
+
+  const registration = metrics.getClientData();
+
+  expect(registration.sdkFlavor).toBe('unleash-openfeature-node-provider');
+  expect(registration.sdkFlavorVersion).toBe('1.2.3');
+  expect(registration.sdkVersion).not.toBe(registration.sdkFlavorVersion); // sdk version never replaced!
+
+  const metricsData = metrics.createMetricsData([]);
+
+  expect(metricsData.sdkFlavor).toBe('unleash-openfeature-node-provider');
+  expect(metricsData.sdkFlavorVersion).toBe('1.2.3');
+});
+
+test('sdkFlavor is omitted from payloads when unset', () => {
+  const url = getUrl();
+  // @ts-expect-error partial options for test
+  const metrics = new Metrics({
+    url,
+  });
+  metrics.start();
+
+  const registration = metrics.getClientData();
+
+  expect(registration.sdkFlavor).toBeUndefined();
+  expect(registration.sdkFlavorVersion).toBeUndefined();
+  expect(JSON.parse(JSON.stringify(registration))).not.toHaveProperty('sdkFlavor');
+  expect(JSON.parse(JSON.stringify(registration))).not.toHaveProperty('sdkFlavorVersion');
+
+  const metricsData = metrics.createMetricsData([]);
+
+  expect(JSON.parse(JSON.stringify(metricsData))).not.toHaveProperty('sdkFlavor');
+  expect(JSON.parse(JSON.stringify(metricsData))).not.toHaveProperty('sdkFlavorVersion');
+});
+
 test('should keep metrics if send is failing', async () => {
   await new Promise<void>((resolve) => {
     const url = getUrl();
