@@ -180,6 +180,71 @@ test('should send content-type header', async () => {
   metrics.stop();
 });
 
+test('sdkFlavor exists in the register and metrics request bodies', async () => {
+  const url = getUrl();
+  expect.assertions(2);
+
+  const regEP = nock(url)
+    .post(
+      registerUrl,
+      (body) =>
+        body.sdkFlavor === 'unleash-openfeature-node-provider' &&
+        body.sdkFlavorVersion === '1.2.3' &&
+        body.sdkVersion !== body.sdkFlavorVersion, // the SDK version is still there
+    )
+    .reply(200, '');
+
+  const metricsEP = nock(url)
+    .post(
+      metricsUrl,
+      (body) =>
+        body.sdkFlavor === 'unleash-openfeature-node-provider' && body.sdkFlavorVersion === '1.2.3',
+    )
+    .reply(200, '');
+
+  // @ts-expect-error partial options for test
+  const metrics = new Metrics({
+    url,
+    metricsInterval: 50,
+    sdkFlavor: 'unleash-openfeature-node-provider',
+    sdkFlavorVersion: '1.2.3',
+  });
+
+  metrics.count('toggle-x', true);
+  await metrics.registerInstance();
+  await metrics.sendMetrics();
+
+  expect(regEP.isDone()).toBe(true);
+  expect(metricsEP.isDone()).toBe(true);
+  metrics.stop();
+});
+
+test('sdkFlavor is absent from request bodies when not configured', async () => {
+  const url = getUrl();
+  expect.assertions(2);
+
+  const regEP = nock(url)
+    .post(registerUrl, (body) => !('sdkFlavor' in body) && !('sdkFlavorVersion' in body))
+    .reply(200, '');
+  const metricsEP = nock(url)
+    .post(metricsUrl, (body) => !('sdkFlavor' in body) && !('sdkFlavorVersion' in body))
+    .reply(200, '');
+
+  // @ts-expect-error partial options for test
+  const metrics = new Metrics({
+    url,
+    metricsInterval: 50,
+  });
+
+  metrics.count('toggle-x', true);
+  await metrics.registerInstance();
+  await metrics.sendMetrics();
+
+  expect(regEP.isDone()).toBe(true);
+  expect(metricsEP.isDone()).toBe(true);
+  metrics.stop();
+});
+
 test('request with customHeadersFunction should take precedence over customHeaders', async () => {
   const url = getUrl();
   expect.assertions(2);
