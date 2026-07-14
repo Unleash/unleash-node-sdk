@@ -81,6 +81,8 @@ export class Unleash extends EventEmitter {
     disableAutoStart = false,
     skipInstanceCountWarning = false,
     experimentalMode = { type: 'polling', format: 'full' },
+    sdkFlavor,
+    sdkFlavorVersion,
   }: UnleashConfig) {
     super();
 
@@ -186,6 +188,8 @@ export class Unleash extends EventEmitter {
       timeout,
       httpOptions,
       metricRegistry: this.metricRegistry,
+      sdkFlavor,
+      sdkFlavorVersion,
     });
 
     this.impactMetrics = new MetricsAPI(
