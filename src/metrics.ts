@@ -395,6 +395,8 @@ export default class Metrics extends EventEmitter {
       platformVersion: this.platformData.version,
       yggdrasilVersion: null,
       specVersion: SUPPORTED_SPEC_VERSION,
+      sdkFlavor: this.sdkFlavor,
+      sdkFlavorVersion: this.sdkFlavorVersion,
     };
 
     if (impactMetrics.length > 0) {
@@ -435,6 +437,8 @@ export default class Metrics extends EventEmitter {
       platformVersion: this.platformData.version,
       yggdrasilVersion: null,
       specVersion: SUPPORTED_SPEC_VERSION,
+      sdkFlavor: this.sdkFlavor,
+      sdkFlavorVersion: this.sdkFlavorVersion,
     };
   }
 
