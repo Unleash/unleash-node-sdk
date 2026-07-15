@@ -34,4 +34,6 @@ export interface UnleashConfig {
   disableAutoStart?: boolean;
   skipInstanceCountWarning?: boolean;
   experimentalMode?: Mode;
+  sdkFlavor?: string;
+  sdkFlavorVersion?: string;
 }

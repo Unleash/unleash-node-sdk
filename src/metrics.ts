@@ -23,6 +23,8 @@ export interface MetricsOptions {
   timeout?: number;
   httpOptions?: HttpOptions;
   metricRegistry?: ImpactMetricsDataSource;
+  sdkFlavor?: string;
+  sdkFlavorVersion?: string;
 }
 
 interface VariantBucket {
@@ -64,6 +66,8 @@ interface BaseMetricsData {
   platformVersion: string;
   yggdrasilVersion: null;
   specVersion: string;
+  sdkFlavor?: string;
+  sdkFlavorVersion?: string;
 }
 
 interface MetricsData extends BaseMetricsData {
@@ -117,6 +121,10 @@ export default class Metrics extends EventEmitter {
 
   private metricRegistry?: ImpactMetricsDataSource;
 
+  private sdkFlavor?: string;
+
+  private sdkFlavorVersion?: string;
+
   constructor({
     appName,
     instanceId,
@@ -131,6 +139,8 @@ export default class Metrics extends EventEmitter {
     timeout,
     httpOptions,
     metricRegistry,
+    sdkFlavor,
+    sdkFlavorVersion,
   }: MetricsOptions) {
     super();
     this.disabled = disableMetrics;
@@ -150,6 +160,8 @@ export default class Metrics extends EventEmitter {
     this.httpOptions = httpOptions;
     this.platformData = this.getPlatformData();
     this.metricRegistry = metricRegistry;
+    this.sdkFlavor = sdkFlavor;
+    this.sdkFlavorVersion = sdkFlavorVersion;
   }
 
   private getAppliedJitter(): number {
@@ -383,6 +395,8 @@ export default class Metrics extends EventEmitter {
       platformVersion: this.platformData.version,
       yggdrasilVersion: null,
       specVersion: SUPPORTED_SPEC_VERSION,
+      sdkFlavor: this.sdkFlavor,
+      sdkFlavorVersion: this.sdkFlavorVersion,
     };
 
     if (impactMetrics.length > 0) {
@@ -423,6 +437,8 @@ export default class Metrics extends EventEmitter {
       platformVersion: this.platformData.version,
       yggdrasilVersion: null,
       specVersion: SUPPORTED_SPEC_VERSION,
+      sdkFlavor: this.sdkFlavor,
+      sdkFlavorVersion: this.sdkFlavorVersion,
     };
   }
 
