@@ -15,6 +15,13 @@ const appName = 'foo';
 const instanceId = 'bar';
 const connectionId = 'baz';
 
+const activeRepositories: Repository[] = [];
+function newRepository(options: ConstructorParameters<typeof Repository>[0]): Repository {
+  const repository = new Repository(options);
+  activeRepositories.push(repository);
+  return repository;
+}
+
 // biome-ignore lint/suspicious/noExplicitAny: be relaxed in tests
 function setup(url: string, toggles: any[], headers: Record<string, string> = {}) {
   return nock(url).persist().get('/client/features').reply(200, { features: toggles }, headers);
@@ -56,10 +63,11 @@ function createSSEResponse(events: Array<{ event: string; data: unknown }>) {
 }
 
 afterEach(() => {
-  // vi.clearAllTimers();
-  // vi.clearAllMocks();
-  // vi.useRealTimers();
-  // nock.cleanAll();
+  // Stop any repositories the test left running so their timers don't fire into later tests
+  for (const repository of activeRepositories.splice(0)) {
+    repository.stop();
+  }
+  nock.cleanAll();
 });
 
 test('should fetch from endpoint', async () => {
@@ -75,7 +83,7 @@ test('should fetch from endpoint', async () => {
   };
 
   setup(url, [feature]);
-  const repo = new Repository({
+  const repo = newRepository({
     url,
     appName,
     instanceId,
@@ -110,7 +118,7 @@ test('should fetch from endpoint', async () => {
 test('should poll for changes', async () => {
   const url = 'http://unleash-test-2.app';
   setup(url, []);
-  const repo = new Repository({
+  const repo = newRepository({
     url,
     appName,
     instanceId,
@@ -142,7 +150,7 @@ test('should retry even if custom header function fails', async () =>
   await new Promise<void>((resolve) => {
     const url = 'http://unleash-test-2-custom-headers.app';
     setup(url, []);
-    const repo = new Repository({
+    const repo = newRepository({
       url,
       appName,
       instanceId,
@@ -174,7 +182,7 @@ test('should store etag', async () => {
   await new Promise<void>((resolve) => {
     const url = 'http://unleash-test-3.app';
     setup(url, [], { Etag: '12345' });
-    const repo = new Repository({
+    const repo = newRepository({
       url,
       appName,
       instanceId,
@@ -206,7 +214,7 @@ test('should request with etag', async () => {
       .reply(200, { features: [] }, { Etag: '12345-2' });
     nock(url).matchHeader('If-None-Match', '12345-2').persist().get('/client/features').reply(304);
 
-    const repo = new Repository({
+    const repo = newRepository({
       url,
       appName,
       instanceId,
@@ -242,7 +250,7 @@ test('should request with correct custom and unleash headers', async () => {
       .get('/client/features')
       .reply(200, { features: [] }, { Etag: '12345-3' });
 
-    const repo = new Repository({
+    const repo = newRepository({
       url,
       appName,
       instanceId,
@@ -282,7 +290,7 @@ test('request with customHeadersFunction should take precedence over customHeade
       .get('/client/features')
       .reply(200, { features: [] }, { Etag: '12345-3' });
 
-    const repo = new Repository({
+    const repo = newRepository({
       url,
       appName,
       instanceId,
@@ -312,7 +320,7 @@ test('request with customHeadersFunction should take precedence over customHeade
 test('should handle 429 request error and emit warn event', async () => {
   const url = 'http://unleash-test-6-429.app';
   nock(url).persist().get('/client/features').reply(429, 'blabla');
-  const repo = new Repository({
+  const repo = newRepository({
     url,
     appName,
     instanceId,
@@ -339,7 +347,7 @@ test('should handle 401 request error and emit error event', async () => {
   await new Promise<void>((resolve) => {
     const url = 'http://unleash-test-6-401.app';
     nock(url).persist().get('/client/features').reply(401, 'blabla');
-    const repo = new Repository({
+    const repo = newRepository({
       url,
       appName,
       instanceId,
@@ -364,7 +372,7 @@ test('should handle 403 request error and emit error event', async () =>
   await new Promise<void>((resolve) => {
     const url = 'http://unleash-test-6-403.app';
     nock(url).persist().get('/client/features').reply(403, 'blabla');
-    const repo = new Repository({
+    const repo = newRepository({
       url,
       appName,
       instanceId,
@@ -388,7 +396,7 @@ test('should handle 500 request error and emit warn event', () =>
   new Promise<void>((resolve) => {
     const url = 'http://unleash-test-6-500.app';
     nock(url).persist().get('/client/features').reply(500, 'blabla');
-    const repo = new Repository({
+    const repo = newRepository({
       url,
       appName,
       instanceId,
@@ -410,7 +418,7 @@ test('should handle 502 request error and emit warn event', () =>
   new Promise<void>((resolve) => {
     const url = 'http://unleash-test-6-502.app';
     nock(url).persist().get('/client/features').reply(502, 'blabla');
-    const repo = new Repository({
+    const repo = newRepository({
       url,
       appName,
       instanceId,
@@ -432,7 +440,7 @@ test('should handle 503 request error and emit warn event', () =>
   new Promise<void>((resolve) => {
     const url = 'http://unleash-test-6-503.app';
     nock(url).persist().get('/client/features').reply(503, 'blabla');
-    const repo = new Repository({
+    const repo = newRepository({
       url,
       appName,
       instanceId,
@@ -454,7 +462,7 @@ test('should handle 504 request error and emit warn event', () =>
   new Promise<void>((resolve) => {
     const url = 'http://unleash-test-6-504.app';
     nock(url).persist().get('/client/features').reply(504, 'blabla');
-    const repo = new Repository({
+    const repo = newRepository({
       url,
       appName,
       instanceId,
@@ -479,7 +487,7 @@ test('should handle 304 as silent ok', () => {
     const url = 'http://unleash-test-6.app';
     nock(url).persist().get('/client/features').reply(304, '');
 
-    const repo = new Repository({
+    const repo = newRepository({
       url,
       appName,
       instanceId,
@@ -501,7 +509,7 @@ test('should handle invalid JSON response', () =>
     const url = 'http://unleash-test-7.app';
     nock(url).persist().get('/client/features').reply(200, '{"Invalid payload');
 
-    const repo = new Repository({
+    const repo = newRepository({
       url,
       appName,
       instanceId,
@@ -532,7 +540,7 @@ test.skip('should respect timeout', (t) =>
     const url = 'http://unleash-test-8.app';
     nock(url).persist().get('/client/features').delay(2000).reply(200, 'OK');
 
-    const repo = new Repository({
+    const repo = newRepository({
       url,
       appName,
       instanceId,
@@ -562,7 +570,7 @@ test('should emit errors on invalid features', () =>
         strategies: false,
       },
     ]);
-    const repo = new Repository({
+    const repo = newRepository({
       url,
       appName,
       instanceId,
@@ -597,7 +605,7 @@ test('should emit errors on invalid variant', () =>
         variants: 'not legal',
       },
     ]);
-    const repo = new Repository({
+    const repo = newRepository({
       url,
       appName,
       instanceId,
@@ -661,7 +669,7 @@ test('should load bootstrap first if faster than unleash-api', () =>
           },
         ],
       });
-    const repo = new Repository({
+    const repo = newRepository({
       url,
       appName,
       instanceId,
@@ -731,7 +739,7 @@ test('bootstrap should not override actual data', () =>
           },
         ],
       });
-    const repo = new Repository({
+    const repo = newRepository({
       url,
       appName,
       instanceId,
@@ -784,7 +792,7 @@ test('should load bootstrap first from file', () =>
       }),
     );
 
-    const repo = new Repository({
+    const repo = newRepository({
       url,
       appName,
       instanceId,
@@ -814,7 +822,7 @@ test('should not crash on bogus bootstrap', () =>
     const path = join(tmpdir(), `test-bootstrap-${Math.round(Math.random() * 100000)}`);
     writeFileSync(path, 'just a random blob');
 
-    const repo = new Repository({
+    const repo = newRepository({
       url,
       appName,
       instanceId,
@@ -864,7 +872,7 @@ test('should load backup-file', () =>
       }),
     );
 
-    const repo = new Repository({
+    const repo = newRepository({
       url,
       appName: appNameLocal,
       instanceId,
@@ -910,7 +918,7 @@ test('bootstrap should override load backup-file', () =>
       }),
     );
 
-    const repo = new Repository({
+    const repo = newRepository({
       url,
       appName: appNameLocal,
       instanceId,
@@ -1001,7 +1009,7 @@ test('bootstrap should not override load backup-file', async () => {
     version: 1,
   });
 
-  const repo = new Repository({
+  const repo = newRepository({
     url,
     appName: appNameLocal,
     instanceId,
@@ -1029,7 +1037,7 @@ test('bootstrap should not override load backup-file', async () => {
 test('Failing two times and then succeed should decrease interval to 2 times initial interval (404)', async () => {
   const url = 'http://unleash-test-fail5times.app';
   nock(url).persist().get('/client/features').reply(404);
-  const repo = new Repository({
+  const repo = newRepository({
     url,
     appName,
     instanceId,
@@ -1090,7 +1098,7 @@ test.skip('Failing two times should increase interval to 3 times initial interva
     .times(3) // Handle the 3 retry attempts
     .reply(429);
 
-  const repo = new Repository({
+  const repo = newRepository({
     url,
     appName,
     instanceId,
@@ -1159,7 +1167,7 @@ test.skip('Failing two times should increase interval to 3 times initial interva
 test.skip('Failing two times and then succeed should decrease interval to 2 times initial interval (429)', async () => {
   const url = 'http://unleash-test-fail5times.app';
   nock(url).persist().get('/client/features').reply(429);
-  const repo = new Repository({
+  const repo = newRepository({
     url,
     appName,
     instanceId,
@@ -1275,7 +1283,7 @@ test('should handle not finding a given segment id', () =>
       }),
     );
 
-    const repo = new Repository({
+    const repo = newRepository({
       url,
       appName: appNameLocal,
       instanceId,
@@ -1334,7 +1342,7 @@ test('should handle not having segments to read from', () =>
       }),
     );
 
-    const repo = new Repository({
+    const repo = newRepository({
       url,
       appName: appNameLocal,
       instanceId,
@@ -1428,7 +1436,7 @@ test('should return full segment data when requested', () =>
       }),
     );
 
-    const repo = new Repository({
+    const repo = newRepository({
       url,
       appName: appNameLocal,
       instanceId,
@@ -1457,7 +1465,7 @@ test('should return full segment data when requested', () =>
 test('Stopping repository should stop unchanged event reporting', async () => {
   const url = 'http://unleash-test-stop-304.app';
   nock(url).persist().get('/client/features').reply(304, '');
-  const repo = new Repository({
+  const repo = newRepository({
     url,
     appName,
     instanceId,
@@ -1491,7 +1499,7 @@ test('Stopping repository should stop storage provider updates', async () => {
   };
   setup(url, [feature]);
   const storageProvider: StorageProvider<ClientFeaturesResponse> = new InMemStorageProvider();
-  const repo = new Repository({
+  const repo = newRepository({
     url,
     appName,
     instanceId,
@@ -1528,7 +1536,7 @@ test('Streaming deltas', async () => {
   const storageProvider: StorageProvider<ClientFeaturesResponse> = new InMemStorageProvider();
   const eventSource = createMockEventSource();
 
-  const repo = new Repository({
+  const repo = newRepository({
     url,
     appName,
     instanceId,
@@ -1649,7 +1657,7 @@ test('Polling delta', async () => {
   ]);
   const storageProvider: StorageProvider<ClientFeaturesResponse> = new InMemStorageProvider();
 
-  const repo = new Repository({
+  const repo = newRepository({
     url,
     appName,
     instanceId,
@@ -1735,7 +1743,7 @@ test('Switch from polling to streaming mode via HTTP header', async () => {
 
   const storageProvider: StorageProvider<ClientFeaturesResponse> = new InMemStorageProvider();
 
-  const repo = new Repository({
+  const repo = newRepository({
     url,
     appName,
     instanceId,
@@ -1784,7 +1792,7 @@ test('Switch from streaming to polling mode via EventSource', async () => {
   const storageProvider: StorageProvider<ClientFeaturesResponse> = new InMemStorageProvider();
   const eventSource = createMockEventSource();
 
-  const repo = new Repository({
+  const repo = newRepository({
     url,
     appName,
     instanceId,
@@ -1858,7 +1866,7 @@ test('setMode can switch from polling to streaming mode', async () => {
   const storageProvider: StorageProvider<ClientFeaturesResponse> = new InMemStorageProvider();
   const mockEventSource = createMockEventSource();
 
-  const repo = new Repository({
+  const repo = newRepository({
     url,
     appName,
     instanceId,
@@ -1909,7 +1917,7 @@ test('setMode can switch from streaming to polling mode', async () => {
   const storageProvider: StorageProvider<ClientFeaturesResponse> = new InMemStorageProvider();
   const eventSource = createMockEventSource();
 
-  const repo = new Repository({
+  const repo = newRepository({
     url,
     appName,
     instanceId,
@@ -1978,7 +1986,7 @@ test('setMode should be no-op when repository is stopped', async () => {
 
   setup(url, [feature]);
 
-  const repo = new Repository({
+  const repo = newRepository({
     url,
     appName,
     instanceId,
@@ -2033,7 +2041,7 @@ test('SSE with HTTP mocking - should process unleash-connected event', async () 
 
   const storageProvider: StorageProvider<ClientFeaturesResponse> = new InMemStorageProvider();
 
-  const repo = new Repository({
+  const repo = newRepository({
     url,
     appName,
     instanceId,
@@ -2106,7 +2114,7 @@ test('SSE with HTTP mocking - should process unleash-updated event', async () =>
 
   const storageProvider: StorageProvider<ClientFeaturesResponse> = new InMemStorageProvider();
 
-  const repo = new Repository({
+  const repo = newRepository({
     url,
     appName,
     instanceId,
@@ -2207,7 +2215,7 @@ test('SSE parse error forces full rehydration without Last-Event-ID', async () =
 
   const storageProvider: StorageProvider<ClientFeaturesResponse> = new InMemStorageProvider();
 
-  const repo = new Repository({
+  const repo = newRepository({
     url,
     appName,
     instanceId,
