@@ -6,6 +6,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -16,6 +19,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          persist-credentials: false
       - name: Setup node
         uses: actions/setup-node@v6
         with:
@@ -33,6 +38,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          persist-credentials: false
       - name: Setup node
         uses: actions/setup-node@v6
         with:
@@ -55,6 +62,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          persist-credentials: false
       - name: Setup node
         uses: actions/setup-node@v6
         with:
