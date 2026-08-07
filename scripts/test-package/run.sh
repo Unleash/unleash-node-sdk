@@ -26,7 +26,7 @@ cat <<EOF > "$TEST_DIR/package.json"
 }
 EOF
 cd "$TEST_DIR"
-npm install --install-links
+npm install --install-links --ignore-scripts
 mkdir src
 echo -e "import { Unleash } from 'unleash-client';\nvoid Unleash;\nconsole.log('Hello world');" > src/index.ts
 ./node_modules/.bin/tsc -b tsconfig.json
