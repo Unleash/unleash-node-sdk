@@ -267,6 +267,7 @@ export interface ImpactMetricRegistry {
   counter(opts: MetricOptions): Counter;
   gauge(opts: MetricOptions): Gauge;
   histogram(opts: BucketMetricOptions): Histogram;
+  restore(metrics: CollectedMetric[]): void;
 }
 
 export class InMemoryMetricRegistry implements ImpactMetricsDataSource, ImpactMetricRegistry {

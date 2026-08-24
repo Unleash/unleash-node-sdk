@@ -1,7 +1,12 @@
 import { EventEmitter } from 'node:stream';
 import type Client from '../client';
 import { type StaticContext, UnleashEvents } from '../unleash';
-import type { ImpactMetricRegistry, MetricFlagContext, MetricLabels } from './metric-types';
+import type {
+  CollectedMetric,
+  ImpactMetricRegistry,
+  MetricFlagContext,
+  MetricLabels,
+} from './metric-types';
 
 export class MetricsAPI extends EventEmitter {
   constructor(
@@ -37,6 +42,11 @@ export class MetricsAPI extends EventEmitter {
     }
     const labelNames = ['featureName', 'appName', 'environment'];
     this.metricRegistry.histogram({ name, help, labelNames, buckets });
+  }
+
+  // Feed already-aggregated metrics (e.g. translated from OTLP) into the next flush.
+  ingest(metrics: CollectedMetric[]) {
+    this.metricRegistry.restore(metrics);
   }
 
   private getFlagLabels(flagContext?: MetricFlagContext): MetricLabels {

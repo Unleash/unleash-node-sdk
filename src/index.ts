@@ -10,6 +10,7 @@ import type { UnleashConfig } from './unleash-config';
 import { defaultVariant, PayloadType, Variant } from './variant';
 
 export { UnleashMetricClient } from './impact-metrics/metric-client';
+export { otlpToImpactMetrics } from './impact-metrics/otlp';
 // exports
 export { Strategy } from './strategy/index';
 export type { ClientFeaturesResponse, UnleashConfig };
