@@ -1,4 +1,4 @@
-import { expect, test } from 'vitest';
+import { expect, test, vi } from 'vitest';
 
 import UserWithIdStrategy from '../../strategy/user-with-id-strategy';
 
@@ -34,4 +34,17 @@ test('user-with-id-strategy should be enabled for userId in list', () => {
   const params = { userIds: '123,122,12312312' };
   const context = { userId: '122' };
   expect(strategy.isEnabled(params, context)).toBe(true);
+});
+
+test('user-with-id-strategy should cache parsed userIds for same parameters reference', () => {
+  const strategy = new UserWithIdStrategy();
+  const params = { userIds: '123, 122, 12312312' };
+  const splitSpy = vi.spyOn(String.prototype, 'split');
+
+  expect(strategy.isEnabled(params, { userId: '123' })).toBe(true);
+  expect(strategy.isEnabled(params, { userId: '122' })).toBe(true);
+  expect(strategy.isEnabled(params, { userId: '999' })).toBe(false);
+
+  expect(splitSpy).toHaveBeenCalledTimes(1);
+  splitSpy.mockRestore();
 });

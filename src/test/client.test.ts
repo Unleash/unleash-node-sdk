@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { expect, test } from 'vitest';
+import { expect, test, vi } from 'vitest';
 import Client from '../client';
 import { UnleashEvents } from '../events';
 import { defaultStrategies, Strategy } from '../strategy';
@@ -434,4 +434,29 @@ test('should return disabled variant for non-matching strategy variant', () => {
     feature_enabled: false,
     featureEnabled: false,
   });
+});
+
+test('should preserve strategy parameters reference and cache parsed userIds across isEnabled calls', () => {
+  const toggle = buildToggle('feature-user-list', true, [
+    {
+      name: 'userWithId',
+      parameters: {
+        userIds: '123, 456, 789',
+      },
+    },
+  ]);
+  const repo = {
+    getToggle() {
+      return toggle;
+    },
+  };
+  const client = new Client(repo, defaultStrategies);
+  const splitSpy = vi.spyOn(String.prototype, 'split');
+
+  expect(client.isEnabled('feature-user-list', { userId: '123' })).toBe(true);
+  expect(client.isEnabled('feature-user-list', { userId: '456' })).toBe(true);
+  expect(client.isEnabled('feature-user-list', { userId: '999' })).toBe(false);
+
+  expect(splitSpy).toHaveBeenCalledTimes(1);
+  splitSpy.mockRestore();
 });
