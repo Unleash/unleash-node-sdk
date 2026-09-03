@@ -2,10 +2,7 @@ import type { Context } from '../context';
 import { Strategy } from './strategy';
 
 export default class UserWithIdStrategy extends Strategy {
-  private readonly userIdSets = new WeakMap<
-    { userIds?: string },
-    Set<string>
-  >();
+  private readonly userIdSets = new WeakMap<{ userIds?: string }, Set<string>>();
 
   constructor() {
     super('userWithId');
@@ -15,7 +12,7 @@ export default class UserWithIdStrategy extends Strategy {
     if (
       typeof parameters.userIds !== 'string' ||
       parameters.userIds === '' ||
-      context.userId == undefined
+      context.userId === undefined
     ) {
       return false;
     }
