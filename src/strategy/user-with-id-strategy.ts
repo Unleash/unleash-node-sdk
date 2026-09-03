@@ -2,25 +2,25 @@ import type { Context } from '../context';
 import { Strategy } from './strategy';
 
 export default class UserWithIdStrategy extends Strategy {
-  private readonly userIdSets = new WeakMap<{ userIds?: string }, Set<string>>();
+  private readonly cache = new WeakMap<
+    { userIds?: string },
+    { userIds: string; ids: Set<string> }
+  >();
 
   constructor() {
     super('userWithId');
   }
 
   isEnabled(parameters: { userIds?: string }, context: Context) {
-    if (
-      typeof parameters.userIds !== 'string' ||
-      parameters.userIds === '' ||
-      context.userId === undefined
-    ) {
+    const { userIds } = parameters;
+    if (typeof userIds !== 'string' || userIds === '' || context.userId === undefined) {
       return false;
     }
-    let userIdList = this.userIdSets.get(parameters);
-    if (!userIdList) {
-      userIdList = new Set(parameters.userIds.split(/\s*,\s*/));
-      this.userIdSets.set(parameters, userIdList);
+    let cached = this.cache.get(parameters);
+    if (cached?.userIds !== userIds) {
+      cached = { userIds, ids: new Set(userIds.split(/\s*,\s*/)) };
+      this.cache.set(parameters, cached);
     }
-    return userIdList.has(context.userId);
+    return cached.ids.has(context.userId);
   }
 }

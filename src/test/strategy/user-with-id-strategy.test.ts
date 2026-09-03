@@ -48,3 +48,15 @@ test('user-with-id-strategy should cache parsed userIds for same parameters refe
   expect(splitSpy).toHaveBeenCalledTimes(1);
   splitSpy.mockRestore();
 });
+
+test('rebuilds the cache when userIds changes', () => {
+  const strategy = new UserWithIdStrategy();
+  const params = { userIds: '123' };
+
+  expect(strategy.isEnabled(params, { userId: '123' })).toBe(true);
+
+  params.userIds = '456';
+
+  expect(strategy.isEnabled(params, { userId: '456' })).toBe(true);
+  expect(strategy.isEnabled(params, { userId: '123' })).toBe(false);
+});
