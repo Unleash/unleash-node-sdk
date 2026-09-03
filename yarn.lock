@@ -172,9 +172,9 @@
     fastq "^1.6.0"
 
 "@npmcli/agent@^4.0.0":
-  version "4.0.0"
-  resolved "https://registry.yarnpkg.com/@npmcli/agent/-/agent-4.0.0.tgz#2bb2b1c0a170940511554a7986ae2a8be9fedcce"
-  integrity sha512-kAQTcEN9E8ERLVg5AsGwLNoFb+oEG6engbqAU2P43gD4JEIkNGMHdVQ096FsOAAYpZPB0RSt0zgInKIAS1l5QA==
+  version "4.0.2"
+  resolved "https://registry.yarnpkg.com/@npmcli/agent/-/agent-4.0.2.tgz#9e659c2474294cb88bd382fef5d3857dc14fcbf6"
+  integrity sha512-EUEuWAxnL07Sp5/iC/1X6Xj+XThUvnbei9zfRWZdEXa7lss9RTHMhAHBeg+MZ5To9s/gGaSI+UwZTPdYMvKSeg==
   dependencies:
     agent-base "^7.1.0"
     http-proxy-agent "^7.0.0"
@@ -710,9 +710,9 @@ balanced-match@^1.0.0:
   integrity sha512-3oSeUO0TMV67hN1AmbXsK4yaqU7tjiHlbxRDZOpH0KW9+CeX4bRAaX0Anxt0tx2MrpRpWwQaPwIlISEJhYU5Pw==
 
 brace-expansion@^2.0.2:
-  version "2.0.3"
-  resolved "https://registry.yarnpkg.com/brace-expansion/-/brace-expansion-2.0.3.tgz#0493338bdd58e319b1039c67cf7ee439892c01d9"
-  integrity sha512-MCV/fYJEbqx68aE58kv2cA/kiky1G8vux3OR6/jbS+jIMe/6fJWa0DTzJU7dqijOWYwHi1t29FlfYI9uytqlpA==
+  version "2.1.4"
+  resolved "https://registry.yarnpkg.com/brace-expansion/-/brace-expansion-2.1.4.tgz#589dab11c0018d0366be64cd8bf12c8dbecc8326"
+  integrity sha512-hGfVzPxthbf3+2yjg/RBs60cB0FhqBS/zvdV/4wn4/BmN0bNMMHPc4V/BbFieqf1TKAGGAHnY4eSjajCl0f2Xg==
   dependencies:
     balanced-match "^1.0.0"
 
@@ -796,6 +796,11 @@ commander@^14.0.2:
   version "14.0.2"
   resolved "https://registry.yarnpkg.com/commander/-/commander-14.0.2.tgz#b71fd37fe4069e4c3c7c13925252ada4eba14e8e"
   integrity sha512-TywoWNNRbhoD0BXs1P3ZEScW8W5iKrnbithIl0YH+uCmBd0QpPOA8yc82DS3BIE5Ma6FnBVUsJ7wVUDz4dvOWQ==
+
+content-type@^2.1.0:
+  version "2.1.0"
+  resolved "https://registry.yarnpkg.com/content-type/-/content-type-2.1.0.tgz#d9389c43c0a8cf6a355db464d21e07092a40493a"
+  integrity sha512-mj7UPXE0jaqaOsukNZRUEfEi2AcL7C/vwmwcHV0O97eO1E1pxBZuyjlZrx5seTaNBg1U6+o35wpa35Qfcc+7ag==
 
 convert-source-map@^2.0.0:
   version "2.0.0"
@@ -1120,9 +1125,9 @@ husky@^9.1.7:
   integrity sha512-5gs5ytaNjBrh5Ow3zrvdUUY+0VxIuWVL4i9irt6friV+BqdCfmV11CQTWMiBYWHbXhco+J1kHfTOUkePhCDvMA==
 
 iconv-lite@^0.7.2:
-  version "0.7.2"
-  resolved "https://registry.yarnpkg.com/iconv-lite/-/iconv-lite-0.7.2.tgz#d0bdeac3f12b4835b7359c2ad89c422a4d1cc72e"
-  integrity sha512-im9DjEDQ55s9fL4EYzOAv0yMqmMBSZp6G0VvFyTMPKWxiSBHUj9NW/qqLmXUwXrrM7AvqSlTCfvqRb0cM8yYqw==
+  version "0.7.3"
+  resolved "https://registry.yarnpkg.com/iconv-lite/-/iconv-lite-0.7.3.tgz#84ee12f963e7de50bc01a13e160a078b3b0f415f"
+  integrity sha512-IKXpvIzjnC9XTAUbVBcMfGS0EPaIXtW6v+zr+RRp+hqULEpo0owZax6wyRwPOJbWbzjYspQwusTsfVr0ifh4uQ==
   dependencies:
     safer-buffer ">= 2.1.2 < 3.0.0"
 
@@ -1131,7 +1136,7 @@ ignore@^7.0.3:
   resolved "https://registry.yarnpkg.com/ignore/-/ignore-7.0.5.tgz#4cb5f6cd7d4c7ab0365738c7aea888baa6d7efd9"
   integrity sha512-Hs59xBNfUIunMFgWAbGX5cq6893IbWg4KnrjbYwX3tx0ztorVgTDA6B2sxf8ejHJ4wz8BqGUMYlnzNBer5NvGg==
 
-ip-address@^10.0.0, ip-address@^10.0.1:
+ip-address@^10.0.0, ip-address@^10.1.1:
   version "10.2.0"
   resolved "https://registry.yarnpkg.com/ip-address/-/ip-address-10.2.0.tgz#805fc178b20c518bd4c8548b24fe30892d7f3206"
   integrity sha512-/+S6j4E9AHvW9SWMSEY9Xfy66O5PWvVEJ08O0y5JGyEKQpojb0K0GKpz/v5HJ/G0vi3D2sjGK78119oXZeE0qA==
@@ -1342,9 +1347,9 @@ log-update@^6.1.0:
     wrap-ansi "^9.0.0"
 
 lru-cache@^11.0.0, lru-cache@^11.1.0, lru-cache@^11.2.1:
-  version "11.3.3"
-  resolved "https://registry.yarnpkg.com/lru-cache/-/lru-cache-11.3.3.tgz#d6c633c2a9657760fd30594d8d98da65330d9d78"
-  integrity sha512-JvNw9Y81y33E+BEYPr0U7omo+U9AySnsMsEiXgwT6yqd31VQWTLNQqmT4ou5eqPFUrTfIDFta2wKhB1hyohtAQ==
+  version "11.5.2"
+  resolved "https://registry.yarnpkg.com/lru-cache/-/lru-cache-11.5.2.tgz#00e16665c90c620fba14a3c368732a976493f760"
+  integrity sha512-4pfM1Ff0x50o0tQwb5ucw/RzNyD0/YJME6IVcStalZuMWxdt3sR3huStTtxz4PUmvZfRguvDejasvQ2kifR11g==
 
 lru-cache@^11.2.5:
   version "11.2.6"
@@ -1375,9 +1380,9 @@ make-dir@^4.0.0:
     semver "^7.5.3"
 
 make-fetch-happen@^15.0.3:
-  version "15.0.5"
-  resolved "https://registry.yarnpkg.com/make-fetch-happen/-/make-fetch-happen-15.0.5.tgz#b0e3dd53d487b2733e4ea232c2bebf1bd16afb03"
-  integrity sha512-uCbIa8jWWmQZt4dSnEStkVC6gdakiinAm4PiGsywIkguF0eWMdcjDz0ECYhUolFU3pFLOev9VNPCEygydXnddg==
+  version "15.0.6"
+  resolved "https://registry.yarnpkg.com/make-fetch-happen/-/make-fetch-happen-15.0.6.tgz#079dee708c88a04a1f79735bb02789a63597840e"
+  integrity sha512-Je0fLJ0F5atA7F+eIlLzk+Wkcl57JDf4kf+EW8xiP5E31xOQxkIxTbgf1Oi1Lw9tRI9UEMRdI5Vz2xTzoNU1Jw==
   dependencies:
     "@gar/promise-retry" "^1.0.0"
     "@npmcli/agent" "^4.0.0"
@@ -1528,9 +1533,11 @@ nanoid@^3.3.17:
   integrity sha512-xQLf0A3HOMlgHq0n247/LRuAOYmB7dXJ/DvAxGvsSBij45XtBSmQycu+F8ODbHwns/XyFZagyL1+J0Offw1E0g==
 
 negotiator@^1.0.0:
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/negotiator/-/negotiator-1.0.0.tgz#b6c91bb47172d69f93cfd7c357bbb529019b5f6a"
-  integrity sha512-8Ofs/AUQh8MaEcrlq5xOX0CQ9ypTF5dl78mjlMNfOK08fzpgTHQRQPBxcPlEtIw0yRpws+Zo/3r+5WRby7u3Gg==
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/negotiator/-/negotiator-1.1.0.tgz#16e003d0db4ac24fd9df168edf871625deeae3df"
+  integrity sha512-NMPBRMJgiQHjbd8phG3Vebdx4kZ1H121rbl5IkMqeOsahptB9BKo/d7oJ3zTXqTgagn2bWlNSXkh0QUGM31RYg==
+  dependencies:
+    content-type "^2.1.0"
 
 nock@*:
   version "13.5.3"
@@ -1573,9 +1580,9 @@ outvariant@^1.4.0, outvariant@^1.4.3:
   integrity sha512-+Sl2UErvtsoajRDKCE5/dBz4DIvHXQQnAxtQTF04OJxY0+DyZXSo5P5Bb7XYWOh81syohlYL24hbDwxedPUJCA==
 
 p-map@^7.0.2:
-  version "7.0.4"
-  resolved "https://registry.yarnpkg.com/p-map/-/p-map-7.0.4.tgz#b81814255f542e252d5729dca4d66e5ec14935b8"
-  integrity sha512-tkAQEw8ysMzmkhgw8k+1U/iPhWNhykKnSk4Rd5zLoPJCuJaGRPo6YposrZgaxHKzDHdDWWZvE/Sk7hsL2X/CpQ==
+  version "7.0.7"
+  resolved "https://registry.yarnpkg.com/p-map/-/p-map-7.0.7.tgz#a82175dd690468a930b9ae45c2b9829c5bf60fa3"
+  integrity sha512-VaWRu2i4FJNRtiRWCuuQRgfQ1B7a6+gMSrO+3j0EQi/k0ULfS9kosRxGoiqwzIjZTDI02tGfk5mXXltLg6QtfQ==
 
 path-scurry@^2.0.2:
   version "2.0.2"
@@ -1825,11 +1832,11 @@ socks-proxy-agent@^8.0.3:
     socks "^2.8.3"
 
 socks@^2.8.3:
-  version "2.8.7"
-  resolved "https://registry.yarnpkg.com/socks/-/socks-2.8.7.tgz#e2fb1d9a603add75050a2067db8c381a0b5669ea"
-  integrity sha512-HLpt+uLy/pxB+bum/9DzAgiKS8CX1EvbWxI4zlmgGCExImLdiad2iCwXT5Z4c9c3Eq8rP2318mPW2c+QbtjK8A==
+  version "2.8.10"
+  resolved "https://registry.yarnpkg.com/socks/-/socks-2.8.10.tgz#23aab4dccc1fdae110aaf4fa51cd190552432dc5"
+  integrity sha512-e0VyvkVTwVYViNovRkZ9aodhxVlyoMn7eJhVUPxZ+eK9P/7CBkxvvsBOHqFPEH416726W8tLXXXjKwqgTErrCQ==
   dependencies:
-    ip-address "^10.0.1"
+    ip-address "^10.1.1"
     smart-buffer "^4.2.0"
 
 source-map-js@^1.2.1:
