@@ -82,6 +82,6 @@ jobs:
         with:
           # Pin to a pre-require(esm) Node 20 release to catch ESM-only transitive deps
           # that would otherwise pass on newer Node 20 patches.
-          node-version: 20.18.0
+          node-version: 20.20.2
       - name: Test install in other package
         run: ./scripts/test-package/run.sh "file:../${SDK_TARBALL}"
