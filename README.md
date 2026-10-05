@@ -57,7 +57,10 @@ Clone the repository and install dependencies:
 git clone https://github.com/Unleash/unleash-node-sdk.git
 cd unleash-node-sdk
 yarn install
+yarn prepare
 ```
+
+`yarn prepare` sets up git hooks and builds the project. It doesn't run automatically on install because dependency lifecycle scripts are disabled (see `.yarnrc`) as a supply-chain hardening measure.
 
 The [client specification](https://github.com/Unleash/client-specification) test data is included as a dev dependency (`@unleash/client-specification`). It defines a shared contract that all Unleash SDKs test against.
 
