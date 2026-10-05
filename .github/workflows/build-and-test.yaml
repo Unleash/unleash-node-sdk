@@ -22,7 +22,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Setup node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: ${{matrix.node-version}}
           cache: yarn
@@ -41,7 +41,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Setup node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: 22.x
           cache: yarn
@@ -65,7 +65,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Setup node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: 20.x
           cache: yarn
@@ -78,7 +78,7 @@ jobs:
           SDK_TARBALL="$(npm pack --silent --ignore-scripts | tail -n 1)"
           echo "SDK_TARBALL=$SDK_TARBALL" >> "$GITHUB_ENV"
       - name: Setup node for CJS compatibility check
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           # Pin to a pre-require(esm) Node 20 release to catch ESM-only transitive deps
           # that would otherwise pass on newer Node 20 patches.
