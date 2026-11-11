@@ -523,6 +523,11 @@
   resolved "https://registry.yarnpkg.com/@unleash/client-specification/-/client-specification-6.2.1.tgz#0ca41c59a3d0ca856092a621a62e5f2034eaece1"
   integrity sha512-gKCGkUvmmPRc1B2nsGTpn7zEc9D7Lam4fdGn3oWojIRuSl0n8Whm2ziMdQvuXCJr2CUW5KMTPXJBlBpEMuURbw==
 
+"@unleash/yggdrasil-engine@0.1.0-alpha.1":
+  version "0.1.0-alpha.1"
+  resolved "https://registry.yarnpkg.com/@unleash/yggdrasil-engine/-/yggdrasil-engine-0.1.0-alpha.1.tgz#30468e694f36509d541beb3727ca1c04c0787af9"
+  integrity sha512-iSVlkVUVYCIMTa++WEdiCJJW2B95tdHXT9K/d1NQcFK2ELA1BrfvARkJveI6NH5CkOCDOSScolF0C2gnjZvkPQ==
+
 "@vitest/coverage-v8@4.1.12":
   version "4.1.12"
   resolved "https://registry.yarnpkg.com/@vitest/coverage-v8/-/coverage-v8-4.1.12.tgz#d4633b3cb3fddad0f671689883cd5f8dcdc83e91"

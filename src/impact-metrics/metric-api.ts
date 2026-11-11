@@ -1,134 +1,32 @@
-import { EventEmitter } from 'node:stream';
-import type Client from '../client';
-import { type StaticContext, UnleashEvents } from '../unleash';
-import type { ImpactMetricRegistry, MetricFlagContext, MetricLabels } from './metric-types';
+import type { UnleashEngine } from '@unleash/yggdrasil-engine';
 
-export class MetricsAPI extends EventEmitter {
-  constructor(
-    private metricRegistry: ImpactMetricRegistry,
-    private variantResolver: Pick<Client, 'forceGetVariant'>,
-    private staticContext: StaticContext,
-  ) {
-    super();
-  }
+// Is it super major overkill to wrap the engine in this? Yeah could be. But I really, really
+// don't want to expose the engine directly. Doesn't matter for TS users. JS users
+// tend to be a little wild in what they will do with the exposed API so maybe just safer to just not
+export class MetricsAPI {
+  constructor(private engine: UnleashEngine) {}
 
   defineCounter(name: string, help: string) {
-    if (!name || !help) {
-      this.emit(UnleashEvents.Warn, `Counter name or help cannot be empty: ${name}, ${help}.`);
-      return;
-    }
-    const labelNames = ['featureName', 'appName', 'environment'];
-    this.metricRegistry.counter({ name, help, labelNames });
+    this.engine.defineCounter(name, help);
   }
 
   defineGauge(name: string, help: string) {
-    if (!name || !help) {
-      this.emit(UnleashEvents.Warn, `Gauge name or help cannot be empty: ${name}, ${help}.`);
-      return;
-    }
-    const labelNames = ['featureName', 'appName', 'environment'];
-    this.metricRegistry.gauge({ name, help, labelNames });
+    this.engine.defineGauge(name, help);
   }
 
   defineHistogram(name: string, help: string, buckets?: number[]) {
-    if (!name || !help) {
-      this.emit(UnleashEvents.Warn, `Histogram name or help cannot be empty: ${name}, ${help}.`);
-      return;
-    }
-    const labelNames = ['featureName', 'appName', 'environment'];
-    this.metricRegistry.histogram({ name, help, labelNames, buckets });
+    this.engine.defineHistogram(name, help, buckets);
   }
 
-  private getFlagLabels(flagContext?: MetricFlagContext): MetricLabels {
-    const flagLabels: MetricLabels = {};
-    if (flagContext) {
-      for (const flag of flagContext.flagNames) {
-        const variant = this.variantResolver.forceGetVariant(flag, flagContext.context);
-
-        if (variant.enabled) {
-          flagLabels[flag] = variant.name;
-        } else if (variant.feature_enabled) {
-          flagLabels[flag] = 'enabled';
-        } else {
-          flagLabels[flag] = 'disabled';
-        }
-      }
-    }
-    return flagLabels;
+  incrementCounter(name: string, value?: number): void {
+    this.engine.incrementCounter(name, value ?? 1);
   }
 
-  /**
-   * @deprecated The flagContext parameter will be removed in a future release.
-   *             Call without flagContext.
-   */
-  incrementCounter(name: string, value: number | undefined, flagContext: MetricFlagContext): void;
-  incrementCounter(name: string, value?: number): void;
-  incrementCounter(name: string, value?: number, flagContext?: MetricFlagContext): void {
-    const counter = this.metricRegistry.getCounter(name);
-    if (!counter) {
-      this.emit(
-        UnleashEvents.Warn,
-        `Counter ${name} not defined, this counter will not be incremented.`,
-      );
-      return;
-    }
-
-    const flagLabels = this.getFlagLabels(flagContext);
-
-    const labels = {
-      ...flagLabels,
-      ...this.staticContext,
-    };
-
-    counter.inc(value, labels);
+  updateGauge(name: string, value: number): void {
+    this.engine.updateGauge(name, value);
   }
 
-  /**
-   * @deprecated The flagContext parameter will be removed in a future release.
-   *             Call without flagContext.
-   */
-  updateGauge(name: string, value: number, flagContext: MetricFlagContext): void;
-  updateGauge(name: string, value: number): void;
-  updateGauge(name: string, value: number, flagContext?: MetricFlagContext): void {
-    const gauge = this.metricRegistry.getGauge(name);
-    if (!gauge) {
-      this.emit(UnleashEvents.Warn, `Gauge ${name} not defined, this gauge will not be updated.`);
-      return;
-    }
-
-    const flagLabels = this.getFlagLabels(flagContext);
-
-    const labels = {
-      ...flagLabels,
-      ...this.staticContext,
-    };
-
-    gauge.set(value, labels);
-  }
-
-  /**
-   * @deprecated The flagContext parameter will be removed in a future release.
-   *             Call without flagContext.
-   */
-  observeHistogram(name: string, value: number, flagContext: MetricFlagContext): void;
-  observeHistogram(name: string, value: number): void;
-  observeHistogram(name: string, value: number, flagContext?: MetricFlagContext): void {
-    const histogram = this.metricRegistry.getHistogram(name);
-    if (!histogram) {
-      this.emit(
-        UnleashEvents.Warn,
-        `Histogram ${name} not defined, this histogram will not be updated.`,
-      );
-      return;
-    }
-
-    const flagLabels = this.getFlagLabels(flagContext);
-
-    const labels = {
-      ...flagLabels,
-      ...this.staticContext,
-    };
-
-    histogram.observe(value, labels);
+  observeHistogram(name: string, value: number): void {
+    this.engine.observeHistogram(name, value);
   }
 }

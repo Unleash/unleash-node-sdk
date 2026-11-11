@@ -1,12 +1,17 @@
 import { EventEmitter } from 'node:events';
+import { getSpecVersion, getYggdrasilVersion, type UnleashEngine } from '@unleash/yggdrasil-engine';
 import { sdkVersion } from './details.json';
 import { UnleashEvents } from './events';
 import type { CustomHeaders, CustomHeadersFunction } from './headers';
 import { getAppliedJitter } from './helpers';
 import type { HttpOptions } from './http-options';
-import type { CollectedMetric, ImpactMetricsDataSource } from './impact-metrics/metric-types';
-import { SUPPORTED_SPEC_VERSION } from './repository';
-import { post } from './request';
+import {
+  getPlatformData,
+  type MetricsData,
+  type PlatformData,
+  post,
+  type RegistrationData,
+} from './request';
 import { resolveUrl, suffixSlash } from './url-utils';
 
 export interface MetricsOptions {
@@ -22,69 +27,12 @@ export interface MetricsOptions {
   customHeadersFunction?: CustomHeadersFunction;
   timeout?: number;
   httpOptions?: HttpOptions;
-  metricRegistry?: ImpactMetricsDataSource;
   sdkFlavor?: string;
   sdkFlavorVersion?: string;
-}
-
-interface VariantBucket {
-  [s: string]: number;
-}
-
-interface Bucket {
-  start: Date;
-  stop?: Date;
-  toggles: { [s: string]: { yes: number; no: number; variants: VariantBucket } };
-}
-
-declare var Bun:
-  | {
-      version: string;
-    }
-  | undefined;
-
-declare var Deno:
-  | {
-      version: {
-        deno: string;
-      };
-    }
-  | undefined;
-
-type PlatformName = 'bun' | 'deno' | 'node' | 'unknown';
-
-type PlatformData = {
-  name: PlatformName;
-  version: string;
-};
-
-interface BaseMetricsData {
-  appName: string;
-  instanceId: string;
-  connectionId: string;
-  platformName: PlatformName;
-  platformVersion: string;
-  yggdrasilVersion: null;
-  specVersion: string;
-  sdkFlavor?: string;
-  sdkFlavorVersion?: string;
-}
-
-interface MetricsData extends BaseMetricsData {
-  bucket: Bucket;
-  impactMetrics?: CollectedMetric[];
-}
-
-interface RegistrationData extends BaseMetricsData {
-  sdkVersion: string;
-  strategies: string[];
-  started: Date;
-  interval: number;
+  engine: UnleashEngine;
 }
 
 export default class Metrics extends EventEmitter {
-  private bucket: Bucket;
-
   private appName: string;
 
   private instanceId: string;
@@ -119,11 +67,11 @@ export default class Metrics extends EventEmitter {
 
   private platformData: PlatformData;
 
-  private metricRegistry?: ImpactMetricsDataSource;
-
   private sdkFlavor?: string;
 
   private sdkFlavorVersion?: string;
+
+  private engine: UnleashEngine;
 
   constructor({
     appName,
@@ -138,9 +86,9 @@ export default class Metrics extends EventEmitter {
     customHeadersFunction,
     timeout,
     httpOptions,
-    metricRegistry,
     sdkFlavor,
     sdkFlavorVersion,
+    engine,
   }: MetricsOptions) {
     super();
     this.disabled = disableMetrics;
@@ -156,12 +104,11 @@ export default class Metrics extends EventEmitter {
     this.customHeadersFunction = customHeadersFunction;
     this.started = new Date();
     this.timeout = timeout;
-    this.bucket = this.createBucket();
     this.httpOptions = httpOptions;
-    this.platformData = this.getPlatformData();
-    this.metricRegistry = metricRegistry;
+    this.platformData = getPlatformData();
     this.sdkFlavor = sdkFlavor;
     this.sdkFlavorVersion = sdkFlavorVersion;
+    this.engine = engine;
   }
 
   private getAppliedJitter(): number {
@@ -181,6 +128,10 @@ export default class Metrics extends EventEmitter {
   }
 
   private startTimer(): void {
+    if (this.timer) {
+      clearTimeout(this.timer);
+      delete this.timer;
+    }
     if (this.disabled || this.getInterval() === 0) {
       return;
     }
@@ -208,6 +159,21 @@ export default class Metrics extends EventEmitter {
     this.disabled = true;
   }
 
+  // Temporary bridge while evaluation still uses the JavaScript client.
+  count(name: string, enabled: boolean): void {
+    this.engine.count(name, enabled);
+    if (!this.disabled) this.emit(UnleashEvents.Count, name, enabled);
+  }
+
+  countVariant(name: string, variant: string): void {
+    this.engine.countVariant(name, variant);
+    if (!this.disabled) this.emit(UnleashEvents.CountVariant, name, variant);
+  }
+
+  isEnabled(): boolean {
+    return !this.disabled;
+  }
+
   async registerInstance(): Promise<boolean> {
     if (this.disabled) {
       return false;
@@ -215,12 +181,13 @@ export default class Metrics extends EventEmitter {
     const url = resolveUrl(suffixSlash(this.url), './client/register');
     const payload = this.getClientData();
 
-    const headers = this.customHeadersFunction ? await this.customHeadersFunction() : this.headers;
-
     try {
+      const headers = this.customHeadersFunction
+        ? await this.customHeadersFunction()
+        : this.headers;
       const res = await post({
         url,
-        json: payload as unknown as Record<string, unknown>,
+        json: payload,
         appName: this.appName,
         instanceId: this.instanceId,
         connectionId: this.connectionId,
@@ -235,7 +202,7 @@ export default class Metrics extends EventEmitter {
         this.emit(UnleashEvents.Registered, payload);
       }
     } catch (err) {
-      this.emit(UnleashEvents.Warn, err);
+      if (!this.disabled) this.emit(UnleashEvents.Warn, err);
     }
     return true;
   }
@@ -256,26 +223,35 @@ export default class Metrics extends EventEmitter {
   }
 
   async sendMetrics(): Promise<void> {
-    if (this.disabled) {
-      return;
-    }
-    const impactMetrics = this.metricRegistry?.collect() || [];
-
-    if (this.bucketIsEmpty() && impactMetrics.length === 0) {
-      this.resetBucket();
-      this.startTimer();
-      this.metricRegistry?.restore(impactMetrics);
-      return;
-    }
-    const url = resolveUrl(suffixSlash(this.url), './client/metrics');
-    const payload = this.createMetricsData(impactMetrics);
-
-    const headers = this.customHeadersFunction ? await this.customHeadersFunction() : this.headers;
+    if (this.disabled) return;
+    let metrics: ReturnType<UnleashEngine['getMetrics']> | undefined;
 
     try {
+      const headers = this.customHeadersFunction
+        ? await this.customHeadersFunction()
+        : this.headers;
+      if (this.disabled) return;
+
+      metrics = this.engine.getMetrics();
+      if (!metrics.bucket && metrics.impactMetrics.length === 0) return;
+
+      const url = resolveUrl(suffixSlash(this.url), './client/metrics');
+      const payload: MetricsData = {
+        ...metrics,
+        appName: this.appName,
+        instanceId: this.instanceId,
+        connectionId: this.connectionId,
+        platformName: this.platformData.name,
+        platformVersion: this.platformData.version,
+        yggdrasilVersion: getYggdrasilVersion(),
+        specVersion: getSpecVersion(),
+        sdkFlavor: this.sdkFlavor,
+        sdkFlavorVersion: this.sdkFlavorVersion,
+      };
+
       const res = await post({
         url,
-        json: payload as unknown as Record<string, unknown>,
+        json: payload,
         appName: this.appName,
         instanceId: this.instanceId,
         connectionId: this.connectionId,
@@ -285,10 +261,13 @@ export default class Metrics extends EventEmitter {
         httpOptions: this.httpOptions,
       });
 
+      if (this.disabled) return;
+
       if (!res.ok) {
         // restore bucket before any warn/error event fires as it can disable the instance
-        this.restoreBucket(payload.bucket);
-        this.metricRegistry?.restore(impactMetrics);
+        const failedMetrics = metrics;
+        metrics = undefined;
+        this.engine.restoreMetrics(failedMetrics);
 
         if (res.status === 403 || res.status === 401) {
           this.configurationError(url, res.status);
@@ -303,13 +282,15 @@ export default class Metrics extends EventEmitter {
           this.backoff(url, res.status);
         }
       } else {
+        metrics = undefined;
         this.emit(UnleashEvents.Sent, payload);
         this.reduceBackoff();
       }
     } catch (err) {
-      this.restoreBucket(payload.bucket);
-      this.metricRegistry?.restore(impactMetrics);
+      if (this.disabled) return;
+      if (metrics) this.engine.restoreMetrics(metrics);
       this.emit(UnleashEvents.Warn, err);
+    } finally {
       this.startTimer();
     }
   }
@@ -317,111 +298,6 @@ export default class Metrics extends EventEmitter {
   reduceBackoff(): void {
     this.failures = Math.max(0, this.failures - 1);
     this.startTimer();
-  }
-
-  assertBucket(name: string): void {
-    if (this.disabled) {
-      return;
-    }
-    if (!this.bucket.toggles[name]) {
-      this.bucket.toggles[name] = {
-        yes: 0,
-        no: 0,
-        variants: {},
-      };
-    }
-  }
-
-  count(name: string, enabled: boolean): void {
-    if (this.disabled) {
-      return;
-    }
-    this.increaseCounter(name, enabled, 1);
-    this.emit(UnleashEvents.Count, name, enabled);
-  }
-
-  countVariant(name: string, variantName: string): void {
-    if (this.disabled) {
-      return;
-    }
-    this.increaseVariantCounter(name, variantName, 1);
-
-    this.emit(UnleashEvents.CountVariant, name, variantName);
-  }
-
-  private increaseCounter(name: string, enabled: boolean, inc = 1): void {
-    if (inc === 0) {
-      return;
-    }
-    this.assertBucket(name);
-    this.bucket.toggles[name][enabled ? 'yes' : 'no'] += inc;
-  }
-
-  private increaseVariantCounter(name: string, variantName: string, inc = 1): void {
-    this.assertBucket(name);
-    if (this.bucket.toggles[name].variants[variantName]) {
-      this.bucket.toggles[name].variants[variantName] += inc;
-    } else {
-      this.bucket.toggles[name].variants[variantName] = inc;
-    }
-  }
-
-  private bucketIsEmpty(): boolean {
-    return Object.keys(this.bucket.toggles).length === 0;
-  }
-
-  private createBucket(): Bucket {
-    return {
-      start: new Date(),
-      stop: undefined,
-      toggles: {},
-    };
-  }
-
-  private resetBucket(): void {
-    this.bucket = this.createBucket();
-  }
-
-  createMetricsData(impactMetrics: CollectedMetric[]): MetricsData {
-    const bucket = { ...this.bucket, stop: new Date() };
-    this.resetBucket();
-
-    const base: MetricsData = {
-      appName: this.appName,
-      instanceId: this.instanceId,
-      connectionId: this.connectionId,
-      bucket,
-      platformName: this.platformData.name,
-      platformVersion: this.platformData.version,
-      yggdrasilVersion: null,
-      specVersion: SUPPORTED_SPEC_VERSION,
-      sdkFlavor: this.sdkFlavor,
-      sdkFlavorVersion: this.sdkFlavorVersion,
-    };
-
-    if (impactMetrics.length > 0) {
-      base.impactMetrics = impactMetrics;
-    }
-
-    return base;
-  }
-
-  private restoreBucket(bucket: Bucket): void {
-    if (this.disabled) {
-      return;
-    }
-    this.bucket.start = bucket.start;
-
-    const { toggles } = bucket;
-    Object.keys(toggles).forEach((toggleName) => {
-      const toggle = toggles[toggleName];
-      this.increaseCounter(toggleName, true, toggle.yes);
-      this.increaseCounter(toggleName, false, toggle.no);
-
-      Object.keys(toggle.variants).forEach((variant) => {
-        this.increaseVariantCounter(toggleName, variant, toggle.variants[variant]);
-      });
-    });
   }
 
   getClientData(): RegistrationData {
@@ -435,22 +311,10 @@ export default class Metrics extends EventEmitter {
       connectionId: this.connectionId,
       platformName: this.platformData.name,
       platformVersion: this.platformData.version,
-      yggdrasilVersion: null,
-      specVersion: SUPPORTED_SPEC_VERSION,
+      yggdrasilVersion: getYggdrasilVersion(),
+      specVersion: getSpecVersion(),
       sdkFlavor: this.sdkFlavor,
       sdkFlavorVersion: this.sdkFlavorVersion,
     };
-  }
-
-  private getPlatformData(): PlatformData {
-    if (typeof Bun !== 'undefined') {
-      return { name: 'bun', version: Bun.version };
-    } else if (typeof Deno !== 'undefined') {
-      return { name: 'deno', version: Deno.version.deno };
-    } else if (typeof process !== 'undefined' && process.versions && process.versions.node) {
-      return { name: 'node', version: process.versions.node };
-    } else {
-      return { name: 'unknown', version: 'unknown' };
-    }
   }
 }
