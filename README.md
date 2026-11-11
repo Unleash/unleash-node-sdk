@@ -97,3 +97,10 @@ yarn build       # compile TypeScript to lib/
 ## License
 
 Apache-2.0
+
+### Startup and bootstrap lifecycle
+
+Bootstrap and backup state make the SDK ready for local evaluation. Bootstrap is
+not persisted and emits neither changed nor synchronized. Only a live API update
+establishes synchronization and emits changed. `startUnleash()` waits for that
+live synchronization; bootstrap-only callers should wait for ready instead.
