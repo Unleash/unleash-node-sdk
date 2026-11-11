@@ -1,10 +1,7 @@
-// @ts-nocheck
-import { Strategy } from '..';
+import type { Strategy } from '..';
 
-export default class CustomStrategy extends Strategy {
-  constructor() {
-    super('custom');
-  }
+export default class CustomStrategy implements Strategy {
+  readonly name = 'custom';
 
   isEnabled() {
     return true;
