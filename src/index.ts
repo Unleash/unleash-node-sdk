@@ -19,7 +19,7 @@ export type Name = UnleashTypes extends { flagNames: infer FlagName extends stri
   : string;
 
 // exports
-export { Strategy } from './strategy/index';
+export type { Strategy } from './strategy';
 export type { ClientFeaturesResponse, UnleashConfig };
 export { Context, InMemStorageProvider, PayloadType, TagFilter, Unleash, UnleashEvents, Variant };
 

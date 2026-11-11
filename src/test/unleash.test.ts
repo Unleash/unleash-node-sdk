@@ -6,14 +6,12 @@ import nock from 'nock';
 import { assert, expect, test, vi } from 'vitest';
 import type { Context } from '../context';
 import type { MetricsData } from '../request';
-import { Strategy } from '../strategy';
+import type { Strategy } from '../strategy';
 import { Unleash, UnleashEvents } from '../unleash';
 import { FakeFetcher } from './fixtures';
 
-class EnvironmentStrategy extends Strategy {
-  constructor() {
-    super('EnvironmentStrategy');
-  }
+class EnvironmentStrategy implements Strategy {
+  name = 'EnvironmentStrategy';
 
   isEnabled(parameters: Record<string, unknown>, context: Context) {
     return String(parameters.environments).indexOf(context.environment ?? '') !== -1;

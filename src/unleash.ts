@@ -1,9 +1,8 @@
 import { EventEmitter } from 'node:events';
 import { tmpdir } from 'node:os';
-import { UnleashEngine } from '@unleash/yggdrasil-engine';
-import Client from './client';
+import { getSupportedStrategies, UnleashEngine } from '@unleash/yggdrasil-engine';
 import type { Context } from './context';
-import { createImpressionEvent, type ImpressionEvent, UnleashEvents } from './events';
+import { createImpressionEvent, UnleashEvents } from './events';
 import type { EnhancedFeatureInterface, FeatureInterface } from './feature';
 import {
   createFallbackFunction,
@@ -17,12 +16,11 @@ import Metrics from './metrics';
 import Repository, { type RepositoryInterface } from './repository';
 import { resolveBootstrapProvider } from './repository/bootstrap-provider';
 import FileStorageProvider from './repository/storage-provider-file';
-import { defaultStrategies, Strategy } from './strategy';
 import { UnleashConfig } from './unleash-config';
 import { uuidv4 } from './uuidv4';
 import { defaultVariant, type Variant, type VariantWithFeatureStatus } from './variant';
 
-export { Strategy, UnleashConfig, UnleashEvents };
+export { UnleashConfig, UnleashEvents };
 
 const BACKUP_PATH: string = tmpdir();
 
@@ -39,8 +37,6 @@ export class Unleash extends EventEmitter {
   private static instanceCount: number = 0;
 
   private repository: RepositoryInterface;
-
-  protected client: Client;
 
   private metrics: Metrics;
 
@@ -165,20 +161,16 @@ export class Unleash extends EventEmitter {
       this.setSynchronized();
     });
 
-    // setup client
-    const supportedStrategies = strategies.concat(defaultStrategies);
-    this.client = new Client(this.repository, supportedStrategies);
-    this.client.on(UnleashEvents.Error, (err) => this.emit(UnleashEvents.Error, err));
-    this.client.on(UnleashEvents.Impression, (e: ImpressionEvent) =>
-      this.emit(UnleashEvents.Impression, e),
-    );
+    const allStrategyNames = strategies
+      .map((strategy) => strategy.name)
+      .concat(getSupportedStrategies());
 
     this.metrics = new Metrics({
       disableMetrics,
       appName,
       instanceId: unleashInstanceId,
       connectionId: unleashConnectionId,
-      strategies: supportedStrategies.map((strategy: Strategy) => strategy.name),
+      strategies: allStrategyNames,
       metricsInterval,
       metricsJitter,
       url: unleashUrl,
