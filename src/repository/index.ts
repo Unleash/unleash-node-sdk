@@ -7,13 +7,6 @@ import {
   type UnleashEngine,
 } from '@unleash/yggdrasil-engine';
 import { UnleashEvents } from '../events';
-import type {
-  EnhancedFeatureInterface,
-  EnhancedStrategyTransportInterface,
-  FeatureInterface,
-  Segment,
-  StrategyTransportInterface,
-} from '../feature';
 import type { CustomHeaders, CustomHeadersFunction } from '../headers';
 import type { HttpOptions } from '../http-options';
 import type { TagFilter } from '../tags';
@@ -24,13 +17,8 @@ import type { FetcherInterface } from './fetcher';
 import type { StorageProvider } from './storage-provider';
 
 export interface RepositoryInterface extends EventEmitter {
-  getToggle(name: string): FeatureInterface | undefined;
-  getToggles(): FeatureInterface[];
-  getTogglesWithSegmentData(): EnhancedFeatureInterface[];
-  getSegment(id: number): Segment | undefined;
   stop(): void;
   start(): Promise<void>;
-  setMode?(mode: 'polling' | 'streaming'): Promise<void>;
 }
 
 export interface RepositoryOptions {
@@ -105,26 +93,6 @@ export default class Repository extends EventEmitter implements EventEmitter {
 
   private readonly lifeCycle = new Lifecycle();
 
-  private get transport(): AdaptiveFetcher {
-    if (!(this.fetcher instanceof AdaptiveFetcher))
-      throw new Error('Injected fetcher does not expose transport controls');
-    return this.fetcher;
-  }
-
-  // Keep references for backward compatibility
-  public readonly url: string;
-
-  public readonly projectName?: string;
-
-  // Etag property for backward compatibility
-  public get etag(): string | undefined {
-    return this.transport.getEtag?.() || undefined;
-  }
-
-  public set etag(value: string | undefined) {
-    this.transport.setEtag?.(value);
-  }
-
   constructor({
     url,
     appName,
@@ -147,8 +115,6 @@ export default class Repository extends EventEmitter implements EventEmitter {
   }: RepositoryOptions) {
     super();
     this.appName = appName;
-    this.url = url;
-    this.projectName = projectName;
     this.bootstrapProvider = bootstrapProvider;
     this.storageProvider = storageProvider;
     this.engine = engine;
@@ -284,59 +250,4 @@ export default class Repository extends EventEmitter implements EventEmitter {
     this.fetcher.stop();
     this.removeAllListeners();
   }
-  getSegment(segmentId: number): Segment | undefined {
-    return this.engine.getState().segments?.find((segment) => segment.id === segmentId) as
-      | Segment
-      | undefined;
-  }
-
-  getToggle(name: string): FeatureInterface | undefined {
-    return this.engine.getState().features.find((feature) => feature.name === name) as unknown as
-      | FeatureInterface
-      | undefined;
-  }
-
-  getToggles(): FeatureInterface[] {
-    return this.engine.getState().features as unknown as FeatureInterface[];
-  }
-
-  getTogglesWithSegmentData(): EnhancedFeatureInterface[] {
-    const toggles = this.getToggles();
-    return toggles.map((toggle): EnhancedFeatureInterface => {
-      const { strategies, ...restOfToggle } = toggle;
-
-      return { ...restOfToggle, strategies: this.enhanceStrategies(strategies) };
-    });
-  }
-
-  getMode(): 'streaming' | 'polling' {
-    return this.transport.getMode();
-  }
-
-  async setMode(mode: 'polling' | 'streaming'): Promise<void> {
-    await this.transport.setMode(mode);
-  }
-
-  // Compatibility methods for tests - delegate to fetching strategy
-  getFailures(): number {
-    return this.transport.getFailures();
-  }
-
-  nextFetch(): number {
-    return this.transport.nextFetch();
-  }
-
-  async fetch(): Promise<void> {
-    return this.transport.fetch();
-  }
-
-  private enhanceStrategies = (
-    strategies: StrategyTransportInterface[] | undefined,
-  ): EnhancedStrategyTransportInterface[] | undefined => {
-    return strategies?.map((strategy) => {
-      const { segments, ...restOfStrategy } = strategy;
-      const enhancedSegments = segments?.map((segment) => this.getSegment(segment));
-      return { ...restOfStrategy, segments: enhancedSegments };
-    });
-  };
 }

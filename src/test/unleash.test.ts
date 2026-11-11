@@ -123,7 +123,7 @@ test('should handle url without ending /', () => {
   });
 
   // @ts-expect-error
-  expect(`${baseUrl}/` === instance.repository.url).toBe(true);
+  expect(`${baseUrl}/` === instance.repository.fetcher.options.url).toBe(true);
   // @ts-expect-error
   expect(`${baseUrl}/` === instance.metrics.url).toBe(true);
 
@@ -362,13 +362,10 @@ test('should return feature-toggles', async () => {
 
     instance.on('synchronized', () => {
       const toggles = instance.getFeatureToggleDefinitions();
-      expect(
-        toggles
-          ?.map(({ name, enabled }) => ({ name, enabled }))
-          .sort((a, b) => a.name.localeCompare(b.name)),
-      ).toStrictEqual(
+      // The engine returns summaries in unspecified order.
+      expect(toggles?.sort((a, b) => a.name.localeCompare(b.name))).toStrictEqual(
         defaultToggles
-          .map(({ name, enabled }) => ({ name, enabled }))
+          .map(({ name, enabled }) => ({ name, enabled, project: 'default' }))
           .sort((a, b) => a.name.localeCompare(b.name)),
       );
       instance.destroy();
@@ -458,7 +455,7 @@ test('should call client/features with projectName query parameter if projectNam
   });
 
   // @ts-expect-error
-  expect(instance.repository.projectName).toEqual('myProject');
+  expect(instance.repository.fetcher.options.projectName).toEqual('myProject');
 
   instance.destroy();
 });

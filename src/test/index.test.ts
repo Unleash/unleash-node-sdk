@@ -1,10 +1,7 @@
 import nock from 'nock';
 import { afterEach, expect, test } from 'vitest';
 import {
-  count,
-  countVariant,
   destroy,
-  getFeatureToggleDefinition,
   getFeatureToggleDefinitions,
   getVariant,
   initialize,
@@ -28,18 +25,15 @@ const nockMetrics = (url: string, code = 200) => nock(url).post(metricsUrl).repl
 const registerUrl = '/client/register';
 const nockRegister = (url: string, code = 200) => nock(url).post(registerUrl).reply(code, '');
 const nockFeatures = (url: string, code = 200) =>
-  nock(url).get('/client/features').reply(code, { version: 2, features: [] });
+  nock(url).get('/client/features').reply(code, { version: 2, query: undefined, features: [] });
 
 test('should load main module', () => {
   expect(initialize).toBeTruthy();
   expect(startUnleash).toBeTruthy();
   expect(isEnabled).toBeTruthy();
   expect(destroy).toBeTruthy();
-  expect(countVariant).toBeTruthy();
   expect(getVariant).toBeTruthy();
-  expect(getFeatureToggleDefinition).toBeTruthy();
   expect(getFeatureToggleDefinitions).toBeTruthy();
-  expect(count).toBeTruthy();
 });
 
 test('initialize should init with valid options', () => {
@@ -56,14 +50,8 @@ test('should call methods', () => {
   nockRegister(url);
   expect(() => initialize({ appName: 'my-app-name', url })).not.toThrow();
   expect(isEnabled('some-feature')).toMatchSnapshot();
-  expect(getFeatureToggleDefinition('some-feature')).toMatchSnapshot();
   expect(getVariant('some-feature')).toMatchSnapshot();
   destroy();
-});
-
-test('should not return feature-toggle definition if there is no instance', () => {
-  // @ts-expect-error
-  expect(getFeatureToggleDefinition()).toBeUndefined();
 });
 
 test.sequential('should start unleash with promise', async () => {

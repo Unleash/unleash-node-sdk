@@ -11,9 +11,9 @@ test('evaluates full and delta updates from an injected fetcher', async () => {
   expect(sdk.isSynchronized()).toBe(true);
   expect(sdk.isEnabled('feature')).toBe(true);
   expect(sdk.isEnabled('missing', {}, true)).toBe(true);
-  expect(sdk.getFeatureToggleDefinitions().map(({ name, enabled }) => ({ name, enabled }))).toEqual(
-    [{ name: 'feature', enabled: true }],
-  );
+  expect(sdk.getFeatureToggleDefinitions()).toEqual([
+    { name: 'feature', enabled: true, project: 'default' },
+  ]);
   await fetcher.publish({
     events: [
       { type: 'feature-updated', eventId: 1, feature: feature('feature', { enabled: false }) },

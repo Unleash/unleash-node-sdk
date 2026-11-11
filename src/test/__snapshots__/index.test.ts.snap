@@ -2,9 +2,7 @@
 
 exports[`should call methods 1`] = `false`;
 
-exports[`should call methods 2`] = `undefined`;
-
-exports[`should call methods 3`] = `
+exports[`should call methods 2`] = `
 {
   "enabled": false,
   "featureEnabled": false,
