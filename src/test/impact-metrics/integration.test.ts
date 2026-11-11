@@ -1,4 +1,3 @@
-import { once } from 'node:events';
 import nock from 'nock';
 import { afterEach, expect, test, vi } from 'vitest';
 import { client, FakeFetcher, state } from '../fixtures';
@@ -14,9 +13,7 @@ test('flushes impact metrics with unlabelled samples alongside automatic evaluat
   });
   const counts = vi.fn();
   sdk.on('count', counts);
-  const synchronized = once(sdk, 'synchronized');
   await sdk.start();
-  await synchronized;
   sdk.impactMetrics.defineCounter('requests', 'Request count');
   sdk.impactMetrics.defineGauge('connections', 'Open connections');
   sdk.impactMetrics.defineHistogram('latency', 'Request latency', [1, 5]);
@@ -82,9 +79,7 @@ test('disabled sending suppresses count events and posts while evaluations still
   const sdk = client({ fetcher: new FakeFetcher(state()) });
   const count = vi.fn();
   sdk.on('count', count);
-  const synchronized = once(sdk, 'synchronized');
   await sdk.start();
-  await synchronized;
   expect(sdk.isEnabled('feature')).toBe(true);
   expect(sdk.getVariant('feature').feature_enabled).toBe(true);
   await sdk.flushMetrics();

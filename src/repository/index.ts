@@ -1,13 +1,13 @@
 import { EventEmitter } from 'node:events';
-import { type ClientFeatures, getSpecVersion, type UnleashEngine } from '@unleash/yggdrasil-engine';
-import { UnleashEvents } from '../events';
 import {
-  type ApiResponse,
-  type ClientFeaturesResponse,
-  type EnhancedFeatureInterface,
-  type FeatureInterface,
-  parseApiResponse,
-} from '../feature';
+  type ClientFeatures,
+  type ClientFeaturesDelta,
+  getSpecVersion,
+  type ToggleDefinition,
+  type UnleashEngine,
+} from '@unleash/yggdrasil-engine';
+import { UnleashEvents } from '../events';
+import type { EnhancedFeatureInterface, FeatureInterface } from '../feature';
 import type { CustomHeaders, CustomHeadersFunction } from '../headers';
 import type { HttpOptions } from '../http-options';
 import type {
@@ -21,8 +21,6 @@ import { AdaptiveFetcher } from './adaptive-fetcher';
 import type { BootstrapProvider } from './bootstrap-provider';
 import type { FetcherInterface } from './fetcher';
 import type { StorageProvider } from './storage-provider';
-
-export const SUPPORTED_SPEC_VERSION = getSpecVersion();
 
 export interface RepositoryInterface extends EventEmitter {
   getToggle(name: string): FeatureInterface | undefined;
@@ -48,12 +46,49 @@ export interface RepositoryOptions {
   namePrefix?: string;
   tags?: Array<TagFilter>;
   bootstrapProvider: BootstrapProvider;
-  bootstrapOverride?: boolean;
   storageProvider: StorageProvider<ClientFeatures>;
   eventSource?: EventSource;
   mode: Mode;
-  fetcher?: FetcherInterface;
   engine: UnleashEngine;
+  fetcher?: FetcherInterface;
+}
+
+enum State {
+  Uninitialized,
+  RestoredFromBackup,
+  Bootstrapped,
+  Hydrated,
+  Closed,
+}
+
+class Lifecycle extends EventEmitter {
+  private current = State.Uninitialized;
+
+  get state(): State {
+    return this.current;
+  }
+
+  moveTo(requested: State): State {
+    const previous = this.current;
+
+    if (requested <= previous) {
+      return this.current;
+    }
+
+    this.current = requested;
+
+    if (previous === State.Uninitialized && requested !== State.Closed) {
+      process.nextTick(() => {
+        this.emit(UnleashEvents.Ready);
+      });
+    }
+
+    if (requested === State.Hydrated) {
+      this.emit(UnleashEvents.Synchronized);
+    }
+
+    return this.current;
+  }
 }
 
 export default class Repository extends EventEmitter implements EventEmitter {
@@ -61,19 +96,13 @@ export default class Repository extends EventEmitter implements EventEmitter {
 
   private bootstrapProvider: BootstrapProvider;
 
-  private bootstrapOverride: boolean;
-
   private storageProvider: StorageProvider<ClientFeatures>;
 
-  private ready: boolean = false;
-
-  private connected: boolean = false;
-
-  private stopped: boolean = false;
+  private fetcher: FetcherInterface;
 
   private engine: UnleashEngine;
 
-  private fetcher: FetcherInterface;
+  private readonly lifeCycle = new Lifecycle();
 
   private get transport(): AdaptiveFetcher {
     if (!(this.fetcher instanceof AdaptiveFetcher))
@@ -109,19 +138,17 @@ export default class Repository extends EventEmitter implements EventEmitter {
     namePrefix,
     tags,
     bootstrapProvider,
-    bootstrapOverride = true,
     storageProvider,
     eventSource,
     mode,
-    fetcher,
     engine,
+    fetcher,
   }: RepositoryOptions) {
     super();
     this.appName = appName;
     this.url = url;
     this.projectName = projectName;
     this.bootstrapProvider = bootstrapProvider;
-    this.bootstrapOverride = bootstrapOverride;
     this.storageProvider = storageProvider;
     this.engine = engine;
 
@@ -142,135 +169,120 @@ export default class Repository extends EventEmitter implements EventEmitter {
         projectName,
         mode,
         eventSource,
-        specVersion: SUPPORTED_SPEC_VERSION,
+        specVersion: getSpecVersion(),
       });
 
-    this.fetcher.registerUpdate((response) => this.save(parseApiResponse(response), true));
-    this.setupFetchingStrategyEvents();
+    this.fetcher.registerUpdate(this.onUpdate.bind(this));
+
+    this.setupEventForwarding();
   }
 
-  private setupFetchingStrategyEvents() {
+  private async onUpdate(newFeatures: ClientFeatures | ClientFeaturesDelta): Promise<void> {
+    if (this.isClosed()) return;
+
+    try {
+      this.takeState(newFeatures);
+      if (this.isClosed()) return;
+      this.lifeCycle.moveTo(State.Hydrated);
+      if (this.isClosed()) return;
+
+      const newState = this.engine.getState();
+
+      const featureArray: Array<ToggleDefinition> = newState.features.map((f) => {
+        return {
+          name: f.name,
+          type: f.type,
+          project: f.project || 'default',
+          enabled: f.enabled,
+        };
+      });
+
+      this.emit(UnleashEvents.Changed, featureArray);
+
+      if (this.isClosed()) return;
+      await this.storageProvider.set(this.appName, newState);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      this.emit(
+        UnleashEvents.Warn,
+        `Unleash SDK was unable to update from fetcher.\nMessage: ${message}`,
+      );
+    }
+  }
+
+  private isClosed(): boolean {
+    return this.lifeCycle.state === State.Closed;
+  }
+
+  private takeState(state: ClientFeatures | ClientFeaturesDelta): void {
+    const warnings = this.engine.takeState(state);
+    if (warnings) this.emit(UnleashEvents.Warn, warnings);
+  }
+
+  private setupEventForwarding() {
     this.fetcher.on(UnleashEvents.Error, (err) => this.emit(UnleashEvents.Error, err));
     this.fetcher.on(UnleashEvents.Warn, (msg) => this.emit(UnleashEvents.Warn, msg));
     this.fetcher.on(UnleashEvents.Unchanged, () => this.emit(UnleashEvents.Unchanged));
     this.fetcher.on(UnleashEvents.Mode, (data) => this.emit(UnleashEvents.Mode, data));
-  }
 
-  validateFeature(feature: FeatureInterface) {
-    const errors: string[] = [];
-    if (!Array.isArray(feature.strategies)) {
-      errors.push(`feature.strategies should be an array, but was ${typeof feature.strategies}`);
-    }
-
-    if (feature.variants && !Array.isArray(feature.variants)) {
-      errors.push(`feature.variants should be an array, but was ${typeof feature.variants}`);
-    }
-
-    if (typeof feature.enabled !== 'boolean') {
-      errors.push(`feature.enabled should be an boolean, but was ${typeof feature.enabled}`);
-    }
-
-    if (errors.length > 0) {
-      const err = new Error(errors.join(', '));
-      this.emit(UnleashEvents.Error, err);
-    }
-  }
-
-  async start(): Promise<void> {
-    await Promise.all([this.fetcher.start(), this.loadBackup(), this.loadBootstrap()]);
+    this.lifeCycle.on(UnleashEvents.Ready, () => this.emit(UnleashEvents.Ready));
+    this.lifeCycle.on(UnleashEvents.Synchronized, () => this.emit(UnleashEvents.Synchronized));
   }
 
   async loadBackup(): Promise<void> {
     try {
       const content = await this.storageProvider.get(this.appName);
 
-      if (this.ready) {
+      if (this.lifeCycle.state >= State.RestoredFromBackup) {
         return;
       }
 
       if (content && this.notEmpty(content)) {
-        this.engine.takeState(content);
-        this.setReady();
+        this.takeState(content);
+        if (this.lifeCycle.state === State.Closed) return;
+        this.lifeCycle.moveTo(State.RestoredFromBackup);
       }
-    } catch (err) {
-      this.emit(UnleashEvents.Warn, err);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      this.emit(UnleashEvents.Warn, `Unleash SDK was unable to load backup.\nMessage: ${message}`);
     }
-  }
-
-  setReady(): void {
-    const doEmitReady = this.ready === false;
-    this.ready = true;
-
-    if (doEmitReady) {
-      process.nextTick(() => {
-        this.emit(UnleashEvents.Ready);
-      });
-    }
-  }
-
-  createSegmentLookup(segments: Segment[] | undefined): Map<number, Segment> {
-    if (!segments) {
-      return new Map();
-    }
-    return new Map(segments.map((segment) => [segment.id, segment]));
-  }
-
-  public async save(response: ApiResponse, fromApi: boolean): Promise<void> {
-    if (this.stopped) {
-      return;
-    }
-    if (fromApi) {
-      this.connected = true;
-      this.applyFeatureResponse(response);
-    } else if (!this.connected) {
-      // Only allow bootstrap if not connected
-      this.applyFeatureResponse(response);
-    }
-
-    this.setReady();
-    const newFeatures = this.engine.getState().features;
-    this.emit(UnleashEvents.Changed, newFeatures);
-
-    await this.storageProvider.set(this.appName, this.engine.getState());
-  }
-
-  private applyFeatureResponse(response: ApiResponse): void {
-    // Legacy transport types remain temporarily for the old definition getters.
-    this.engine.takeState(response as unknown as ClientFeatures);
-  }
-
-  notEmpty(content: ClientFeatures): boolean {
-    return content.features.length > 0;
   }
 
   async loadBootstrap(): Promise<void> {
     try {
       const content = await this.bootstrapProvider.readBootstrap();
 
-      if (!this.bootstrapOverride && this.ready) {
-        // early exit if we already have backup data and should not override it.
+      if (this.lifeCycle.state >= State.Bootstrapped) {
         return;
       }
 
       if (content && this.notEmpty(content)) {
-        await this.save(parseApiResponse(content), false);
+        this.takeState(content);
+        if (this.lifeCycle.state === State.Closed) return;
+        this.lifeCycle.moveTo(State.Bootstrapped);
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Unknown error';
       this.emit(
         UnleashEvents.Warn,
-        `Unleash SDK was unable to load bootstrap.
-Message: ${message}`,
+        `Unleash SDK was unable to load bootstrap.\nMessage: ${message}`,
       );
     }
   }
 
+  notEmpty(content: ClientFeatures): boolean {
+    return content.features.length > 0;
+  }
+
+  async start(): Promise<void> {
+    await Promise.all([this.fetcher.start(), this.loadBackup(), this.loadBootstrap()]);
+  }
+
   stop() {
-    this.stopped = true;
+    this.lifeCycle.moveTo(State.Closed);
     this.fetcher.stop();
     this.removeAllListeners();
   }
-
   getSegment(segmentId: number): Segment | undefined {
     return this.engine.getState().segments?.find((segment) => segment.id === segmentId) as
       | Segment

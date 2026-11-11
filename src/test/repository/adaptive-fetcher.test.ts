@@ -1,6 +1,6 @@
+import { getSpecVersion } from '@unleash/yggdrasil-engine';
 import nock from 'nock';
 import { afterEach, expect, test, vi } from 'vitest';
-import { SUPPORTED_SPEC_VERSION } from '../../repository';
 import { AdaptiveFetcher } from '../../repository/adaptive-fetcher';
 import type { FetchingOptions } from '../../repository/fetcher';
 import { state, TestEventSource } from '../fixtures';
@@ -15,7 +15,7 @@ function setup(options: Partial<FetchingOptions> = {}) {
     connectionId: 'connection',
     refreshInterval: 1000,
     mode: { type: 'polling', format: 'full' },
-    specVersion: SUPPORTED_SPEC_VERSION,
+    specVersion: getSpecVersion(),
     eventSource: eventSource as unknown as EventSource,
     ...options,
   });

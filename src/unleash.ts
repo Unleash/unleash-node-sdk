@@ -78,7 +78,6 @@ export class Unleash extends EventEmitter {
     httpOptions,
     tags,
     bootstrap = {},
-    bootstrapOverride,
     storageProvider,
     disableAutoStart = false,
     skipInstanceCountWarning = false,
@@ -136,7 +135,6 @@ export class Unleash extends EventEmitter {
       namePrefix,
       tags,
       bootstrapProvider,
-      bootstrapOverride,
       fetcher,
       engine: this.engine,
       mode: experimentalMode,
@@ -144,10 +142,12 @@ export class Unleash extends EventEmitter {
     });
 
     this.repository.on(UnleashEvents.Ready, () => {
-      this.ready = true;
-      process.nextTick(() => {
-        this.emit(UnleashEvents.Ready);
-      });
+      this.setReady();
+    });
+
+    this.repository.on(UnleashEvents.Synchronized, () => {
+      this.setReady();
+      this.setSynchronized();
     });
 
     this.repository.on(UnleashEvents.Error, (err) => {
@@ -160,14 +160,9 @@ export class Unleash extends EventEmitter {
     this.repository.on(UnleashEvents.Unchanged, (msg) => this.emit(UnleashEvents.Unchanged, msg));
 
     this.repository.on(UnleashEvents.Changed, (data) => {
-      this.ready = true;
+      if (this.destroyed) return;
       this.emit(UnleashEvents.Changed, data);
-
-      // Only emit the fully synchronized event the first time.
-      if (!this.synchronized) {
-        this.synchronized = true;
-        process.nextTick(() => this.emit(UnleashEvents.Synchronized));
-      }
+      this.setSynchronized();
     });
 
     // setup client
@@ -268,8 +263,24 @@ export class Unleash extends EventEmitter {
     return this.synchronized;
   }
 
+  private setReady(): void {
+    if (this.ready || this.destroyed) return;
+    this.ready = true;
+    process.nextTick(() => {
+      if (!this.destroyed) this.emit(UnleashEvents.Ready);
+    });
+  }
+
+  private setSynchronized(): void {
+    if (this.synchronized || this.destroyed) return;
+    this.synchronized = true;
+    process.nextTick(() => {
+      if (!this.destroyed) this.emit(UnleashEvents.Synchronized);
+    });
+  }
+
   async start(): Promise<void> {
-    if (this.started) return;
+    if (this.started || this.destroyed) return;
     this.started = true;
     await Promise.all([this.repository.start(), this.metrics.start()]);
   }
@@ -277,12 +288,15 @@ export class Unleash extends EventEmitter {
   destroy() {
     if (this.destroyed) return;
     this.destroyed = true;
-    this.repository.stop();
-    this.metrics.stop();
-    this.engine.destroy();
-    Unleash.instance = undefined;
-    Unleash.configSignature = undefined;
-    Unleash.instanceCount--;
+    try {
+      this.repository.stop();
+    } finally {
+      this.metrics.stop();
+      this.engine.destroy();
+      Unleash.instance = undefined;
+      Unleash.configSignature = undefined;
+      Unleash.instanceCount--;
+    }
   }
 
   isEnabled(name: Name, context?: Context, fallbackFunction?: FallbackFunction): boolean;
@@ -381,6 +395,7 @@ export class Unleash extends EventEmitter {
   }
 
   getFeatureToggleDefinition(toggleName: string): FeatureInterface | undefined {
+    if (this.destroyed) return undefined;
     return this.repository.getToggle(toggleName);
   }
 
@@ -389,6 +404,7 @@ export class Unleash extends EventEmitter {
   getFeatureToggleDefinitions(
     withFullSegments?: boolean,
   ): Array<FeatureInterface | EnhancedFeatureInterface> {
+    if (this.destroyed) return [];
     if (withFullSegments === true) {
       return this.repository.getTogglesWithSegmentData();
     }
