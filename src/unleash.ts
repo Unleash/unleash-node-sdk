@@ -1,5 +1,6 @@
 import { EventEmitter } from 'node:events';
 import { tmpdir } from 'node:os';
+import { UnleashEngine } from '@unleash/yggdrasil-engine';
 import Client, { type Name } from './client';
 import type { Context } from './context';
 import { type ImpressionEvent, UnleashEvents } from './events';
@@ -10,9 +11,7 @@ import {
   generateHashOfConfig,
   generateInstanceId,
 } from './helpers';
-import { buildImpactMetricContext } from './impact-metrics/context';
 import { MetricsAPI } from './impact-metrics/metric-api';
-import { InMemoryMetricRegistry } from './impact-metrics/metric-types';
 import Metrics from './metrics';
 import Repository, { type RepositoryInterface } from './repository';
 import { resolveBootstrapProvider } from './repository/bootstrap-provider';
@@ -52,7 +51,9 @@ export class Unleash extends EventEmitter {
 
   private started: boolean = false;
 
-  protected metricRegistry = new InMemoryMetricRegistry();
+  private engine = new UnleashEngine();
+
+  private destroyed = false;
 
   public impactMetrics: MetricsAPI;
 
@@ -186,16 +187,12 @@ export class Unleash extends EventEmitter {
       customHeadersFunction,
       timeout,
       httpOptions,
-      metricRegistry: this.metricRegistry,
+      engine: this.engine,
       sdkFlavor,
       sdkFlavorVersion,
     });
 
-    this.impactMetrics = new MetricsAPI(
-      this.metricRegistry,
-      this.client,
-      buildImpactMetricContext(customHeaders, this.staticContext),
-    );
+    this.impactMetrics = new MetricsAPI(this.engine);
 
     this.metrics.on(UnleashEvents.Error, (err) => {
       err.message = `Unleash Metrics error: ${err.message}`;
@@ -274,8 +271,11 @@ export class Unleash extends EventEmitter {
   }
 
   destroy() {
+    if (this.destroyed) return;
+    this.destroyed = true;
     this.repository.stop();
     this.metrics.stop();
+    this.engine.destroy();
     Unleash.instance = undefined;
     Unleash.configSignature = undefined;
     Unleash.instanceCount--;

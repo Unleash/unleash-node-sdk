@@ -1,8 +1,35 @@
+import assert from 'node:assert/strict';
+import type { CollectedMetric } from '@unleash/yggdrasil-engine';
+import { getSpecVersion, UnleashEngine } from '@unleash/yggdrasil-engine';
 import nock from 'nock';
-import { expect, test, vi } from 'vitest';
-import type { CollectedMetric } from '../impact-metrics/metric-types';
+import { afterEach, expect, test, vi } from 'vitest';
+import type { MetricsOptions } from '../metrics';
 import Metrics from '../metrics';
-import { SUPPORTED_SPEC_VERSION } from '../repository';
+
+const SUPPORTED_SPEC_VERSION = getSpecVersion();
+const instances: { metrics: Metrics; engine: UnleashEngine }[] = [];
+function createMetrics(options: Partial<MetricsOptions> = {}) {
+  const engine = new UnleashEngine();
+  const metrics = new Metrics({
+    appName: 'test',
+    instanceId: 'test',
+    connectionId: 'test',
+    strategies: [],
+    metricsInterval: 0,
+    url: 'http://metrics.test/',
+    ...options,
+    engine,
+  });
+  instances.push({ metrics, engine });
+  return { metrics, engine };
+}
+afterEach(() => {
+  for (const { metrics, engine } of instances.splice(0)) {
+    metrics.stop();
+    engine.destroy();
+  }
+  nock.cleanAll();
+});
 
 let counter = 1;
 const getUrl = () => `http://test${counter++}.app/`;
@@ -11,26 +38,15 @@ const nockMetrics = (url: string, code = 200) => nock(url).post(metricsUrl).repl
 const registerUrl = '/client/register';
 const nockRegister = (url: string, code = 200) => nock(url).post(registerUrl).reply(code, '');
 
-test('should be disabled by flag disableMetrics', () => {
-  // @ts-expect-error
-  const metrics = new Metrics({ disableMetrics: true });
-  metrics.count('foo', true);
-  //@ts-expect-error bucket isn't a known key
-  expect(Object.keys(metrics.bucket.toggles)).toHaveLength(0);
-});
-
-test('registerInstance, sendMetrics, startTimer and count should respect disabled', async () => {
+test('registerInstance, sendMetrics and startTimer should respect disabled', async () => {
   await new Promise<void>((resolve) => {
     const url = getUrl();
-    // @ts-expect-error
-    const metrics = new Metrics({
+    const { metrics } = createMetrics({
       url,
       disableMetrics: true,
     });
     // @ts-expect-error
     expect(metrics.startTimer()).toBeUndefined();
-    // @ts-expect-error
-    expect(metrics.count()).toBeUndefined();
     Promise.all([metrics.registerInstance(), metrics.sendMetrics()]).then((results) => {
       const [registerInstance, sendMetrics] = results;
       expect(!registerInstance).toBe(true);
@@ -43,8 +59,7 @@ test('registerInstance, sendMetrics, startTimer and count should respect disable
 
 test('should not start fetch/register when metricsInterval is 0', () => {
   const url = getUrl();
-  // @ts-expect-error
-  const metrics = new Metrics({
+  const { metrics } = createMetrics({
     url,
     metricsInterval: 0,
   });
@@ -57,8 +72,7 @@ test('should sendMetrics and register when metricsInterval is a positive number'
   const regEP = nockRegister(url);
   const metricsEP = nockMetrics(url);
   expect.assertions(2);
-  // @ts-expect-error
-  const metrics = new Metrics({
+  const { metrics, engine } = createMetrics({
     url,
     metricsInterval: 50,
   });
@@ -74,9 +88,9 @@ test('should sendMetrics and register when metricsInterval is a positive number'
     });
   });
 
-  metrics.count('toggle-x', true);
-  metrics.count('toggle-x', false);
-  metrics.count('toggle-y', true);
+  engine.count('toggle-x', true);
+  engine.count('toggle-x', false);
+  engine.count('toggle-y', true);
   metrics.start();
   await vi.waitFor<void>(() => validator, { timeout: 1000 });
 });
@@ -99,18 +113,17 @@ test('should sendMetrics', async () => {
     .reply(200, '');
   const regEP = nockRegister(url);
 
-  // @ts-expect-error
-  const metrics = new Metrics({
+  const { metrics, engine } = createMetrics({
     url,
     metricsInterval: 50,
     connectionId: 'connection-id',
   });
 
-  metrics.count('toggle-x', true);
-  metrics.count('toggle-x', false);
-  metrics.count('toggle-y', true);
-  metrics.countVariant('toggle-x', 'variant-a');
-  metrics.countVariant('toggle-x', 'variant-a');
+  engine.count('toggle-x', true);
+  engine.count('toggle-x', false);
+  engine.count('toggle-y', true);
+  engine.countVariant('toggle-x', 'variant-a');
+  engine.countVariant('toggle-x', 'variant-a');
 
   await metrics.registerInstance();
   expect(regEP.isDone()).toBe(true);
@@ -135,8 +148,7 @@ test('should send correct custom and unleash headers', async () => {
       .matchHeader('unleash-sdk', /^unleash-node-sdk:\d+\.\d+\.\d+/)
       .matchHeader('unleash-connection-id', 'connectionId');
 
-    // @ts-expect-error
-    const metrics = new Metrics({
+    const { metrics, engine } = createMetrics({
       url,
       appName: 'appName',
       connectionId: 'connectionId',
@@ -146,9 +158,9 @@ test('should send correct custom and unleash headers', async () => {
       },
     });
 
-    metrics.count('toggle-x', true);
-    metrics.count('toggle-x', false);
-    metrics.count('toggle-y', true);
+    engine.count('toggle-x', true);
+    engine.count('toggle-x', false);
+    engine.count('toggle-y', true);
 
     metrics.on('sent', () => {
       expect(regEP.isDone()).toBe(true);
@@ -166,13 +178,12 @@ test('should send content-type header', async () => {
   const metricsEP = nockMetrics(url).matchHeader('content-type', 'application/json');
   const regEP = nockRegister(url).matchHeader('content-type', 'application/json');
 
-  // @ts-expect-error
-  const metrics = new Metrics({
+  const { metrics, engine } = createMetrics({
     url,
     metricsInterval: 50,
   });
 
-  metrics.count('toggle-x', true);
+  engine.count('toggle-x', true);
   await metrics.registerInstance();
   await metrics.sendMetrics();
   expect(regEP.isDone()).toBe(true);
@@ -202,15 +213,14 @@ test('sdkFlavor exists in the register and metrics request bodies', async () => 
     )
     .reply(200, '');
 
-  // @ts-expect-error partial options for test
-  const metrics = new Metrics({
+  const { metrics, engine } = createMetrics({
     url,
     metricsInterval: 50,
     sdkFlavor: 'unleash-openfeature-node-provider',
     sdkFlavorVersion: '1.2.3',
   });
 
-  metrics.count('toggle-x', true);
+  engine.count('toggle-x', true);
   await metrics.registerInstance();
   await metrics.sendMetrics();
 
@@ -230,13 +240,12 @@ test('sdkFlavor is absent from request bodies when not configured', async () => 
     .post(metricsUrl, (body) => !('sdkFlavor' in body) && !('sdkFlavorVersion' in body))
     .reply(200, '');
 
-  // @ts-expect-error partial options for test
-  const metrics = new Metrics({
+  const { metrics, engine } = createMetrics({
     url,
     metricsInterval: 50,
   });
 
-  metrics.count('toggle-x', true);
+  engine.count('toggle-x', true);
   await metrics.registerInstance();
   await metrics.sendMetrics();
 
@@ -258,8 +267,7 @@ test('request with customHeadersFunction should take precedence over customHeade
     .matchHeader('randomKey', (value) => value === undefined)
     .matchHeader('customHeadersKey', customHeadersKey);
 
-  // @ts-expect-error
-  const metrics = new Metrics({
+  const { metrics, engine } = createMetrics({
     url,
     metricsInterval: 0,
     headers: {
@@ -268,9 +276,9 @@ test('request with customHeadersFunction should take precedence over customHeade
     customHeadersFunction: () => Promise.resolve({ customHeadersKey }),
   });
 
-  metrics.count('toggle-x', true);
-  metrics.count('toggle-x', false);
-  metrics.count('toggle-y', true);
+  engine.count('toggle-x', true);
+  engine.count('toggle-x', false);
+  engine.count('toggle-y', true);
   await metrics.registerInstance();
   await metrics.sendMetrics();
   expect(metricsEP.isDone()).toBe(true);
@@ -284,8 +292,7 @@ test('should respect timeout', async () => {
     nock(url).post(metricsUrl).delay(100).reply(200, '');
     nock(url).post(registerUrl).delay(100).reply(200, '');
 
-    // @ts-expect-error
-    const metrics = new Metrics({
+    const { metrics, engine } = createMetrics({
       url,
       metricsInterval: 50,
       timeout: 50,
@@ -297,7 +304,7 @@ test('should respect timeout', async () => {
       resolve();
     });
     metrics.on('sent', reject);
-    metrics.count('toggle-x', true);
+    engine.count('toggle-x', true);
     metrics.start();
   });
 });
@@ -307,8 +314,7 @@ test('registerInstance should warn when non 200 statusCode', async () => {
   const url = getUrl();
   const regEP = nockRegister(url, 500);
 
-  // @ts-expect-error
-  const metrics = new Metrics({
+  const { metrics } = createMetrics({
     url,
   });
   metrics.on('error', (e) => {
@@ -327,7 +333,7 @@ test('registerInstance should warn when non 200 statusCode', async () => {
 test('sendMetrics should backoff on 404', async () => {
   const url = getUrl();
   nockMetrics(url, 404).persist();
-  const metrics = new Metrics({
+  const { metrics, engine } = createMetrics({
     appName: '404-tester',
     instanceId: '404-instance',
     connectionId: '404-connection',
@@ -335,7 +341,7 @@ test('sendMetrics should backoff on 404', async () => {
     strategies: [],
     url,
   });
-  metrics.count('x-y-z', true);
+  engine.count('x-y-z', true);
   await metrics.sendMetrics();
   // @ts-expect-error actually a private field, but we access it for tests
   expect(metrics.disabled).toBe(false);
@@ -353,8 +359,7 @@ test('sendMetrics should emit warn on non 200 statusCode', async () => {
     const url = getUrl();
     const metEP = nockMetrics(url, 500);
 
-    // @ts-expect-error
-    const metrics = new Metrics({
+    const { metrics, engine } = createMetrics({
       url,
     });
 
@@ -364,7 +369,7 @@ test('sendMetrics should emit warn on non 200 statusCode', async () => {
     });
     metrics.start();
 
-    metrics.count('x-y-z', true);
+    engine.count('x-y-z', true);
 
     metrics.sendMetrics();
   });
@@ -374,149 +379,22 @@ test('sendMetrics should not send empty buckets', async () => {
   const url = getUrl();
   const metEP = nockMetrics(url, 200);
 
-  // @ts-expect-error
-  const metrics = new Metrics({
+  const { metrics } = createMetrics({
     url,
   });
   await metrics.sendMetrics();
   expect(metEP.isDone()).toBe(false);
 });
 
-test('count should increment yes and no counters', () => {
-  const url = getUrl();
-  // @ts-expect-error
-  const metrics = new Metrics({
-    url,
-  });
-  metrics.start();
-
-  const name = `name-${Math.round(Math.random() * 1000)}`;
-
-  // @ts-expect-error
-  expect(metrics.bucket.toggles[name]).toBeFalsy();
-
-  metrics.count(name, true);
-
-  // @ts-expect-error
-  const toggleCount = metrics.bucket.toggles[name];
-  expect(toggleCount).toBeTruthy();
-  expect(toggleCount.yes === 1).toBe(true);
-  expect(toggleCount.no === 0).toBe(true);
-
-  metrics.count(name, true);
-  metrics.count(name, true);
-  metrics.count(name, false);
-  metrics.count(name, false);
-  metrics.count(name, false);
-  metrics.count(name, false);
-  expect(toggleCount.yes).toBe(3);
-  expect(toggleCount.no).toBe(4);
-});
-
-test('count should increment yes and no counters with variants', () => {
-  const url = getUrl();
-  // @ts-expect-error
-  const metrics = new Metrics({
-    url,
-  });
-  metrics.start();
-
-  const name = `name-${Math.round(Math.random() * 1000)}`;
-
-  // @ts-expect-error
-  expect(metrics.bucket.toggles[name]).toBeFalsy();
-
-  metrics.count(name, true);
-
-  // @ts-expect-error
-  const toggleCount = metrics.bucket.toggles[name];
-  expect(toggleCount).toBeTruthy();
-  expect(toggleCount.yes === 1).toBe(true);
-  expect(toggleCount.no === 0).toBe(true);
-
-  metrics.countVariant(name, 'variant1');
-  metrics.countVariant(name, 'variant1');
-  metrics.count(name, false);
-  metrics.count(name, false);
-  metrics.countVariant(name, 'disabled');
-  metrics.countVariant(name, 'disabled');
-  metrics.countVariant(name, 'variant2');
-  metrics.countVariant(name, 'variant2');
-  metrics.countVariant(name, 'variant2');
-
-  expect(toggleCount.yes === 1).toBe(true);
-  expect(toggleCount.no === 2).toBe(true);
-  expect(toggleCount.variants.disabled === 2).toBe(true);
-  expect(toggleCount.variants.variant1 === 2).toBe(true);
-  expect(toggleCount.variants.variant2 === 3).toBe(true);
-});
-
 test('getClientData should return a object', () => {
   const url = getUrl();
-  // @ts-expect-error
-  const metrics = new Metrics({
+  const { metrics } = createMetrics({
     url,
   });
   metrics.start();
 
   const result = metrics.getClientData();
   expect(typeof result === 'object').toBe(true);
-});
-
-test('getMetricsData should return a bucket', () => {
-  const url = getUrl();
-  // @ts-expect-error
-  const metrics = new Metrics({
-    url,
-  });
-  metrics.start();
-
-  const result = metrics.createMetricsData([]);
-  expect(typeof result === 'object').toBe(true);
-  expect(typeof result.bucket === 'object').toBe(true);
-});
-
-test('sdkFlavor exists in both register and metrics payloads when set', () => {
-  const url = getUrl();
-  // @ts-expect-error partial options for test
-  const metrics = new Metrics({
-    url,
-    sdkFlavor: 'unleash-openfeature-node-provider',
-    sdkFlavorVersion: '1.2.3',
-  });
-  metrics.start();
-
-  const registration = metrics.getClientData();
-
-  expect(registration.sdkFlavor).toBe('unleash-openfeature-node-provider');
-  expect(registration.sdkFlavorVersion).toBe('1.2.3');
-  expect(registration.sdkVersion).not.toBe(registration.sdkFlavorVersion); // sdk version never replaced!
-
-  const metricsData = metrics.createMetricsData([]);
-
-  expect(metricsData.sdkFlavor).toBe('unleash-openfeature-node-provider');
-  expect(metricsData.sdkFlavorVersion).toBe('1.2.3');
-});
-
-test('sdkFlavor is omitted from payloads when unset', () => {
-  const url = getUrl();
-  // @ts-expect-error partial options for test
-  const metrics = new Metrics({
-    url,
-  });
-  metrics.start();
-
-  const registration = metrics.getClientData();
-
-  expect(registration.sdkFlavor).toBeUndefined();
-  expect(registration.sdkFlavorVersion).toBeUndefined();
-  expect(JSON.parse(JSON.stringify(registration))).not.toHaveProperty('sdkFlavor');
-  expect(JSON.parse(JSON.stringify(registration))).not.toHaveProperty('sdkFlavorVersion');
-
-  const metricsData = metrics.createMetricsData([]);
-
-  expect(JSON.parse(JSON.stringify(metricsData))).not.toHaveProperty('sdkFlavor');
-  expect(JSON.parse(JSON.stringify(metricsData))).not.toHaveProperty('sdkFlavorVersion');
 });
 
 test('should keep metrics if send is failing', async () => {
@@ -527,32 +405,29 @@ test('should keep metrics if send is failing', async () => {
 
     nockRegister(url);
 
-    // @ts-expect-error
-    const metrics = new Metrics({
+    const { metrics, engine } = createMetrics({
       url,
       metricsInterval: 10,
     });
 
-    metrics.count('toggle-x', true);
-    metrics.count('toggle-x', false);
+    engine.count('toggle-x', true);
+    engine.count('toggle-x', false);
 
     // variant
-    metrics.count('toggle-y', true);
-    metrics.countVariant('toggle-y', 'a');
+    engine.count('toggle-y', true);
+    engine.countVariant('toggle-y', 'a');
 
     metrics.on('warn', () => {
       // additional count after warn
-      metrics.count('toggle-y', true);
+      engine.count('toggle-y', true);
 
       metrics.stop();
-      // @ts-expect-error
-      expect(metrics.bucket.toggles['toggle-x'].yes).toEqual(1);
-      // @ts-expect-error
-      expect(metrics.bucket.toggles['toggle-x'].no).toEqual(1);
-      // @ts-expect-error
-      expect(metrics.bucket.toggles['toggle-y'].yes).toEqual(2);
-      // @ts-expect-error
-      expect(metrics.bucket.toggles['toggle-y'].variants.a).toEqual(1);
+      const bucket = engine.getMetrics().bucket;
+      assert(bucket);
+      expect(bucket.toggles['toggle-x'].yes).toEqual(1);
+      expect(bucket.toggles['toggle-x'].no).toEqual(1);
+      expect(bucket.toggles['toggle-y'].yes).toEqual(2);
+      expect(bucket.toggles['toggle-y'].variants?.a).toEqual(1);
       resolve();
     });
 
@@ -563,7 +438,7 @@ test('should keep metrics if send is failing', async () => {
 test('sendMetrics should stop on 401', async () => {
   const url = getUrl();
   nockMetrics(url, 401);
-  const metrics = new Metrics({
+  const { metrics, engine } = createMetrics({
     appName: '401-tester',
     instanceId: '401-instance',
     connectionId: '401-connection',
@@ -571,7 +446,7 @@ test('sendMetrics should stop on 401', async () => {
     strategies: [],
     url,
   });
-  metrics.count('x-y-z', true);
+  engine.count('x-y-z', true);
   await metrics.sendMetrics();
   // @ts-expect-error actually a private field, but we access it for tests
   expect(metrics.disabled).toBe(true);
@@ -580,7 +455,7 @@ test('sendMetrics should stop on 401', async () => {
 test('sendMetrics should stop on 403', async () => {
   const url = getUrl();
   nockMetrics(url, 403);
-  const metrics = new Metrics({
+  const { metrics, engine } = createMetrics({
     appName: '401-tester',
     instanceId: '401-instance',
     connectionId: '401-connection',
@@ -588,7 +463,7 @@ test('sendMetrics should stop on 403', async () => {
     strategies: [],
     url,
   });
-  metrics.count('x-y-z', true);
+  engine.count('x-y-z', true);
   await metrics.sendMetrics();
   // @ts-expect-error actually a private field, but we access it for tests
   expect(metrics.disabled).toBe(true);
@@ -597,7 +472,7 @@ test('sendMetrics should stop on 403', async () => {
 test('sendMetrics should backoff on 429', async () => {
   const url = getUrl();
   nockMetrics(url, 429).persist();
-  const metrics = new Metrics({
+  const { metrics, engine } = createMetrics({
     appName: '429-tester',
     instanceId: '429-instance',
     connectionId: '429-connection',
@@ -605,7 +480,7 @@ test('sendMetrics should backoff on 429', async () => {
     strategies: [],
     url,
   });
-  metrics.count('x-y-z', true);
+  engine.count('x-y-z', true);
   await metrics.sendMetrics();
   // @ts-expect-error actually a private field, but we access it for tests
   expect(metrics.disabled).toBe(false);
@@ -621,7 +496,7 @@ test('sendMetrics should backoff on 429', async () => {
 test('sendMetrics should backoff on 500', async () => {
   const url = getUrl();
   nockMetrics(url, 500).persist();
-  const metrics = new Metrics({
+  const { metrics, engine } = createMetrics({
     appName: '500-tester',
     instanceId: '500-instance',
     connectionId: '500-connetion',
@@ -629,7 +504,7 @@ test('sendMetrics should backoff on 500', async () => {
     strategies: [],
     url,
   });
-  metrics.count('x-y-z', true);
+  engine.count('x-y-z', true);
   await metrics.sendMetrics();
   // @ts-expect-error actually a private field, but we access it for tests
   expect(metrics.disabled).toBe(false);
@@ -646,7 +521,7 @@ test('sendMetrics should backoff on 429 and gradually reduce interval', async ()
   const url = getUrl();
   nock(url).post('/client/metrics').times(2).reply(429);
   const metricsInterval = 60_000;
-  const metrics = new Metrics({
+  const { metrics, engine } = createMetrics({
     appName: '429-tester',
     instanceId: '429-instance',
     connectionId: '429-connection',
@@ -654,7 +529,7 @@ test('sendMetrics should backoff on 429 and gradually reduce interval', async ()
     strategies: [],
     url,
   });
-  metrics.count('x-y-z', true);
+  engine.count('x-y-z', true);
   await metrics.sendMetrics();
   expect(metrics.getFailures()).toEqual(1);
   expect(metrics.getInterval()).toEqual(metricsInterval * 2);
@@ -667,10 +542,10 @@ test('sendMetrics should backoff on 429 and gradually reduce interval', async ()
   expect(metrics.disabled).toBe(false);
   expect(metrics.getFailures()).toEqual(1);
   expect(metrics.getInterval()).toEqual(metricsInterval * 2);
-  metrics.count('x-y-z', true);
-  metrics.count('x-y-z', true);
-  metrics.count('x-y-z', true);
-  metrics.count('x-y-z', true);
+  engine.count('x-y-z', true);
+  engine.count('x-y-z', true);
+  engine.count('x-y-z', true);
+  engine.count('x-y-z', true);
   await metrics.sendMetrics();
   expect(scope.isDone()).toBe(true);
   // @ts-expect-error actually a private field, but we access it for tests
@@ -681,8 +556,7 @@ test('sendMetrics should backoff on 429 and gradually reduce interval', async ()
 
 test('getClientData should include extended metrics', () => {
   const url = getUrl();
-  // @ts-expect-error
-  const metrics = new Metrics({
+  const { metrics } = createMetrics({
     url,
     connectionId: 'connection-id',
   });
@@ -691,45 +565,80 @@ test('getClientData should include extended metrics', () => {
   const result = metrics.getClientData();
   expect(result.platformName).toBeTruthy();
   expect(result.platformVersion).toBeTruthy();
-  expect(result.yggdrasilVersion === null).toBe(true);
+  expect(result.yggdrasilVersion).toBeTruthy();
   expect(result.specVersion === SUPPORTED_SPEC_VERSION).toBe(true);
   expect(result.connectionId).toStrictEqual('connection-id');
 });
 
-test('createMetricsData should include extended metrics', () => {
+test('count should increment yes and no counters', () => {
   const url = getUrl();
-  // @ts-expect-error
-  const metrics = new Metrics({
+  const { metrics, engine } = createMetrics({
     url,
   });
   metrics.start();
 
-  const result = metrics.createMetricsData([]);
-  expect(result.platformName).toBeTruthy();
-  expect(result.platformVersion).toBeTruthy();
-  expect(result.yggdrasilVersion === null).toBe(true);
-  expect(result.specVersion === SUPPORTED_SPEC_VERSION).toBe(true);
+  const name = `name-${Math.round(Math.random() * 1000)}`;
+  expect(engine.getMetrics().bucket?.toggles[name]).toBeFalsy();
+
+  engine.count(name, true);
+  const bucket = engine.getMetrics();
+  assert(bucket.bucket);
+  let toggleCount = bucket.bucket.toggles[name];
+  engine.restoreMetrics(bucket);
+  expect(toggleCount).toBeTruthy();
+  expect(toggleCount.yes === 1).toBe(true);
+  expect(toggleCount.no === 0).toBe(true);
+
+  engine.count(name, true);
+  engine.count(name, true);
+  engine.count(name, false);
+  engine.count(name, false);
+  engine.count(name, false);
+  engine.count(name, false);
+  const finalBucket = engine.getMetrics().bucket;
+  assert(finalBucket);
+  toggleCount = finalBucket.toggles[name];
+  expect(toggleCount.yes).toBe(3);
+  expect(toggleCount.no).toBe(4);
 });
 
-test('createMetricsData should include impactMetrics if provided', () => {
+test('count should increment yes and no counters with variants', () => {
   const url = getUrl();
-  // @ts-expect-error
-  const metrics = new Metrics({ url });
+  const { metrics, engine } = createMetrics({
+    url,
+  });
   metrics.start();
 
-  const impactMetrics: CollectedMetric[] = [
-    {
-      name: 'feature_toggle_used',
-      help: 'tracks toggle usage',
-      type: 'counter',
-      samples: [{ labels: { toggle: 'new-ui' }, value: 3 }],
-    },
-  ];
+  const name = `name-${Math.round(Math.random() * 1000)}`;
+  expect(engine.getMetrics().bucket?.toggles[name]).toBeFalsy();
 
-  const result = metrics.createMetricsData(impactMetrics);
+  engine.count(name, true);
+  const bucket = engine.getMetrics();
+  assert(bucket.bucket);
+  let toggleCount = bucket.bucket.toggles[name];
+  engine.restoreMetrics(bucket);
+  expect(toggleCount).toBeTruthy();
+  expect(toggleCount.yes === 1).toBe(true);
+  expect(toggleCount.no === 0).toBe(true);
 
-  expect(result.impactMetrics).toBeTruthy();
-  expect(result.impactMetrics).toStrictEqual(impactMetrics);
+  engine.countVariant(name, 'variant1');
+  engine.countVariant(name, 'variant1');
+  engine.count(name, false);
+  engine.count(name, false);
+  engine.countVariant(name, 'disabled');
+  engine.countVariant(name, 'disabled');
+  engine.countVariant(name, 'variant2');
+  engine.countVariant(name, 'variant2');
+  engine.countVariant(name, 'variant2');
+
+  const finalBucket = engine.getMetrics().bucket;
+  assert(finalBucket);
+  toggleCount = finalBucket.toggles[name];
+  expect(toggleCount.yes === 1).toBe(true);
+  expect(toggleCount.no === 2).toBe(true);
+  expect(toggleCount.variants?.disabled === 2).toBe(true);
+  expect(toggleCount.variants?.variant1 === 2).toBe(true);
+  expect(toggleCount.variants?.variant2 === 3).toBe(true);
 });
 
 test('sendMetrics should include impactMetrics in the payload', async () => {
@@ -740,19 +649,12 @@ test('sendMetrics should include impactMetrics in the payload', async () => {
     name: 'feature_toggle_used',
     help: 'tracks toggle usage',
     type: 'counter',
-    samples: [{ labels: { toggle: 'some-feature' }, value: 5 }],
+    samples: [{ labels: {}, value: 5 }],
   };
 
-  const fakeMetricRegistry = {
-    restore: (_metrics: CollectedMetric[]) => {},
-    collect: () => [impactMetricSample],
-  };
-
-  // @ts-expect-error
-  const metrics = new Metrics({
+  const { metrics, engine } = createMetrics({
     url,
     metricsInterval: 0,
-    metricRegistry: fakeMetricRegistry,
   });
 
   const scope = nock(url)
@@ -762,6 +664,11 @@ test('sendMetrics should include impactMetrics in the payload', async () => {
     })
     .reply(200);
 
+  engine.defineCounter(impactMetricSample.name, impactMetricSample.help);
+  engine.incrementCounter(
+    impactMetricSample.name,
+    'value' in impactMetricSample.samples[0] ? impactMetricSample.samples[0].value : 0,
+  );
   await metrics.sendMetrics();
   expect(capturedBody?.impactMetrics).toStrictEqual([impactMetricSample]);
   expect(scope.isDone()).toBe(true);
@@ -770,62 +677,25 @@ test('sendMetrics should include impactMetrics in the payload', async () => {
 test('sendMetrics should restore impactMetrics on failure', async () => {
   const url = getUrl();
 
-  let restored = false;
-
   const impactMetricSample: CollectedMetric = {
     name: 'feature_toggle_used',
     help: 'tracks toggle usage',
     type: 'counter',
-    samples: [{ labels: { toggle: 'fail-case' }, value: 1 }],
+    samples: [{ labels: {}, value: 1 }],
   };
 
-  const fakeMetricRegistry = {
-    collect: () => [impactMetricSample],
-    restore: (_data: CollectedMetric[]) => {
-      restored = true;
-    },
-  };
-
-  // @ts-expect-error
-  const metrics = new Metrics({
+  const { metrics, engine } = createMetrics({
     url,
     metricsInterval: 0,
-    metricRegistry: fakeMetricRegistry,
   });
 
   nock(url).post('/client/metrics').reply(500);
 
+  engine.defineCounter(impactMetricSample.name, impactMetricSample.help);
+  engine.incrementCounter(
+    impactMetricSample.name,
+    'value' in impactMetricSample.samples[0] ? impactMetricSample.samples[0].value : 0,
+  );
   await metrics.sendMetrics();
-  expect(restored).toBe(true);
-});
-
-test('sendMetrics should not include impactMetrics field when empty', async () => {
-  const url = getUrl();
-  let capturedBody: Record<string, unknown> | null = null;
-
-  const fakeMetricRegistry = {
-    collect: () => [],
-    restore: (_: CollectedMetric[]) => {},
-  };
-
-  // @ts-expect-error
-  const metrics = new Metrics({
-    url,
-    metricsInterval: 0,
-    metricRegistry: fakeMetricRegistry,
-  });
-
-  // Inject a single toggle evaluation so that we force a metrics send but without impact metrics
-  metrics.count('toggle-x', true);
-
-  const scope = nock(url)
-    .post('/client/metrics', (body) => {
-      capturedBody = body;
-      return true;
-    })
-    .reply(200);
-
-  await metrics.sendMetrics();
-  expect(Boolean(capturedBody && 'impactMetrics' in capturedBody)).toBe(false);
-  expect(scope.isDone()).toBe(true);
+  expect(engine.getMetrics().impactMetrics).toStrictEqual([impactMetricSample]);
 });
