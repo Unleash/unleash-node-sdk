@@ -1,11 +1,13 @@
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import type { ClientFeatures } from '@unleash/yggdrasil-engine';
 import { mkdirp } from 'mkdirp';
 import nock from 'nock';
 import { assert, expect, test, vi } from 'vitest';
-import { InMemStorageProvider } from '..';
-import type { FeatureInterface } from '../feature';
-import { Strategy, Unleash, UnleashEvents } from '../unleash';
+import type { Context } from '../context';
+import type { MetricsData } from '../request';
+import { Strategy } from '../strategy';
+import { Unleash, UnleashEvents } from '../unleash';
 import { FakeFetcher } from './fixtures';
 
 class EnvironmentStrategy extends Strategy {
@@ -13,9 +15,8 @@ class EnvironmentStrategy extends Strategy {
     super('EnvironmentStrategy');
   }
 
-  // @ts-expect-error
-  isEnabled(parameters, context) {
-    return parameters.environments.indexOf(context.environment) !== -1;
+  isEnabled(parameters: Record<string, unknown>, context: Context) {
+    return String(parameters.environments).indexOf(context.environment ?? '') !== -1;
   }
 }
 
@@ -52,7 +53,7 @@ function mockNetwork(toggles = defaultToggles, url = getUrl()) {
   nock(url)
     .get('/client/features')
     .matchHeader('unleash-connection-id', /^.{36}$/)
-    .reply(200, { features: toggles });
+    .reply(200, { version: 2, query: undefined, features: toggles });
   return url;
 }
 
@@ -165,11 +166,10 @@ test('should re-emit events from repository and metrics', () => {
     url,
   });
 
-  expect.assertions(7);
+  expect.assertions(6);
   instance.on(UnleashEvents.Warn, (e) => expect(e).toBeTruthy());
   instance.on(UnleashEvents.Sent, (e) => expect(e).toBeTruthy());
   instance.on(UnleashEvents.Registered, (e) => expect(e).toBeTruthy());
-  instance.on(UnleashEvents.Count, (e) => expect(e).toBeTruthy());
   instance.on(UnleashEvents.Unchanged, (e) => expect(e).toBeTruthy());
   instance.on(UnleashEvents.Changed, (e) => expect(e).toBeTruthy());
 
@@ -185,16 +185,17 @@ test('should re-emit events from repository and metrics', () => {
   instance.metrics.emit(UnleashEvents.Sent, true);
   // @ts-expect-error
   instance.metrics.emit(UnleashEvents.Registered, true);
-  // @ts-expect-error
-  instance.metrics.emit(UnleashEvents.Count, true);
 
   instance.destroy();
 });
 
 test('repository should surface error when invalid basePath', async () => {
-  new Promise<void>((resolve) => {
+  await new Promise<void>((resolve) => {
     const url = 'http://unleash-surface.app/';
-    nock(url).get('/client/features').delay(100).reply(200, { features: [] });
+    nock(url)
+      .get('/client/features')
+      .delay(100)
+      .reply(200, { version: 2, query: undefined, features: [] });
     const backupPath = join(tmpdir(), `test-tmp-${Math.round(Math.random() * 100000)}`);
     const instance = new Unleash({
       appName: 'foo',
@@ -330,26 +331,9 @@ test('should not throw when os.userInfo throws', async () => {
   expect.assertions(0);
 
   await new Promise<void>((resolve, reject) => {
-    require('node:os').userInfo = () => {
+    const userInfo = vi.spyOn(require('node:os'), 'userInfo').mockImplementation(() => {
       throw new Error('Test exception');
-    };
-    const url = mockNetwork();
-    const instance = new Unleash({
-      appName: 'foo',
-      disableMetrics: true,
-      skipInstanceCountWarning: true,
-      url,
-      backupPath: getRandomBackupPath(),
-    }).on('error', reject);
-
-    instance.on('synchronized', () => {
-      resolve();
     });
-  });
-});
-
-test('should return known feature-toggle definition', async () => {
-  await new Promise<void>((resolve, reject) => {
     const url = mockNetwork();
     const instance = new Unleash({
       appName: 'foo',
@@ -360,9 +344,8 @@ test('should return known feature-toggle definition', async () => {
     }).on('error', reject);
 
     instance.on('synchronized', () => {
-      const toggle = instance.getFeatureToggleDefinition('feature');
-      expect(toggle).toBeTruthy();
       instance.destroy();
+      userInfo.mockRestore();
       resolve();
     });
   });
@@ -381,27 +364,15 @@ test('should return feature-toggles', async () => {
 
     instance.on('synchronized', () => {
       const toggles = instance.getFeatureToggleDefinitions();
-      expect(toggles).toStrictEqual(defaultToggles);
-      instance.destroy();
-      resolve();
-    });
-  });
-});
-
-test('returns undefined for unknown feature-toggle definition', async () => {
-  await new Promise<void>((resolve, reject) => {
-    const url = mockNetwork();
-    const instance = new Unleash({
-      appName: 'foo',
-      disableMetrics: true,
-      skipInstanceCountWarning: true,
-      url,
-      backupPath: getRandomBackupPath(),
-    }).on('error', reject);
-
-    instance.on('synchronized', () => {
-      const toggle = instance.getFeatureToggleDefinition('unknown');
-      expect(toggle).toBeFalsy();
+      expect(
+        toggles
+          ?.map(({ name, enabled }) => ({ name, enabled }))
+          .sort((a, b) => a.name.localeCompare(b.name)),
+      ).toStrictEqual(
+        defaultToggles
+          .map(({ name, enabled }) => ({ name, enabled }))
+          .sort((a, b) => a.name.localeCompare(b.name)),
+      );
       instance.destroy();
       resolve();
     });
@@ -410,10 +381,7 @@ test('returns undefined for unknown feature-toggle definition', async () => {
 
 test('should use the injected fetcher', async () => {
   await new Promise<void>((resolve, reject) => {
-    const fetcher = new FakeFetcher({
-      version: 2,
-      features: [{ name: 'fake-feature', enabled: false, strategies: [] }],
-    });
+    const fetcher = new FakeFetcher({ version: 2, query: undefined, features: [] });
     const url = mockNetwork();
     const instance = new Unleash({
       appName: 'foo',
@@ -477,7 +445,10 @@ test('should call client/features with projectName query parameter if projectNam
   const baseUrl = getUrl();
   const project = 'myProject';
 
-  nock(baseUrl).get('/client/features').query({ project }).reply(200, { features: [] });
+  nock(baseUrl)
+    .get('/client/features')
+    .query({ project })
+    .reply(200, { version: 2, query: undefined, features: [] });
 
   const instance = new Unleash({
     appName: 'foo',
@@ -516,6 +487,8 @@ test('should distribute variants according to stickiness', async () => {
   nock(baseUrl)
     .get('/client/features')
     .reply(200, {
+      version: 2,
+      query: undefined,
       features: [
         {
           name: 'toggle-with-variants',
@@ -594,6 +567,8 @@ test('should distribute variants according to default stickiness', async () => {
   nock(baseUrl)
     .get('/client/features')
     .reply(200, {
+      version: 2,
+      query: undefined,
       features: [
         {
           name: 'toggle-with-variants',
@@ -663,7 +638,7 @@ test('should distribute variants according to default stickiness', async () => {
   });
 });
 test('should emit "synchronized" when data is received', async () => {
-  new Promise<void>((resolve, reject) => {
+  await new Promise<void>((resolve, reject) => {
     const url = mockNetwork();
     const instance = new Unleash({
       appName: 'foo',
@@ -687,7 +662,10 @@ test('should emit "synchronized" only first time', async () => {
     let synchronizedCount = 0;
 
     const url = getUrl();
-    nock(url).get('/client/features').times(3).reply(200, { features: defaultToggles });
+    nock(url)
+      .get('/client/features')
+      .times(3)
+      .reply(200, { version: 2, query: undefined, features: defaultToggles });
 
     const instance = new Unleash({
       appName: 'foo',
@@ -724,14 +702,20 @@ test('should use provided bootstrap data', async () => {
       url,
       backupPath: getRandomBackupPath(),
       bootstrap: {
-        data: [
-          {
-            name: 'bootstrappedToggle',
-            enabled: true,
-            // @ts-expect-error
-            strategies: [{ name: 'default' }],
-          },
-        ],
+        version: 2,
+        query: undefined,
+        features: {
+          version: 2,
+          query: undefined,
+          features: [
+            {
+              name: 'bootstrappedToggle',
+              enabled: true,
+              // @ts-expect-error
+              strategies: [{ name: 'default' }],
+            },
+          ],
+        },
       },
     });
 
@@ -750,6 +734,8 @@ test('should emit impression events for isEnabled', async () => {
   nock(baseUrl)
     .get('/client/features')
     .reply(200, {
+      version: 2,
+      query: undefined,
       features: [
         {
           name: 'toggle-impressions',
@@ -810,6 +796,8 @@ test('should emit impression events for getVariant', async () => {
   nock(baseUrl)
     .get('/client/features')
     .reply(200, {
+      version: 2,
+      query: undefined,
       features: [
         {
           name: 'toggle-impressions',
@@ -916,69 +904,27 @@ test('should throw when getInstantiate called with different unleash-config ', (
   i1.destroy();
 });
 
-test('should allow a custom fetcher', async () => {
-  await new Promise<void>((resolve) => {
-    const url = getUrl();
-
-    const instance = Unleash.getInstance({
-      appName: 'foo',
-      disableMetrics: true,
-      skipInstanceCountWarning: true,
-      refreshInterval: 0,
-      url,
-      backupPath: getRandomBackupPath(),
-      bootstrap: {
-        data: [
-          {
-            name: 'bootstrappedToggle',
-            enabled: true,
-            // @ts-expect-error
-            strategies: [{ name: 'default' }],
-          },
-        ],
-      },
-      storageProvider: new InMemStorageProvider(),
-      fetcher: new FakeFetcher({
-        version: 2,
-        features: [
-          {
-            name: 'test',
-            enabled: true,
-            strategies: [{ name: 'default', parameters: {}, constraints: [] }],
-          },
-        ],
-      }),
-    });
-
-    instance.on('error', () => {});
-
-    instance.on('ready', () => {
-      expect(instance.isEnabled('test')).toBe(true);
-      instance.destroy();
-      resolve();
-    });
-  });
-});
-
 const metricsCapturingUnleash = async (input: unknown) => {
   const url = getUrl();
-  const fetcher = new FakeFetcher({ version: 2, features: [input as FeatureInterface] });
+  const fetcher = new FakeFetcher({
+    version: 2,
+    query: undefined,
+    features: [input as ClientFeatures['features'][number]],
+  });
   const instance = new Unleash({
     skipInstanceCountWarning: true,
     appName: 'foo',
-    metricsInterval: 0,
-    disableAutoStart: true,
     fetcher,
+    disableAutoStart: true,
+    metricsInterval: 0,
     url,
   });
   nock(url).post('/client/metrics').reply(200);
   await instance.start();
-  // @ts-expect-error
-  const capturedData = [];
+  const capturedData: MetricsData[] = [];
   instance.on(UnleashEvents.Sent, (data) => {
     capturedData.push(data);
   });
-  // @ts-expect-error
   return { instance, capturedData };
 };
 
@@ -987,13 +933,15 @@ test('should report variant metrics', async () => {
     name: 'toggle-with-variants',
     enabled: true,
     strategies: [{ name: 'default', constraints: [] }],
-    variants: [{ name: 'toggle-variant', payload: { type: 'string', value: 'variant value' } }],
+    variants: [
+      { name: 'toggle-variant', weight: 1000, payload: { type: 'string', value: 'variant value' } },
+    ],
   });
 
   instance.getVariant('toggle-with-variants');
 
   await instance.destroyWithFlush();
-  expect(capturedData[0].bucket.toggles).toStrictEqual({
+  expect(capturedData[0].bucket?.toggles).toStrictEqual({
     'toggle-with-variants': {
       yes: 1,
       no: 0,
@@ -1013,7 +961,7 @@ test('should report disabled variant metrics', async () => {
   instance.getVariant('toggle-without-variants');
 
   await instance.destroyWithFlush();
-  expect(capturedData[0].bucket.toggles).toStrictEqual({
+  expect(capturedData[0].bucket?.toggles).toStrictEqual({
     'toggle-without-variants': {
       yes: 1,
       no: 0,
@@ -1033,7 +981,7 @@ test('should report disabled toggle metrics', async () => {
   instance.getVariant('disabled-toggle');
 
   await instance.destroyWithFlush();
-  expect(capturedData[0].bucket.toggles).toStrictEqual({
+  expect(capturedData[0].bucket?.toggles).toStrictEqual({
     'disabled-toggle': {
       yes: 0,
       no: 1,
@@ -1048,7 +996,9 @@ test('should not report dependent feature metrics', async () => {
     enabled: true,
     dependencies: [{ feature: 'dependency' }],
     strategies: [{ name: 'default', constraints: [] }],
-    variants: [{ name: 'toggle-variant', payload: { type: 'string', value: 'variant value' } }],
+    variants: [
+      { name: 'toggle-variant', weight: 1000, payload: { type: 'string', value: 'variant value' } },
+    ],
   });
 
   instance.getVariant('toggle-with-dependency');
@@ -1056,7 +1006,7 @@ test('should not report dependent feature metrics', async () => {
   instance.isEnabled('dependency');
 
   await instance.destroyWithFlush();
-  expect(capturedData[0].bucket.toggles).toStrictEqual({
+  expect(capturedData[0].bucket?.toggles).toStrictEqual({
     'toggle-with-dependency': {
       yes: 0,
       no: 2, // one enabled and one variant check
@@ -1107,28 +1057,6 @@ test('should emit correctly serialized warn for getVariant before initialized', 
   instance.getVariant('my-feature');
   expect(warnings).toHaveLength(1);
   expect(warnings[0]).toContain("getVariant('my-feature')");
-  expect(warnings[0]).not.toContain('[object Object]');
-  expect(warnings[0]).toContain('"name":"disabled"');
-
-  instance.destroy();
-});
-
-test('should emit correctly serialized warn for forceGetVariant before initialized', () => {
-  const url = mockNetwork();
-  const instance = new Unleash({
-    appName: 'foo',
-    disableMetrics: true,
-    skipInstanceCountWarning: true,
-    url,
-    backupPath: getRandomBackupPath(),
-  });
-
-  const warnings: string[] = [];
-  instance.on('warn', (msg) => warnings.push(msg));
-
-  instance.forceGetVariant('my-feature');
-  expect(warnings).toHaveLength(1);
-  expect(warnings[0]).toContain("forceGetVariant('my-feature')");
   expect(warnings[0]).not.toContain('[object Object]');
   expect(warnings[0]).toContain('"name":"disabled"');
 

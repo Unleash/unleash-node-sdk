@@ -3,7 +3,13 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { mkdirp } from 'mkdirp';
 import nock from 'nock';
-import { expect, test } from 'vitest';
+import { afterEach, expect, test } from 'vitest';
+
+afterEach(() => {
+  destroy();
+  nock.cleanAll();
+});
+
 import { destroy, initialize, isEnabled } from '../index';
 import { Unleash } from '../unleash';
 
@@ -25,7 +31,7 @@ let counter = 0;
 function mockNetwork(toggles = defaultToggles) {
   counter += 1;
   const url = `http://unleash-${counter}.app`;
-  nock(url).get('/client/features').reply(200, { features: toggles });
+  nock(url).get('/client/features').reply(200, { version: 2, query: undefined, features: toggles });
   return url;
 }
 
@@ -64,8 +70,8 @@ test('should load if backup file is corrupted', () =>
         throw err;
       })
       .on('warn', (err) => {
-        if (err?.message?.includes('Unleash storage failed parsing file')) {
-          destroy();
+        if (String(err).includes('Unleash storage failed parsing file')) {
+          instance.destroy();
           resolve();
         }
       });

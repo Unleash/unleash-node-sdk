@@ -1,51 +1,44 @@
 import { expect, test } from 'vitest';
+import { strategyEvaluator } from './evaluation';
 
-import GradualRolloutUserIdStrategy from '../../strategy/gradual-rollout-user-id';
-import { normalizedStrategyValue } from '../../strategy/util';
-
-test('gradual-rollout-user-id strategy should have correct name', () => {
-  const strategy = new GradualRolloutUserIdStrategy();
-  expect(strategy.name).toBe('gradualRolloutUserId');
-});
-
-test('should be enabled when percentage is 100', () => {
-  const strategy = new GradualRolloutUserIdStrategy();
+test('should be enabled when percentage is 100', async () => {
+  const evaluate = await strategyEvaluator('gradualRolloutUserId');
   const params = { percentage: '100', groupId: 'gr1' };
   const context = { userId: '123' };
-  expect(strategy.isEnabled(params, context)).toBe(true);
+  expect(await evaluate(params, context)).toBe(true);
 });
 
-test('should be disabled when percentage is 0', () => {
-  const strategy = new GradualRolloutUserIdStrategy();
+test('should be disabled when percentage is 0', async () => {
+  const evaluate = await strategyEvaluator('gradualRolloutUserId');
   const params = { percentage: '0', groupId: 'gr1' };
   const context = { userId: '123' };
-  expect(strategy.isEnabled(params, context)).toBe(false);
+  expect(await evaluate(params, context)).toBe(false);
 });
 
-test('should be enabled when percentage is exactly same', () => {
-  const strategy = new GradualRolloutUserIdStrategy();
+test('should be enabled when percentage is exactly same', async () => {
+  const evaluate = await strategyEvaluator('gradualRolloutUserId');
   const userId = '123123';
   const groupId = 'group1';
 
-  const percentage = normalizedStrategyValue(userId, groupId);
+  const percentage = 33;
   const params = { percentage: `${percentage}`, groupId };
   const context = { userId };
-  expect(strategy.isEnabled(params, context)).toBe(true);
+  expect(await evaluate(params, context)).toBe(true);
 });
 
-test('should be disabled when percentage is just below required value', () => {
-  const strategy = new GradualRolloutUserIdStrategy();
+test('should be disabled when percentage is just below required value', async () => {
+  const evaluate = await strategyEvaluator('gradualRolloutUserId');
   const userId = '123123';
   const groupId = 'group1';
 
-  const percentage = normalizedStrategyValue(userId, groupId) - 1;
+  const percentage = 33 - 1;
   const params = { percentage: `${percentage}`, groupId };
   const context = { userId };
-  expect(strategy.isEnabled(params, context)).toBe(false);
+  expect(await evaluate(params, context)).toBe(false);
 });
 
-test('should only at most miss by one percent', () => {
-  const strategy = new GradualRolloutUserIdStrategy();
+test('should only at most miss by one percent', async () => {
+  const evaluate = await strategyEvaluator('gradualRolloutUserId');
 
   const percentage = 10;
   const groupId = 'groupId';
@@ -54,10 +47,9 @@ test('should only at most miss by one percent', () => {
   let enabledCount = 0;
 
   for (let i = 0; i < rounds; i++) {
-    const params = { percentage, groupId };
-    const context = { userId: i };
-    // @ts-expect-error
-    if (strategy.isEnabled(params, context)) {
+    const params = { percentage: String(percentage), groupId };
+    const context = { userId: String(i) };
+    if (await evaluate(params, context)) {
       enabledCount++;
     }
   }

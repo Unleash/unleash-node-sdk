@@ -1,4 +1,5 @@
 import { EventEmitter } from 'node:events';
+import { type ClientFeatures, getSpecVersion, type UnleashEngine } from '@unleash/yggdrasil-engine';
 import { UnleashEvents } from '../events';
 import {
   type ApiResponse,
@@ -21,7 +22,7 @@ import type { BootstrapProvider } from './bootstrap-provider';
 import type { FetcherInterface } from './fetcher';
 import type { StorageProvider } from './storage-provider';
 
-export const SUPPORTED_SPEC_VERSION = '5.2.0';
+export const SUPPORTED_SPEC_VERSION = getSpecVersion();
 
 export interface RepositoryInterface extends EventEmitter {
   getToggle(name: string): FeatureInterface | undefined;
@@ -48,14 +49,11 @@ export interface RepositoryOptions {
   tags?: Array<TagFilter>;
   bootstrapProvider: BootstrapProvider;
   bootstrapOverride?: boolean;
-  storageProvider: StorageProvider<ClientFeaturesResponse>;
+  storageProvider: StorageProvider<ClientFeatures>;
   eventSource?: EventSource;
   mode: Mode;
   fetcher?: FetcherInterface;
-}
-
-interface FeatureToggleData {
-  [key: string]: FeatureInterface;
+  engine: UnleashEngine;
 }
 
 export default class Repository extends EventEmitter implements EventEmitter {
@@ -65,7 +63,7 @@ export default class Repository extends EventEmitter implements EventEmitter {
 
   private bootstrapOverride: boolean;
 
-  private storageProvider: StorageProvider<ClientFeaturesResponse>;
+  private storageProvider: StorageProvider<ClientFeatures>;
 
   private ready: boolean = false;
 
@@ -73,9 +71,7 @@ export default class Repository extends EventEmitter implements EventEmitter {
 
   private stopped: boolean = false;
 
-  private data: FeatureToggleData = {};
-
-  private segments: Map<number, Segment>;
+  private engine: UnleashEngine;
 
   private fetcher: FetcherInterface;
 
@@ -118,6 +114,7 @@ export default class Repository extends EventEmitter implements EventEmitter {
     eventSource,
     mode,
     fetcher,
+    engine,
   }: RepositoryOptions) {
     super();
     this.appName = appName;
@@ -126,7 +123,7 @@ export default class Repository extends EventEmitter implements EventEmitter {
     this.bootstrapProvider = bootstrapProvider;
     this.bootstrapOverride = bootstrapOverride;
     this.storageProvider = storageProvider;
-    this.segments = new Map();
+    this.engine = engine;
 
     this.fetcher =
       fetcher ??
@@ -192,8 +189,7 @@ export default class Repository extends EventEmitter implements EventEmitter {
       }
 
       if (content && this.notEmpty(content)) {
-        this.data = this.convertToMap(content.features);
-        this.segments = this.createSegmentLookup(content.segments);
+        this.engine.takeState(content);
         this.setReady();
       }
     } catch (err) {
@@ -232,67 +228,18 @@ export default class Repository extends EventEmitter implements EventEmitter {
     }
 
     this.setReady();
-    const newFeatures = Object.values(this.data);
+    const newFeatures = this.engine.getState().features;
     this.emit(UnleashEvents.Changed, newFeatures);
 
-    const clientFeatureResponse: ClientFeaturesResponse = {
-      version: 'version' in response ? response.version : 2,
-      features: newFeatures,
-      segments: [...this.segments.values()],
-    };
-
-    await this.storageProvider.set(this.appName, clientFeatureResponse);
+    await this.storageProvider.set(this.appName, this.engine.getState());
   }
 
   private applyFeatureResponse(response: ApiResponse): void {
-    switch (response.type) {
-      case 'delta': {
-        response.events.forEach((event) => {
-          switch (event.type) {
-            case 'feature-updated': {
-              this.data[event.feature.name] = event.feature;
-              break;
-            }
-            case 'feature-removed': {
-              delete this.data[event.featureName];
-              break;
-            }
-            case 'segment-updated': {
-              this.segments.set(event.segment.id, event.segment);
-              break;
-            }
-            case 'segment-removed': {
-              this.segments.delete(event.segmentId);
-              break;
-            }
-            case 'hydration': {
-              this.data = this.convertToMap(event.features);
-              this.segments = this.createSegmentLookup(event.segments);
-              break;
-            }
-            default: {
-              this.emit(
-                UnleashEvents.Warn,
-                `Unknown event type received, this may or may not cause features to evaluate incorrectly: ${JSON.stringify(event)}`,
-              );
-              break;
-            }
-          }
-        });
-        break;
-      }
-      case 'full': {
-        this.data = this.convertToMap(response.features);
-        this.segments = this.createSegmentLookup(response.segments);
-        break;
-      }
-      default: {
-        assertNever(response);
-      }
-    }
+    // Legacy transport types remain temporarily for the old definition getters.
+    this.engine.takeState(response as unknown as ClientFeatures);
   }
 
-  notEmpty(content: ClientFeaturesResponse): boolean {
+  notEmpty(content: ClientFeatures): boolean {
     return content.features.length > 0;
   }
 
@@ -318,18 +265,6 @@ Message: ${message}`,
     }
   }
 
-  private convertToMap(features: FeatureInterface[] | undefined | null): FeatureToggleData {
-    const result: FeatureToggleData = {};
-    if (!features?.length) return {};
-
-    for (const feature of features) {
-      this.validateFeature(feature);
-      result[feature.name] = feature;
-    }
-
-    return result;
-  }
-
   stop() {
     this.stopped = true;
     this.fetcher.stop();
@@ -337,15 +272,19 @@ Message: ${message}`,
   }
 
   getSegment(segmentId: number): Segment | undefined {
-    return this.segments.get(segmentId);
+    return this.engine.getState().segments?.find((segment) => segment.id === segmentId) as
+      | Segment
+      | undefined;
   }
 
   getToggle(name: string): FeatureInterface | undefined {
-    return this.data[name];
+    return this.engine.getState().features.find((feature) => feature.name === name) as unknown as
+      | FeatureInterface
+      | undefined;
   }
 
   getToggles(): FeatureInterface[] {
-    return Object.keys(this.data).map((key) => this.data[key]);
+    return this.engine.getState().features as unknown as FeatureInterface[];
   }
 
   getTogglesWithSegmentData(): EnhancedFeatureInterface[] {
@@ -388,7 +327,3 @@ Message: ${message}`,
     });
   };
 }
-
-const assertNever = (value: never): never => {
-  throw new Error(`Unexpected value: ${JSON.stringify(value)}`);
-};

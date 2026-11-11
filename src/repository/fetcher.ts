@@ -1,5 +1,5 @@
 import type { EventEmitter } from 'node:events';
-import type { ClientFeaturesResponse as ClientFeatures, ClientFeaturesDelta } from '../feature';
+import type { ClientFeatures, ClientFeaturesDelta } from '@unleash/yggdrasil-engine';
 import type { CustomHeaders, CustomHeadersFunction } from '../headers';
 import type { HttpOptions } from '../http-options';
 import type { TagFilter } from '../tags';

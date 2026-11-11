@@ -1,6 +1,6 @@
 import { EventEmitter } from 'node:events';
+import type { ClientFeatures, ClientFeaturesDelta } from '@unleash/yggdrasil-engine';
 import { UnleashEvents } from '../events';
-import type { ClientFeaturesResponse as ClientFeatures, ClientFeaturesDelta } from '../feature';
 import type { FetcherInterface, FetchingOptions } from './fetcher';
 import { PollingFetcher } from './polling-fetcher';
 import { StreamingFetcher } from './streaming-fetcher';

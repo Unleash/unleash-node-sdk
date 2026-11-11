@@ -1,6 +1,6 @@
 import { EventEmitter } from 'node:events';
+import type { ClientFeatures } from '@unleash/yggdrasil-engine';
 import { UnleashEvents } from '../events';
-import type { ClientFeaturesResponse as ClientFeatures } from '../feature';
 import { get } from '../request';
 import type { TagFilter } from '../tags';
 import getUrl from '../url-utils';
