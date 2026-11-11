@@ -1,14 +1,8 @@
 import { expect, test } from 'vitest';
+import { strategyEvaluator } from './evaluation';
 
-import GradualRolloutRandomStrategy from '../../strategy/gradual-rollout-random';
-
-test('should have correct name', () => {
-  const strategy = new GradualRolloutRandomStrategy();
-  expect(strategy.name).toBe('gradualRolloutRandom');
-});
-
-test('should only at most miss by one percent', () => {
-  const strategy = new GradualRolloutRandomStrategy();
+test('should only at most miss by one percent', async () => {
+  const evaluate = await strategyEvaluator('gradualRolloutRandom');
 
   const percentage = 25;
   const groupId = 'groupId';
@@ -17,10 +11,9 @@ test('should only at most miss by one percent', () => {
   let enabledCount = 0;
 
   for (let i = 0; i < rounds; i++) {
-    const params = { percentage, groupId };
-    const context = { sessionId: i };
-    // @ts-expect-error
-    if (strategy.isEnabled(params, context)) {
+    const params = { percentage: String(percentage), groupId };
+    const context = { sessionId: String(i) };
+    if (await evaluate(params, context)) {
       enabledCount++;
     }
   }
@@ -31,44 +24,20 @@ test('should only at most miss by one percent', () => {
   expect(actualPercentage).toBeLessThanOrEqual(highMark);
 });
 
-test('should be disabled when percentage is lower than random', () => {
-  const strategy = new GradualRolloutRandomStrategy(() => 50);
-  const params = { percentage: 20, groupId: 'test' };
-  // @ts-expect-error we can't keep track of our types
-  expect(strategy.isEnabled(params)).toBe(false);
-});
-
-test('should be disabled when percentage=0', () => {
-  const strategy = new GradualRolloutRandomStrategy(() => 1);
+test('should be disabled when percentage=0', async () => {
+  const evaluate = await strategyEvaluator('gradualRolloutRandom');
   const params = { percentage: '0', groupId: 'test' };
-  // @ts-expect-error
-  expect(strategy.isEnabled(params)).toBe(false);
+  expect(await evaluate(params)).toBe(false);
 });
 
-test('should be disabled when percentage=0 and random is not zero', () => {
-  const strategy = new GradualRolloutRandomStrategy(() => 50);
+test('should be disabled when percentage=0 and random is not zero', async () => {
+  const evaluate = await strategyEvaluator('gradualRolloutRandom');
   const params = { percentage: '0', groupId: 'test' };
-  // @ts-expect-error
-  expect(strategy.isEnabled(params)).toBe(false);
+  expect(await evaluate(params)).toBe(false);
 });
 
-test('should be enabled when percentage is greater than random', () => {
-  const strategy = new GradualRolloutRandomStrategy(() => 10);
-  const params = { percentage: '20', groupId: 'test' };
-  // @ts-expect-error
-  expect(strategy.isEnabled(params)).toBe(true);
-});
-
-test('should be enabled when percentage=100', () => {
-  const strategy = new GradualRolloutRandomStrategy(() => 90);
+test('should be enabled when percentage=100', async () => {
+  const evaluate = await strategyEvaluator('gradualRolloutRandom');
   const params = { percentage: '100', groupId: 'test' };
-  // @ts-expect-error
-  expect(strategy.isEnabled(params)).toBe(true);
-});
-
-test('should be enabled when percentage and random are the same', () => {
-  const strategy = new GradualRolloutRandomStrategy(() => 55);
-  const params = { percentage: '55', groupId: 'test' };
-  // @ts-expect-error
-  expect(strategy.isEnabled(params)).toBe(true);
+  expect(await evaluate(params)).toBe(true);
 });

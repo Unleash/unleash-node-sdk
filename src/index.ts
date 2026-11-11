@@ -1,5 +1,5 @@
 import { once } from 'node:events';
-import { Name, UnleashTypes } from './client';
+
 import { Context } from './context';
 import { UnleashEvents } from './events';
 import type { ClientFeaturesResponse } from './feature';
@@ -12,20 +12,16 @@ import { defaultVariant, PayloadType, Variant } from './variant';
 export { UnleashMetricClient } from './impact-metrics/metric-client';
 export type { FetcherInterface, StateUpdate } from './repository/fetcher';
 
+// biome-ignore lint/suspicious/noEmptyInterface: Public module augmentation hook.
+export interface UnleashTypes {}
+export type Name = UnleashTypes extends { flagNames: infer FlagName extends string }
+  ? FlagName
+  : string;
+
 // exports
 export { Strategy } from './strategy/index';
 export type { ClientFeaturesResponse, UnleashConfig };
-export {
-  Context,
-  InMemStorageProvider,
-  Name,
-  PayloadType,
-  TagFilter,
-  Unleash,
-  UnleashEvents,
-  UnleashTypes,
-  Variant,
-};
+export { Context, InMemStorageProvider, PayloadType, TagFilter, Unleash, UnleashEvents, Variant };
 
 let instance: undefined | Unleash;
 

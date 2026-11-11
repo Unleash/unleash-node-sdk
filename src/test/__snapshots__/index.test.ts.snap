@@ -10,5 +10,6 @@ exports[`should call methods 3`] = `
   "featureEnabled": false,
   "feature_enabled": false,
   "name": "disabled",
+  "payload": undefined,
 }
 `;

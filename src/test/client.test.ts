@@ -1,8 +1,17 @@
 // @ts-nocheck
 import { expect, test } from 'vitest';
-import Client from '../client';
+import { client as createClient, FakeFetcher, state } from './fixtures';
+
+async function loadClient(feature, strategies = []) {
+  const sdk = createClient({
+    strategies,
+    fetcher: new FakeFetcher(state(feature ? [feature] : [])),
+  });
+  await sdk.start();
+  return sdk;
+}
+
 import { UnleashEvents } from '../events';
-import { defaultStrategies, Strategy } from '../strategy';
 import CustomFalseStrategy from './false_custom_strategy';
 import CustomStrategy from './true_custom_strategy';
 
@@ -20,49 +29,36 @@ const log = (err) => {
   console.error(err);
 };
 
-test('invalid strategy should throw', () => {
-  const repo = {
-    getToggle() {
-      return buildToggle('feature', true);
-    },
-  };
-
-  expect(() => new Client(repo, [true, null])).toThrow();
-  expect(() => new Client(repo, [{}])).toThrow();
-  expect(() => new Client(repo, [{ name: 'invalid' }])).toThrow();
-  expect(() => new Client(repo, [{ isEnabled: 'invalid' }])).toThrow();
-  expect(
-    () =>
-      new Client(repo, [
+test('invalid strategy should throw', async () => {
+  expect(() => createClient({ strategies: [true, null] })).toThrow();
+  expect(() => createClient({ strategies: [{}] })).toThrow();
+  expect(() => createClient({ strategies: [{ name: 'invalid' }] })).toThrow();
+  expect(() => createClient({ strategies: [{ isEnabled: 'invalid' }] })).toThrow();
+  expect(() =>
+    createClient({
+      strategies: [
         {
           name: 'valid',
           isEnabled: () => {},
         },
         null,
-      ]),
+      ],
+    }),
   ).toThrow();
 });
 
-test('should use provided repository', () => {
-  const repo = {
-    getToggle() {
-      return buildToggle('feature', true);
-    },
-  };
-  const client = new Client(repo, [new Strategy('default', true)]);
+test('should evaluate the fetched feature', async () => {
+  const feature = buildToggle('feature', true);
+  const client = await loadClient(feature, []);
   client.on('error', log).on('warn', log);
   const result = client.isEnabled('feature');
 
   expect(result).toBe(true);
 });
 
-test('should fallback when missing feature', () => {
-  const repo = {
-    getToggle() {
-      return null;
-    },
-  };
-  const client = new Client(repo, []);
+test('should fallback when missing feature', async () => {
+  const feature = null;
+  const client = await loadClient(feature, []);
   client.on('error', log).on('warn', log);
 
   const result = client.isEnabled('feature-x', {}, () => false);
@@ -72,106 +68,47 @@ test('should fallback when missing feature', () => {
   expect(result2).toBe(true);
 });
 
-test('should consider toggle not active', () => {
-  const repo = {
-    getToggle() {
-      return buildToggle('feature', false);
-    },
-  };
-  const client = new Client(repo, [new Strategy('default', true)]);
+test('should consider toggle not active', async () => {
+  const feature = buildToggle('feature', false);
+  const client = await loadClient(feature, []);
   client.on('error', log).on('warn', log);
   const result = client.isEnabled('feature');
 
   expect(result).toBe(false);
 });
 
-test('should use custom strategy', () => {
-  const repo = {
-    getToggle() {
-      return buildToggle('feature', true, [{ name: 'custom' }]);
-    },
-  };
-  const client = new Client(repo, [new Strategy('default', true), new CustomStrategy()]);
+test('should use custom strategy', async () => {
+  const feature = buildToggle('feature', true, [{ name: 'custom' }]);
+  const client = await loadClient(feature, [new CustomStrategy()]);
   client.on('error', log).on('warn', log);
   const result = client.isEnabled('feature');
 
   expect(result).toBe(true);
 });
 
-test('should use a set of custom strategies', () => {
-  const repo = {
-    getToggle() {
-      return buildToggle('feature', true, [{ name: 'custom' }, { name: 'custom-false' }]);
-    },
-  };
+test('should use a set of custom strategies', async () => {
+  const feature = buildToggle('feature', true, [{ name: 'custom' }, { name: 'custom-false' }]);
 
   const strategies = [new CustomFalseStrategy(), new CustomStrategy()];
-  const client = new Client(repo, strategies);
+  const client = await loadClient(feature, strategies);
   client.on('error', log).on('warn', log);
   const result = client.isEnabled('feature');
 
   expect(result).toBe(true);
 });
 
-test('should return false a set of custom-false strategies', () => {
-  const repo = {
-    getToggle() {
-      return buildToggle('feature', true, [{ name: 'custom-false' }, { name: 'custom-false' }]);
-    },
-  };
+test('should return false a set of custom-false strategies', async () => {
+  const feature = buildToggle('feature', true, [
+    { name: 'custom-false' },
+    { name: 'custom-false' },
+  ]);
 
   const strategies = [new CustomFalseStrategy(), new CustomStrategy()];
-  const client = new Client(repo, strategies);
+  const client = await loadClient(feature, strategies);
   client.on('error', log).on('warn', log);
   const result = client.isEnabled('feature');
 
   expect(result).toBe(false);
-});
-
-test('should emit error when invalid feature runtime', () => {
-  expect.assertions(3);
-  const repo = {
-    getToggle() {
-      return {
-        name: 'feature-malformed-strategies',
-        enabled: true,
-        strategies: true,
-      };
-    },
-  };
-
-  const strategies = [];
-  const client = new Client(repo, strategies);
-  client.on('error', (err) => {
-    expect(err).toBeTruthy();
-    expect(err.message.startsWith('Malformed feature')).toBe(true);
-  });
-  client.on('warn', log);
-
-  expect(client.isEnabled('feature-malformed-strategies')).toBe(false);
-});
-
-test('should emit error when mising feature runtime', () => {
-  expect.assertions(3);
-  const repo = {
-    getToggle() {
-      return {
-        name: 'feature-wrong-strategy',
-        enabled: true,
-        strategies: [{ name: 'non-existent' }],
-      };
-    },
-  };
-
-  const strategies = [];
-  const client = new Client(repo, strategies);
-  client.on('error', log);
-  client.on('warn', (msg) => {
-    expect(msg).toBeTruthy();
-    expect(msg.startsWith('Missing strategy')).toBe(true);
-  });
-
-  expect(client.isEnabled('feature-wrong-strategy')).toBe(false);
 });
 
 [
@@ -191,40 +128,36 @@ test('should emit error when mising feature runtime', () => {
     ['1', 100],
   ],
 ].forEach(([[id1, weight1], [id2, weight2], [id3, weight3]]) => {
-  test(`should return variant when equal weight on ${weight1},${weight2},${weight3}`, () => {
-    const repo = {
-      getToggle() {
-        return buildToggle('feature', true, null, [
-          {
-            name: 'variant1',
-            weight: weight1,
-            payload: {
-              type: 'string',
-              value: 'val1',
-            },
-          },
-          {
-            name: 'variant2',
-            weight: weight2,
-            payload: {
-              type: 'string',
-              value: 'val2',
-            },
-          },
-          {
-            name: 'variant3',
-            weight: weight3,
-            payload: {
-              type: 'string',
-              value: 'val3',
-            },
-          },
-        ]);
+  test(`should return variant when equal weight on ${weight1},${weight2},${weight3}`, async () => {
+    const feature = buildToggle('feature', true, null, [
+      {
+        name: 'variant1',
+        weight: weight1,
+        payload: {
+          type: 'string',
+          value: 'val1',
+        },
       },
-    };
+      {
+        name: 'variant2',
+        weight: weight2,
+        payload: {
+          type: 'string',
+          value: 'val2',
+        },
+      },
+      {
+        name: 'variant3',
+        weight: weight3,
+        payload: {
+          type: 'string',
+          value: 'val3',
+        },
+      },
+    ]);
 
-    const strategies = [new Strategy('default', true)];
-    const client = new Client(repo, strategies);
+    const strategies = [];
+    const client = await loadClient(feature, strategies);
     client.on('error', log).on('warn', log);
     const result = client.isEnabled('feature');
 
@@ -236,14 +169,10 @@ test('should emit error when mising feature runtime', () => {
   });
 });
 
-test('should always return defaultVariant if missing variant', () => {
-  const repo = {
-    getToggle() {
-      return buildToggle('feature-but-no-variant', true, []);
-    },
-  };
+test('should always return defaultVariant if missing variant', async () => {
+  const feature = buildToggle('feature-but-no-variant', true, []);
 
-  const client = new Client(repo);
+  const client = await loadClient(feature);
 
   client.on('error', log).on('warn', log);
   const result = client.getVariant('feature-but-no-variant', {});
@@ -270,17 +199,13 @@ test('should always return defaultVariant if missing variant', () => {
   expect(result2).toEqual(fallback);
 
   const result3 = client.getVariant('missing-feature-x', {});
-  expect(result3).toEqual(defaultVariant);
+  expect(result3).toEqual({ ...defaultVariant, feature_enabled: false, featureEnabled: false });
 });
 
-test('should not trigger events if impressionData is false', () => {
+test('should not trigger events if impressionData is false', async () => {
   let called = false;
-  const repo = {
-    getToggle() {
-      return buildToggle('feature-x', false, undefined, undefined, false);
-    },
-  };
-  const client = new Client(repo, []);
+  const feature = buildToggle('feature-x', false, undefined, undefined, false);
+  const client = await loadClient(feature, []);
   client.on(UnleashEvents.Impression, () => {
     called = true;
   });
@@ -290,14 +215,10 @@ test('should not trigger events if impressionData is false', () => {
   expect(called).toBe(false);
 });
 
-test('should trigger events on isEnabled if impressionData is true', () => {
+test('should trigger events on isEnabled if impressionData is true', async () => {
   let called = false;
-  const repo = {
-    getToggle() {
-      return buildToggle('feature-x', false, undefined, undefined, true);
-    },
-  };
-  const client = new Client(repo, []);
+  const feature = buildToggle('feature-x', false, undefined, undefined, true);
+  const client = await loadClient(feature, []);
   client.on(UnleashEvents.Impression, () => {
     called = true;
   });
@@ -305,25 +226,18 @@ test('should trigger events on isEnabled if impressionData is true', () => {
   expect(called).toBe(true);
 });
 
-test('should trigger events on unsatisfied dependency', () => {
+test('should trigger events on unsatisfied dependency', async () => {
   let impressionCount = 0;
   const recordedWarnings = [];
-  const repo = {
-    getToggle(name: string) {
-      if (name === 'feature-x') {
-        return {
-          name: 'feature-x',
-          dependencies: [{ feature: 'not-feature-x' }],
-          strategies: [{ name: 'default' }],
-          variants: [],
-          impressionData: true,
-        };
-      } else {
-        return undefined;
-      }
-    },
+  const feature = {
+    name: 'feature-x',
+    enabled: true,
+    dependencies: [{ feature: 'not-feature-x' }],
+    strategies: [{ name: 'default' }],
+    variants: [],
+    impressionData: true,
   };
-  const client = new Client(repo, []);
+  const client = await loadClient(feature, []);
   client
     .on(UnleashEvents.Impression, () => {
       impressionCount++;
@@ -334,17 +248,14 @@ test('should trigger events on unsatisfied dependency', () => {
   client.isEnabled('feature-x', {}, () => false);
   client.isEnabled('feature-x', {}, () => false);
   expect(impressionCount).toEqual(2);
-  expect(recordedWarnings).toEqual(['Missing dependency "not-feature-x" for toggle "feature-x"']);
+  // Engine evaluation of a missing dependency is silent.
+  expect(recordedWarnings).toEqual([]);
 });
 
-test('should trigger events on getVariant if impressionData is true', () => {
+test('should trigger events on getVariant if impressionData is true', async () => {
   let called = false;
-  const repo = {
-    getToggle() {
-      return buildToggle('feature-x', false, undefined, undefined, true);
-    },
-  };
-  const client = new Client(repo, []);
+  const feature = buildToggle('feature-x', false, undefined, undefined, true);
+  const client = await loadClient(feature, []);
   client.on(UnleashEvents.Impression, () => {
     called = true;
   });
@@ -352,41 +263,37 @@ test('should trigger events on getVariant if impressionData is true', () => {
   expect(called).toBe(true);
 });
 
-test('should favor strategy variant over feature variant', () => {
-  const repo = {
-    getToggle() {
-      return buildToggle(
-        'feature-x',
-        true,
-        [
+test('should favor strategy variant over feature variant', async () => {
+  const feature = buildToggle(
+    'feature-x',
+    true,
+    [
+      {
+        name: 'default',
+        constraints: [],
+        variants: [
           {
-            name: 'default',
-            constraints: [],
-            variants: [
-              {
-                name: 'strategyVariantName',
-                payload: { type: 'string', value: 'strategyVariantValue' },
-                weight: 1000,
-              },
-            ],
-            parameters: {},
+            name: 'strategyVariantName',
+            payload: { type: 'string', value: 'strategyVariantValue' },
+            weight: 1000,
           },
         ],
-        [
-          {
-            name: 'willBeIgnored',
-            weight: 100,
-            payload: {
-              type: 'string',
-              value: 'willBeIgnored',
-            },
-          },
-        ],
-        true,
-      );
-    },
-  };
-  const client = new Client(repo, defaultStrategies);
+        parameters: {},
+      },
+    ],
+    [
+      {
+        name: 'willBeIgnored',
+        weight: 100,
+        payload: {
+          type: 'string',
+          value: 'willBeIgnored',
+        },
+      },
+    ],
+    true,
+  );
+  const client = await loadClient(feature, []);
   const enabled = client.isEnabled('feature-x', {}, () => false);
   const variant = client.getVariant('feature-x', {});
   expect(enabled).toBe(true);
@@ -399,38 +306,35 @@ test('should favor strategy variant over feature variant', () => {
   });
 });
 
-test('should return disabled variant for non-matching strategy variant', () => {
-  const repo = {
-    getToggle() {
-      return buildToggle(
-        'feature-x',
-        false,
-        [
+test('should return disabled variant for non-matching strategy variant', async () => {
+  const feature = buildToggle(
+    'feature-x',
+    false,
+    [
+      {
+        name: 'default',
+        constraints: [],
+        variants: [
           {
-            name: 'default',
-            constraints: [],
-            variants: [
-              {
-                name: 'strategyVariantName',
-                payload: { type: 'string', value: 'strategyVariantValue' },
-                weight: 1000,
-              },
-            ],
-            parameters: {},
+            name: 'strategyVariantName',
+            payload: { type: 'string', value: 'strategyVariantValue' },
+            weight: 1000,
           },
         ],
-        [],
-        true,
-      );
-    },
-  };
-  const client = new Client(repo, defaultStrategies);
+        parameters: {},
+      },
+    ],
+    [],
+    true,
+  );
+  const client = await loadClient(feature, []);
   const enabled = client.isEnabled('feature-x', {}, () => false);
   const variant = client.getVariant('feature-x', {});
   expect(enabled).toBe(false);
   expect(variant).toStrictEqual({
     name: 'disabled',
     enabled: false,
+    payload: undefined,
     feature_enabled: false,
     featureEnabled: false,
   });

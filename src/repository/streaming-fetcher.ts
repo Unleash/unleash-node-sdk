@@ -1,7 +1,7 @@
 import { EventEmitter } from 'node:events';
+import type { ClientFeaturesDelta } from '@unleash/yggdrasil-engine';
 import { EventSource } from '../event-source';
 import { UnleashEvents } from '../events';
-import type { ClientFeaturesDelta } from '../feature';
 import { buildHeaders } from '../request';
 import { resolveUrl } from '../url-utils';
 import type { FetcherInterface, StreamingFetchingOptions } from './fetcher';
