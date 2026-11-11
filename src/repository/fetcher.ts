@@ -1,13 +1,17 @@
 import type { EventEmitter } from 'node:events';
-import type { ApiResponse } from '../feature';
+import type { ClientFeaturesResponse as ClientFeatures, ClientFeaturesDelta } from '../feature';
 import type { CustomHeaders, CustomHeadersFunction } from '../headers';
 import type { HttpOptions } from '../http-options';
 import type { TagFilter } from '../tags';
 import type { Mode } from '../unleash-config';
 
+export type StateUpdate = (state: ClientFeatures | ClientFeaturesDelta) => Promise<void>;
+
 export interface FetcherInterface extends EventEmitter {
   start(): Promise<void>;
   stop(): void;
+  /** Store the sink and await it for each snapshot or delta delivered after start. */
+  registerUpdate(sink: StateUpdate): void;
 }
 
 export interface FetchingOptions extends PollingFetchingOptions, StreamingFetchingOptions {}
@@ -18,7 +22,6 @@ export interface CommonFetchingOptions {
   instanceId: string;
   headers?: CustomHeaders;
   connectionId: string;
-  onSave: (response: ApiResponse, fromApi: boolean) => Promise<void>;
   onModeChange?: (mode: Mode['type']) => Promise<void>;
 }
 
@@ -32,6 +35,7 @@ export interface PollingFetchingOptions extends CommonFetchingOptions {
   etag?: string;
   timeout?: number;
   httpOptions?: HttpOptions;
+  specVersion: string;
 }
 
 export interface StreamingFetchingOptions extends CommonFetchingOptions {

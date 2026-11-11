@@ -1,5 +1,6 @@
 import { EventEmitter } from 'node:events';
 import { UnleashEvents } from '../events';
+import type { ClientFeaturesResponse as ClientFeatures, ClientFeaturesDelta } from '../feature';
 import type { FetcherInterface, FetchingOptions } from './fetcher';
 import { PollingFetcher } from './polling-fetcher';
 import { StreamingFetcher } from './streaming-fetcher';
@@ -27,6 +28,11 @@ export class AdaptiveFetcher extends EventEmitter implements FetcherInterface {
 
     this.currentFetcher =
       this.options.mode.type === 'streaming' ? this.streamingFetcher : this.pollingFetcher;
+  }
+
+  registerUpdate(callback: (feature: ClientFeatures | ClientFeaturesDelta) => Promise<void>): void {
+    this.pollingFetcher.registerUpdate(callback);
+    this.streamingFetcher.registerUpdate(callback);
   }
 
   private setupFetcherEventForwarding(fetcher: FetcherInterface) {
