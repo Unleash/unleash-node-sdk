@@ -80,6 +80,7 @@ specs.forEach((testName) => {
           instance.on('synchronized', () => {
             const result = instance.getVariant(testCase.toggleName, testCase.context);
             expect(result).toStrictEqual({
+              payload: undefined,
               ...testCase.expectedResult,
               featureEnabled: testCase.expectedResult.feature_enabled,
             });

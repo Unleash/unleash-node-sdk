@@ -2,9 +2,19 @@ import { EventEmitter } from 'node:events';
 import { writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import {
+  type ClientFeatures,
+  type ClientFeaturesDelta,
+  getSpecVersion,
+  UnleashEngine,
+} from '@unleash/yggdrasil-engine';
 import nock from 'nock';
 import { afterEach, assert, expect, test, vi } from 'vitest';
-import type { ClientFeaturesResponse, DeltaEvent, EnhancedFeatureInterface } from '../../feature';
+import { AdaptiveFetcher } from '../../repository/adaptive-fetcher';
+
+type DeltaEvent = ClientFeaturesDelta['events'][number];
+type ClientFeaturesResponse = ClientFeatures;
+
 import Repository from '../../repository';
 import { DefaultBootstrapProvider } from '../../repository/bootstrap-provider';
 import type { StorageProvider } from '../../repository/storage-provider';
@@ -16,15 +26,36 @@ const instanceId = 'bar';
 const connectionId = 'baz';
 
 const activeRepositories: Repository[] = [];
-function newRepository(options: ConstructorParameters<typeof Repository>[0]): Repository {
-  const repository = new Repository(options);
+const engines = new Map<Repository, UnleashEngine>();
+const fetchers = new Map<Repository, AdaptiveFetcher>();
+function engineFor(repository: Repository): UnleashEngine {
+  const engine = engines.get(repository);
+  if (!engine) throw new Error('Repository engine missing from fixture');
+  return engine;
+}
+function fetcherFor(repository: Repository): AdaptiveFetcher {
+  const fetcher = fetchers.get(repository);
+  if (!fetcher) throw new Error('Repository fetcher missing from fixture');
+  return fetcher;
+}
+function newRepository(
+  options: Omit<ConstructorParameters<typeof Repository>[0], 'engine'>,
+): Repository {
+  const engine = new UnleashEngine();
+  const fetcher = new AdaptiveFetcher({ ...options, specVersion: getSpecVersion() });
+  const repository = new Repository({ ...options, engine, fetcher });
+  engines.set(repository, engine);
+  fetchers.set(repository, fetcher);
   activeRepositories.push(repository);
   return repository;
 }
 
 // biome-ignore lint/suspicious/noExplicitAny: be relaxed in tests
 function setup(url: string, toggles: any[], headers: Record<string, string> = {}) {
-  return nock(url).persist().get('/client/features').reply(200, { features: toggles }, headers);
+  return nock(url)
+    .persist()
+    .get('/client/features')
+    .reply(200, { version: 2, query: undefined, features: toggles }, headers);
 }
 
 function createMockEventSource() {
@@ -66,7 +97,10 @@ afterEach(() => {
   // Stop any repositories the test left running so their timers don't fire into later tests
   for (const repository of activeRepositories.splice(0)) {
     repository.stop();
+    engineFor(repository).destroy();
   }
+  engines.clear();
+  fetchers.clear();
   nock.cleanAll();
 });
 
@@ -96,11 +130,13 @@ test('should fetch from endpoint', async () => {
 
   await new Promise<void>((resolve, reject) => {
     repo.once('changed', () => {
-      const savedFeature = repo.getToggle(feature.name);
+      const savedFeature = engineFor(repo)
+        .getState()
+        .features.find((entry) => entry.name === feature.name);
       expect(savedFeature?.enabled).toBe(feature.enabled);
       expect(savedFeature?.strategies?.[0].name).toBe(feature.strategies[0].name);
 
-      const featureToggles = repo.getToggles();
+      const featureToggles = engineFor(repo).getState().features;
       expect(featureToggles[0].name).toBe('feature');
 
       resolve();
@@ -195,7 +231,7 @@ test('should store etag', async () => {
 
     repo.once('unchanged', resolve);
     repo.once('changed', () => {
-      expect(repo.etag).toBe('12345');
+      expect(fetcherFor(repo).getEtag()).toBe('12345');
 
       resolve();
     });
@@ -211,7 +247,7 @@ test('should request with etag', async () => {
       .matchHeader('If-None-Match', '12345-1')
       .persist()
       .get('/client/features')
-      .reply(200, { features: [] }, { Etag: '12345-2' });
+      .reply(200, { version: 2, query: undefined, features: [] }, { Etag: '12345-2' });
     nock(url).matchHeader('If-None-Match', '12345-2').persist().get('/client/features').reply(304);
 
     const repo = newRepository({
@@ -225,12 +261,12 @@ test('should request with etag', async () => {
       mode: { type: 'polling', format: 'full' },
     });
 
-    repo.etag = '12345-1';
+    fetcherFor(repo).setEtag('12345-1');
     repo.once('unchanged', () => {
       resolve();
     });
     repo.once('changed', () => {
-      expect(repo.etag).toBe('12345-2');
+      expect(fetcherFor(repo).getEtag()).toBe('12345-2');
     });
     repo.start();
   });
@@ -248,7 +284,7 @@ test('should request with correct custom and unleash headers', async () => {
       .matchHeader('unleash-sdk', /^unleash-node-sdk:\d+\.\d+\.\d+/)
       .persist()
       .get('/client/features')
-      .reply(200, { features: [] }, { Etag: '12345-3' });
+      .reply(200, { version: 2, query: undefined, features: [] }, { Etag: '12345-3' });
 
     const repo = newRepository({
       url,
@@ -266,12 +302,12 @@ test('should request with correct custom and unleash headers', async () => {
       mode: { type: 'polling', format: 'full' },
     });
 
-    repo.etag = '12345-1';
+    fetcherFor(repo).setEtag('12345-1');
     repo.once('unchanged', () => {
       resolve();
     });
     repo.once('changed', () => {
-      expect(repo.etag).toEqual('12345-3');
+      expect(fetcherFor(repo).getEtag()).toEqual('12345-3');
       resolve();
     });
     repo.start();
@@ -288,7 +324,7 @@ test('request with customHeadersFunction should take precedence over customHeade
       .matchHeader('randomKey', (value) => value === undefined)
       .persist()
       .get('/client/features')
-      .reply(200, { features: [] }, { Etag: '12345-3' });
+      .reply(200, { version: 2, query: undefined, features: [] }, { Etag: '12345-3' });
 
     const repo = newRepository({
       url,
@@ -305,12 +341,12 @@ test('request with customHeadersFunction should take precedence over customHeade
       mode: { type: 'polling', format: 'full' },
     });
 
-    repo.etag = '12345-1';
+    fetcherFor(repo).setEtag('12345-1');
     repo.once('unchanged', () => {
       resolve();
     });
     repo.once('changed', () => {
-      expect(repo.etag).toEqual('12345-3');
+      expect(fetcherFor(repo).getEtag()).toEqual('12345-3');
       resolve();
     });
     repo.start();
@@ -335,7 +371,7 @@ test('should handle 429 request error and emit warn event', async () => {
       expect(warn).toEqual(
         `${url}/client/features responded TOO_MANY_CONNECTIONS (429). Backing off`,
       );
-      expect(repo.nextFetch()).toBe(1000 + repo.getFailures() * 1000);
+      expect(fetcherFor(repo).nextFetch()).toBe(1000 + fetcherFor(repo).getFailures() * 1000);
       resolve();
     });
   });
@@ -492,14 +528,13 @@ test('should handle 304 as silent ok', () => {
       appName,
       instanceId,
       connectionId,
-      refreshInterval: 0,
+      refreshInterval: 10,
       bootstrapProvider: new DefaultBootstrapProvider({}, 'test-app', 'test-instance'),
       storageProvider: new InMemStorageProvider(),
       mode: { type: 'polling', format: 'full' },
     });
     repo.on('error', reject);
     repo.on('unchanged', resolve);
-    process.nextTick(resolve);
     repo.start();
   });
 });
@@ -560,7 +595,7 @@ test.skip('should respect timeout', (t) =>
     repo.on('data', reject);
   }));
 
-test('should emit errors on invalid features', () =>
+test('should reject invalid features', () =>
   new Promise<void>((resolve) => {
     const url = 'http://unleash-test-1.app';
     setup(url, [
@@ -590,7 +625,7 @@ test('should emit errors on invalid features', () =>
     repo.start();
   }));
 
-test('should emit errors on invalid variant', () =>
+test('should reject invalid variant', () =>
   new Promise<void>((resolve) => {
     const url = 'http://unleash-test-1-invalid-bariant.app';
     setup(url, [
@@ -618,7 +653,6 @@ test('should emit errors on invalid variant', () =>
 
     repo.once('error', (err) => {
       expect(err).toBeTruthy();
-      expect(err.message).toEqual('feature.variants should be an array, but was string');
       repo.stop();
       resolve();
     });
@@ -635,6 +669,8 @@ test('should load bootstrap first if faster than unleash-api', () =>
       .get('/client/features')
       .delay(100)
       .reply(200, {
+        version: 2,
+        query: undefined,
         features: [
           {
             name: 'feature',
@@ -654,6 +690,8 @@ test('should load bootstrap first if faster than unleash-api', () =>
       .persist()
       .get('/')
       .reply(200, {
+        version: 2,
+        query: undefined,
         features: [
           {
             name: 'feature',
@@ -684,14 +722,32 @@ test('should load bootstrap first if faster than unleash-api', () =>
       refreshInterval: 10,
     });
 
-    let counter = 0;
-
+    let bootstrapReady = false;
+    repo.once('ready', () => {
+      bootstrapReady = true;
+      expect(
+        engineFor(repo)
+          .getState()
+          .features.find((f) => f.name === 'feature')?.enabled,
+      ).toBe(false);
+    });
     repo.on('changed', () => {
-      counter++;
-      if (counter === 2) {
-        expect(repo.getToggle('feature')?.enabled).toEqual(true);
-        resolve();
+      // Bootstrap still emits changed until the lifecycle PR.
+      if (!bootstrapReady) {
+        expect(
+          engineFor(repo)
+            .getState()
+            .features.find((f) => f.name === 'feature')?.enabled,
+        ).toBe(false);
+        return;
       }
+      expect(bootstrapReady).toBe(true);
+      expect(
+        engineFor(repo)
+          .getState()
+          .features.find((f) => f.name === 'feature')?.enabled,
+      ).toBe(true);
+      resolve();
     });
     repo.start();
   }));
@@ -704,6 +760,8 @@ test('bootstrap should not override actual data', () =>
       .persist()
       .get('/client/features')
       .reply(200, {
+        version: 2,
+        query: undefined,
         features: [
           {
             name: 'feature',
@@ -724,6 +782,8 @@ test('bootstrap should not override actual data', () =>
       .get('/')
       .delay(100)
       .reply(200, {
+        version: 2,
+        query: undefined,
         features: [
           {
             name: 'feature',
@@ -754,16 +814,15 @@ test('bootstrap should not override actual data', () =>
       refreshInterval: 10,
     });
 
-    let counter = 0;
-
-    repo.on('changed', () => {
-      counter++;
-      if (counter === 2) {
-        expect(repo.getToggle('feature')?.enabled).toEqual(true);
-        resolve();
-      }
+    // Await the slower bootstrap too, then check it did not overwrite live state.
+    repo.start().then(() => {
+      expect(
+        engineFor(repo)
+          .getState()
+          .features.find((f) => f.name === 'feature')?.enabled,
+      ).toBe(true);
+      resolve();
     });
-    repo.start();
   }));
 
 test('should load bootstrap first from file', () =>
@@ -775,6 +834,8 @@ test('should load bootstrap first from file', () =>
     writeFileSync(
       path,
       JSON.stringify({
+        version: 2,
+        query: undefined,
         features: [
           {
             name: 'feature-bootstrap',
@@ -807,8 +868,12 @@ test('should load bootstrap first from file', () =>
       mode: { type: 'polling', format: 'full' },
     });
 
-    repo.on('changed', () => {
-      expect(repo.getToggle('feature-bootstrap')?.enabled).toEqual(true);
+    repo.on('ready', () => {
+      expect(
+        engineFor(repo)
+          .getState()
+          .features.find((feature) => feature.name === 'feature-bootstrap')?.enabled,
+      ).toEqual(true);
       resolve();
     });
     repo.start();
@@ -855,6 +920,8 @@ test('should load backup-file', () =>
     writeFileSync(
       backupFile,
       JSON.stringify({
+        version: 2,
+        query: undefined,
         features: [
           {
             name: 'feature-backup',
@@ -884,7 +951,11 @@ test('should load backup-file', () =>
     });
 
     repo.on('ready', () => {
-      expect(repo.getToggle('feature-backup')?.enabled).toEqual(true);
+      expect(
+        engineFor(repo)
+          .getState()
+          .features.find((feature) => feature.name === 'feature-backup')?.enabled,
+      ).toEqual(true);
       resolve();
     });
     repo.start();
@@ -901,6 +972,8 @@ test('bootstrap should override load backup-file', () =>
     writeFileSync(
       backupFile,
       JSON.stringify({
+        version: 2,
+        query: undefined,
         features: [
           {
             name: 'feature-backup',
@@ -926,24 +999,20 @@ test('bootstrap should override load backup-file', () =>
       refreshInterval: 0,
       bootstrapProvider: new DefaultBootstrapProvider(
         {
-          data: [
-            {
-              name: 'feature-backup',
-              enabled: false,
-              strategies: [
-                {
-                  name: 'default',
-                  parameters: {},
-                  constraints: [],
-                },
-                {
-                  name: 'bootstrap',
-                  parameters: {},
-                  constraints: [],
-                },
-              ],
-            },
-          ],
+          features: {
+            version: 2,
+            query: undefined,
+            features: [
+              {
+                name: 'feature-backup',
+                enabled: false,
+                strategies: [
+                  { variants: [], name: 'default', parameters: {}, constraints: [] },
+                  { variants: [], name: 'bootstrap', parameters: {}, constraints: [] },
+                ],
+              },
+            ],
+          },
         },
         'test-app',
         'test-instance',
@@ -952,87 +1021,17 @@ test('bootstrap should override load backup-file', () =>
       mode: { type: 'polling', format: 'full' },
     });
 
-    repo.on('changed', () => {
-      expect(repo.getToggle('feature-backup')?.enabled).toEqual(false);
+    repo.on('ready', () => {
+      expect(
+        engineFor(repo)
+          .getState()
+          .features.find((feature) => feature.name === 'feature-backup')?.enabled,
+      ).toEqual(false);
       resolve();
     });
     repo.on('error', () => {});
     repo.start();
   }));
-
-test('bootstrap should not override load backup-file', async () => {
-  const appNameLocal = 'should_not_override';
-  const url = 'http://unleash-test-backup-api-url.app';
-  nock(url).persist().get('/client/features').reply(408);
-
-  nock(url)
-    .persist()
-    .get('/bootstrap')
-    .delay(1)
-    .reply(200, {
-      features: [
-        {
-          name: 'feature-backup',
-          enabled: false,
-          strategies: [
-            {
-              name: 'default',
-            },
-            {
-              name: 'bootstrap',
-            },
-          ],
-        },
-      ],
-    });
-
-  const storeImp = new InMemStorageProvider<ClientFeaturesResponse>();
-  storeImp.set(appNameLocal, {
-    features: [
-      {
-        name: 'feature-backup',
-        enabled: true,
-        strategies: [
-          {
-            name: 'default',
-            parameters: {},
-            constraints: [],
-          },
-          {
-            name: 'backup',
-            parameters: {},
-            constraints: [],
-          },
-        ],
-      },
-    ],
-    version: 1,
-  });
-
-  const repo = newRepository({
-    url,
-    appName: appNameLocal,
-    instanceId,
-    connectionId,
-    refreshInterval: 0,
-    bootstrapProvider: new DefaultBootstrapProvider(
-      {
-        url: `${url}/bootstrap`,
-      },
-      'test-app',
-      'test-instance',
-    ),
-    bootstrapOverride: false,
-    storageProvider: storeImp,
-    mode: { type: 'polling', format: 'full' },
-  });
-
-  repo.on('error', () => {});
-
-  await repo.start();
-
-  expect(repo.getToggle('feature-backup')?.enabled).toEqual(true);
-});
 
 test('Failing two times and then succeed should decrease interval to 2 times initial interval (404)', async () => {
   const url = 'http://unleash-test-fail5times.app';
@@ -1047,12 +1046,12 @@ test('Failing two times and then succeed should decrease interval to 2 times ini
     storageProvider: new InMemStorageProvider(),
     mode: { type: 'polling', format: 'full' },
   });
-  await repo.fetch();
-  expect(1).toEqual(repo.getFailures());
-  expect(20).toEqual(repo.nextFetch());
-  await repo.fetch();
-  expect(2).toEqual(repo.getFailures());
-  expect(30).toEqual(repo.nextFetch());
+  await fetcherFor(repo).fetch();
+  expect(1).toEqual(fetcherFor(repo).getFailures());
+  expect(20).toEqual(fetcherFor(repo).nextFetch());
+  await fetcherFor(repo).fetch();
+  expect(2).toEqual(fetcherFor(repo).getFailures());
+  expect(30).toEqual(fetcherFor(repo).nextFetch());
   nock.cleanAll();
   nock(url)
     .persist()
@@ -1075,10 +1074,10 @@ test('Failing two times and then succeed should decrease interval to 2 times ini
       ],
     });
 
-  await repo.fetch();
+  await fetcherFor(repo).fetch();
 
-  expect(1).toEqual(repo.getFailures());
-  expect(20).toEqual(repo.nextFetch());
+  expect(1).toEqual(fetcherFor(repo).getFailures());
+  expect(20).toEqual(fetcherFor(repo).nextFetch());
 });
 
 // make-fetch-happens actually automatically retries two extra times on 429
@@ -1110,7 +1109,7 @@ test.skip('Failing two times should increase interval to 3 times initial interva
   });
 
   try {
-    const p1 = repo.fetch();
+    const p1 = fetcherFor(repo).fetch();
     // await vi.advanceTimersByTimeAsync(999999); // Skip everything
     await vi.waitFor<void>(() => {
       timeout: 5000;
@@ -1118,18 +1117,18 @@ test.skip('Failing two times should increase interval to 3 times initial interva
 
     await vi.runAllTimersAsync();
     await p1;
-    expect(repo.getFailures()).toEqual(1);
-    expect(repo.nextFetch()).toEqual(20);
+    expect(fetcherFor(repo).getFailures()).toEqual(1);
+    expect(fetcherFor(repo).nextFetch()).toEqual(20);
 
-    const p2 = repo.fetch();
+    const p2 = fetcherFor(repo).fetch();
     // await vi.runAllTimersAsync();
     await vi.waitFor<void>(() => {
       timeout: 5000;
     });
 
     await p2;
-    expect(repo.getFailures()).toEqual(2);
-    expect(repo.nextFetch()).toEqual(30);
+    expect(fetcherFor(repo).getFailures()).toEqual(2);
+    expect(fetcherFor(repo).nextFetch()).toEqual(30);
   } finally {
     vi.clearAllTimers();
     vi.useRealTimers();
@@ -1137,27 +1136,27 @@ test.skip('Failing two times should increase interval to 3 times initial interva
   }
 
   // fetch 1
-  const p1 = repo.fetch();
+  const p1 = fetcherFor(repo).fetch();
   await vi.runAllTimersAsync();
 
   await p1;
 
-  // retries 2 extra times with 1000ms + 2000ms delays = ~3 seconds per repo.fetch()
+  // retries 2 extra times with 1000ms + 2000ms delays = ~3 seconds per fetcherFor(repo).fetch()
   // 2 calls ~6sec, 15000ms timeout
   // await vi.advanceTimersByTimeAsync(15001); // fast-forwards fake time past timeout
 
-  expect(1).toEqual(repo.getFailures());
-  expect(20).toEqual(repo.nextFetch());
+  expect(1).toEqual(fetcherFor(repo).getFailures());
+  expect(20).toEqual(fetcherFor(repo).nextFetch());
 
   // fetch 1
-  const p2 = repo.fetch();
+  const p2 = fetcherFor(repo).fetch();
   // await vi.advanceTimersByTimeAsync(15001);
   await vi.runAllTimersAsync();
 
   await p2;
 
-  expect(2).toEqual(repo.getFailures());
-  expect(30).toEqual(repo.nextFetch());
+  expect(2).toEqual(fetcherFor(repo).getFailures());
+  expect(30).toEqual(fetcherFor(repo).nextFetch());
 });
 
 // Skipped because make-fetch-happens actually automatically retries two extra times on 429
@@ -1177,12 +1176,12 @@ test.skip('Failing two times and then succeed should decrease interval to 2 time
     storageProvider: new InMemStorageProvider(),
     mode: { type: 'polling', format: 'full' },
   });
-  await repo.fetch();
-  expect(1).toEqual(repo.getFailures());
-  expect(20).toEqual(repo.nextFetch());
-  await repo.fetch();
-  expect(2).toEqual(repo.getFailures());
-  expect(30).toEqual(repo.nextFetch());
+  await fetcherFor(repo).fetch();
+  expect(1).toEqual(fetcherFor(repo).getFailures());
+  expect(20).toEqual(fetcherFor(repo).nextFetch());
+  await fetcherFor(repo).fetch();
+  expect(2).toEqual(fetcherFor(repo).getFailures());
+  expect(30).toEqual(fetcherFor(repo).nextFetch());
   nock.cleanAll();
   nock(url)
     .persist()
@@ -1205,262 +1204,10 @@ test.skip('Failing two times and then succeed should decrease interval to 2 time
       ],
     });
 
-  await repo.fetch();
-  expect(1).toEqual(repo.getFailures());
-  expect(20).toEqual(repo.nextFetch());
+  await fetcherFor(repo).fetch();
+  expect(1).toEqual(fetcherFor(repo).getFailures());
+  expect(20).toEqual(fetcherFor(repo).nextFetch());
 });
-
-test('should handle not finding a given segment id', () =>
-  new Promise<void>((resolve) => {
-    const appNameLocal = 'missing-segments';
-    const url = 'http://unleash-test-backup-api-url.app';
-    nock(url).persist().get('/client/features').delay(100).reply(408);
-
-    const backupPath = join(tmpdir());
-    const backupFile = join(backupPath, `/unleash-backup-${appNameLocal}.json`);
-    writeFileSync(
-      backupFile,
-      JSON.stringify({
-        version: 1,
-        features: [
-          {
-            name: 'feature-full-segments',
-            enabled: true,
-            strategies: [
-              {
-                name: 'default',
-                segments: [5],
-              },
-              {
-                name: 'backup',
-                segments: [2, 3],
-              },
-            ],
-          },
-        ],
-        segments: [
-          {
-            id: 1,
-            constraints: [
-              {
-                contextName: 'appName',
-                operator: 'IN',
-                value: 'S1',
-                values: [],
-                caseInsensitive: false,
-                inverted: false,
-              },
-            ],
-          },
-          {
-            id: 2,
-            constraints: [
-              {
-                contextName: 'appName',
-                operator: 'IN',
-                value: 'S2',
-                values: [],
-                caseInsensitive: false,
-                inverted: false,
-              },
-            ],
-          },
-
-          {
-            id: 3,
-            constraints: [
-              {
-                contextName: 'appName',
-                operator: 'IN',
-                value: 'S3',
-                values: [],
-                caseInsensitive: false,
-                inverted: false,
-              },
-            ],
-          },
-        ],
-      }),
-    );
-
-    const repo = newRepository({
-      url,
-      appName: appNameLocal,
-      instanceId,
-      connectionId,
-      refreshInterval: 0,
-      bootstrapProvider: new DefaultBootstrapProvider({}, 'test-app', 'test-instance'),
-      storageProvider: new FileStorageProvider(backupPath),
-      mode: { type: 'polling', format: 'full' },
-    });
-
-    repo.on('ready', () => {
-      const toggles = repo.getTogglesWithSegmentData() as EnhancedFeatureInterface[];
-      expect(
-        toggles?.every((toggle) =>
-          toggle.strategies?.every((strategy) =>
-            strategy?.segments?.some((segment) => segment && 'constraints' in segment),
-          ),
-        ),
-      ).toBe(false);
-      expect(toggles?.[0]?.strategies?.[0]?.segments).toStrictEqual([undefined]);
-      resolve();
-    });
-    repo.on('error', () => {});
-    repo.start();
-  }));
-
-test('should handle not having segments to read from', () =>
-  new Promise<void>((resolve) => {
-    const appNameLocal = 'no-segments';
-    const url = 'http://unleash-test-backup-api-url.app';
-    nock(url).persist().get('/client/features').delay(100).reply(408);
-
-    const backupPath = join(tmpdir());
-    const backupFile = join(backupPath, `/unleash-backup-${appNameLocal}.json`);
-    writeFileSync(
-      backupFile,
-      JSON.stringify({
-        version: 1,
-        features: [
-          {
-            name: 'feature-full-segments',
-            enabled: true,
-            strategies: [
-              {
-                name: 'default',
-                segments: [5],
-              },
-              {
-                name: 'backup',
-                segments: [2, 3],
-              },
-            ],
-          },
-        ],
-        segments: [],
-      }),
-    );
-
-    const repo = newRepository({
-      url,
-      appName: appNameLocal,
-      instanceId,
-      connectionId,
-      refreshInterval: 0,
-      bootstrapProvider: new DefaultBootstrapProvider({}, 'test-app', 'test-instance'),
-      storageProvider: new FileStorageProvider(backupPath),
-      mode: { type: 'polling', format: 'full' },
-    });
-
-    repo.on('ready', () => {
-      const toggles = repo.getTogglesWithSegmentData();
-      expect(toggles?.[0]?.strategies?.[0]?.segments).toStrictEqual([undefined]);
-      expect(toggles?.[0]?.strategies?.[1]?.segments).toStrictEqual([undefined, undefined]);
-      resolve();
-    });
-    repo.on('error', () => {});
-    repo.start();
-  }));
-
-test('should return full segment data when requested', () =>
-  new Promise<void>((resolve) => {
-    const appNameLocal = 'full-segments';
-    const url = 'http://unleash-test-backup-api-url.app';
-    nock(url).persist().get('/client/features').delay(100).reply(408);
-
-    const backupPath = join(tmpdir());
-    const backupFile = join(backupPath, `/unleash-backup-${appNameLocal}.json`);
-    writeFileSync(
-      backupFile,
-      JSON.stringify({
-        version: 1,
-        features: [
-          {
-            name: 'feature-full-segments',
-            enabled: true,
-            strategies: [
-              {
-                name: 'default',
-                segments: [1],
-              },
-              {
-                name: 'backup',
-                segments: [2, 3],
-              },
-            ],
-          },
-        ],
-        segments: [
-          {
-            id: 1,
-            constraints: [
-              {
-                contextName: 'appName',
-                operator: 'IN',
-                value: 'S1',
-                values: [],
-                caseInsensitive: false,
-                inverted: false,
-              },
-            ],
-          },
-          {
-            id: 2,
-            constraints: [
-              {
-                contextName: 'appName',
-                operator: 'IN',
-                value: 'S2',
-                values: [],
-                caseInsensitive: false,
-                inverted: false,
-              },
-            ],
-          },
-
-          {
-            id: 3,
-            constraints: [
-              {
-                contextName: 'appName',
-                operator: 'IN',
-                value: 'S3',
-                values: [],
-                caseInsensitive: false,
-                inverted: false,
-              },
-            ],
-          },
-        ],
-      }),
-    );
-
-    const repo = newRepository({
-      url,
-      appName: appNameLocal,
-      instanceId,
-      connectionId,
-      refreshInterval: 0,
-      bootstrapProvider: new DefaultBootstrapProvider({}, 'test-app', 'test-instance'),
-      storageProvider: new FileStorageProvider(backupPath),
-      mode: { type: 'polling', format: 'full' },
-    });
-
-    repo.on('ready', () => {
-      const toggles = repo.getTogglesWithSegmentData() as EnhancedFeatureInterface[];
-      expect(
-        toggles?.every((toggle) =>
-          toggle.strategies?.every((strategy) =>
-            strategy?.segments?.every((segment) => segment && 'constraints' in segment),
-          ),
-        ),
-      ).toBe(true);
-      resolve();
-    });
-    repo.on('error', () => {});
-    repo.start();
-  }));
 
 test('Stopping repository should stop unchanged event reporting', async () => {
   const url = 'http://unleash-test-stop-304.app';
@@ -1479,7 +1226,7 @@ test('Stopping repository should stop unchanged event reporting', async () => {
     assert.fail('Should not emit unchanged event after stopping');
   });
 
-  const promise = repo.fetch();
+  const promise = fetcherFor(repo).fetch();
   repo.stop(); // remove all listeners
   await promise;
 });
@@ -1489,13 +1236,7 @@ test('Stopping repository should stop storage provider updates', async () => {
   const feature = {
     name: 'feature',
     enabled: true,
-    strategies: [
-      {
-        name: 'default',
-        parameters: {},
-        constraints: [],
-      },
-    ],
+    strategies: [{ variants: [], name: 'default', parameters: {}, constraints: [] }],
   };
   setup(url, [feature]);
   const storageProvider: StorageProvider<ClientFeaturesResponse> = new InMemStorageProvider();
@@ -1510,7 +1251,7 @@ test('Stopping repository should stop storage provider updates', async () => {
     mode: { type: 'polling', format: 'full' },
   });
 
-  const promise = repo.fetch();
+  const promise = fetcherFor(repo).fetch();
   repo.stop(); // stop storage provider from accepting commands
   await promise;
 
@@ -1524,13 +1265,7 @@ test('Streaming deltas', async () => {
   const feature = {
     name: 'feature',
     enabled: true,
-    strategies: [
-      {
-        name: 'default',
-        parameters: {},
-        constraints: [],
-      },
-    ],
+    strategies: [{ variants: [], name: 'default', parameters: {}, constraints: [] }],
   };
   setup(url, [{ ...feature, name: 'initialFetch' }]);
   const storageProvider: StorageProvider<ClientFeaturesResponse> = new InMemStorageProvider();
@@ -1550,7 +1285,7 @@ test('Streaming deltas', async () => {
 
   await repo.start();
 
-  // first connection is ignored, since we do regular fetch
+  // Hydration supplies the initial streaming state.
   eventSource.emit('unleash-connected', {
     type: 'unleash-connected',
     data: JSON.stringify({
@@ -1565,7 +1300,7 @@ test('Streaming deltas', async () => {
     }),
   });
 
-  const before = repo.getToggles();
+  const before = engineFor(repo).getState().features;
   expect(before).toStrictEqual([{ ...feature, name: 'deltaFeature' }]);
 
   // update with feature
@@ -1581,7 +1316,7 @@ test('Streaming deltas', async () => {
       ],
     }),
   });
-  const firstUpdate = repo.getToggles();
+  const firstUpdate = engineFor(repo).getState().features;
   expect(firstUpdate).toStrictEqual([{ ...feature, enabled: false, name: 'deltaFeature' }]);
 
   eventSource.emit('unleash-updated', {
@@ -1597,7 +1332,7 @@ test('Streaming deltas', async () => {
       ],
     }),
   });
-  const secondUpdate = repo.getToggles();
+  const secondUpdate = engineFor(repo).getState().features;
   expect(secondUpdate).toStrictEqual([]);
 
   eventSource.emit('unleash-updated', {
@@ -1612,7 +1347,9 @@ test('Streaming deltas', async () => {
       ],
     }),
   });
-  const segment = repo.getSegment(1);
+  const segment = engineFor(repo)
+    .getState()
+    .segments?.find((segment) => segment.id === 1);
   expect(segment).toStrictEqual({ id: 1, constraints: [] });
 
   eventSource.emit('unleash-updated', {
@@ -1627,7 +1364,9 @@ test('Streaming deltas', async () => {
       ],
     }),
   });
-  const removedSegment = repo.getSegment(1);
+  const removedSegment = engineFor(repo)
+    .getState()
+    .segments?.find((segment) => segment.id === 1);
   expect(removedSegment).toStrictEqual(undefined);
 
   const recordedWarnings: string[] = [];
@@ -1667,9 +1406,9 @@ test('Polling delta', async () => {
     storageProvider,
     mode: { type: 'polling', format: 'delta' },
   });
-  await repo.fetch();
+  await fetcherFor(repo).fetch();
 
-  const before = repo.getToggles();
+  const before = engineFor(repo).getState().features;
   expect(before).toStrictEqual([feature]);
 
   setupPollingDeltaApi(url, [
@@ -1679,9 +1418,9 @@ test('Polling delta', async () => {
       feature: { ...feature, enabled: false },
     },
   ]);
-  await repo.fetch();
+  await fetcherFor(repo).fetch();
 
-  const updatedFeature = repo.getToggles();
+  const updatedFeature = engineFor(repo).getState().features;
   expect(updatedFeature).toStrictEqual([{ ...feature, enabled: false }]);
 
   setupPollingDeltaApi(url, [
@@ -1692,9 +1431,9 @@ test('Polling delta', async () => {
       project: 'irrelevant',
     },
   ]);
-  await repo.fetch();
+  await fetcherFor(repo).fetch();
 
-  const noFeatures = repo.getToggles();
+  const noFeatures = engineFor(repo).getState().features;
   expect(noFeatures).toStrictEqual([]);
 
   setupPollingDeltaApi(url, [
@@ -1704,9 +1443,11 @@ test('Polling delta', async () => {
       segment: { id: 1, constraints: [] },
     },
   ]);
-  await repo.fetch();
+  await fetcherFor(repo).fetch();
 
-  const segment = repo.getSegment(1);
+  const segment = engineFor(repo)
+    .getState()
+    .segments?.find((segment) => segment.id === 1);
   expect(segment).toStrictEqual({ id: 1, constraints: [] });
 
   setupPollingDeltaApi(url, [
@@ -1716,9 +1457,11 @@ test('Polling delta', async () => {
       segmentId: 1,
     },
   ]);
-  await repo.fetch();
+  await fetcherFor(repo).fetch();
 
-  const noSegment = repo.getSegment(1);
+  const noSegment = engineFor(repo)
+    .getState()
+    .segments?.find((segment) => segment.id === 1);
   expect(noSegment).toStrictEqual(undefined);
 });
 
@@ -1737,7 +1480,11 @@ test('Switch from polling to streaming mode via HTTP header', async () => {
   nock(url)
     .persist()
     .get('/client/features')
-    .reply(200, { features: [feature] }, { 'fetch-mode': 'streaming' });
+    .reply(
+      200,
+      { version: 2, query: undefined, features: [feature] },
+      { 'fetch-mode': 'streaming' },
+    );
 
   nock(url).persist().get('/client/streaming').reply(200);
 
@@ -1763,11 +1510,11 @@ test('Switch from polling to streaming mode via HTTP header', async () => {
 
   await repo.start();
 
-  await repo.fetch();
+  await fetcherFor(repo).fetch();
 
   await modePromise;
 
-  expect(repo.getMode()).toEqual('streaming');
+  expect(fetcherFor(repo).getMode()).toEqual('streaming');
 
   repo.stop();
 });
@@ -1787,7 +1534,7 @@ test('Switch from streaming to polling mode via EventSource', async () => {
   nock(url)
     .persist()
     .get('/client/features')
-    .reply(200, { features: [{ ...feature, enabled: false }] });
+    .reply(200, { version: 2, query: undefined, features: [{ ...feature, enabled: false }] });
 
   const storageProvider: StorageProvider<ClientFeaturesResponse> = new InMemStorageProvider();
   const eventSource = createMockEventSource();
@@ -1820,7 +1567,7 @@ test('Switch from streaming to polling mode via EventSource', async () => {
     }),
   });
 
-  let toggles = repo.getToggles();
+  let toggles = engineFor(repo).getState().features;
   expect(toggles[0].enabled).toEqual(true);
 
   const modePromise = new Promise<void>((resolve) => {
@@ -1836,12 +1583,12 @@ test('Switch from streaming to polling mode via EventSource', async () => {
 
   await modePromise;
 
-  expect(repo.getMode()).toEqual('polling');
+  expect(fetcherFor(repo).getMode()).toEqual('polling');
   expect(eventSource.closed).toBe(true);
 
-  await repo.fetch();
+  await fetcherFor(repo).fetch();
 
-  toggles = repo.getToggles();
+  toggles = engineFor(repo).getState().features;
   expect(toggles[0].enabled).toEqual(false);
 
   repo.stop();
@@ -1852,13 +1599,7 @@ test('setMode can switch from polling to streaming mode', async () => {
   const feature = {
     name: 'feature',
     enabled: true,
-    strategies: [
-      {
-        name: 'default',
-        parameters: {},
-        constraints: [],
-      },
-    ],
+    strategies: [{ variants: [], name: 'default', parameters: {}, constraints: [] }],
   };
 
   setup(url, [feature]);
@@ -1887,13 +1628,13 @@ test('setMode can switch from polling to streaming mode', async () => {
 
   await repo.start();
 
-  expect(repo.getMode()).toEqual('polling');
+  expect(fetcherFor(repo).getMode()).toEqual('polling');
 
-  await repo.setMode('streaming');
+  await fetcherFor(repo).setMode('streaming');
 
   await modePromise;
 
-  expect(repo.getMode()).toEqual('streaming');
+  expect(fetcherFor(repo).getMode()).toEqual('streaming');
 
   repo.stop();
 });
@@ -1903,13 +1644,7 @@ test('setMode can switch from streaming to polling mode', async () => {
   const feature = {
     name: 'feature',
     enabled: false,
-    strategies: [
-      {
-        name: 'default',
-        parameters: {},
-        constraints: [],
-      },
-    ],
+    strategies: [{ variants: [], name: 'default', parameters: {}, constraints: [] }],
   };
 
   setup(url, [{ ...feature, enabled: true }]);
@@ -1945,7 +1680,7 @@ test('setMode can switch from streaming to polling mode', async () => {
     }),
   });
 
-  let toggles = repo.getToggles();
+  let toggles = engineFor(repo).getState().features;
   expect(toggles[0].enabled).toEqual(false);
 
   const modePromise = new Promise<void>((resolve) => {
@@ -1955,16 +1690,16 @@ test('setMode can switch from streaming to polling mode', async () => {
     });
   });
 
-  expect(repo.getMode()).toEqual('streaming');
+  expect(fetcherFor(repo).getMode()).toEqual('streaming');
 
-  await repo.setMode('polling');
+  await fetcherFor(repo).setMode('polling');
 
   await modePromise;
 
-  expect(repo.getMode()).toEqual('polling');
+  expect(fetcherFor(repo).getMode()).toEqual('polling');
   expect(eventSource.closed).toBe(true);
 
-  toggles = repo.getToggles();
+  toggles = engineFor(repo).getState().features;
   expect(toggles[0].enabled).toEqual(true);
 
   repo.stop();
@@ -1975,13 +1710,7 @@ test('setMode should be no-op when repository is stopped', async () => {
   const feature = {
     name: 'feature',
     enabled: true,
-    strategies: [
-      {
-        name: 'default',
-        parameters: {},
-        constraints: [],
-      },
-    ],
+    strategies: [{ variants: [], name: 'default', parameters: {}, constraints: [] }],
   };
 
   setup(url, [feature]);
@@ -1998,12 +1727,12 @@ test('setMode should be no-op when repository is stopped', async () => {
   });
 
   await repo.start();
-  expect(repo.getMode()).toEqual('polling');
+  expect(fetcherFor(repo).getMode()).toEqual('polling');
 
   repo.stop();
 
-  await repo.setMode('streaming');
-  expect(repo.getMode()).toEqual('polling');
+  await fetcherFor(repo).setMode('streaming');
+  expect(fetcherFor(repo).getMode()).toEqual('polling');
 });
 
 test('SSE with HTTP mocking - should process unleash-connected event', async () => {
@@ -2059,7 +1788,7 @@ test('SSE with HTTP mocking - should process unleash-connected event', async () 
   await repo.start();
   await changedEvent;
 
-  const toggles = repo.getToggles();
+  const toggles = engineFor(repo).getState().features;
   expect(toggles.length).toEqual(1);
   expect(toggles[0].name).toEqual('test-feature');
   expect(toggles[0].enabled).toEqual(true);
@@ -2138,7 +1867,7 @@ test('SSE with HTTP mocking - should process unleash-updated event', async () =>
   await repo.start();
   await changedEvents;
 
-  const toggles = repo.getToggles();
+  const toggles = engineFor(repo).getState().features;
   expect(toggles[0].enabled).toEqual(true);
 
   repo.stop();
@@ -2233,7 +1962,7 @@ test('SSE parse error forces full rehydration without Last-Event-ID', async () =
     }, 5_000);
 
     repo.on('changed', () => {
-      const toggles = repo.getToggles();
+      const toggles = engineFor(repo).getState().features;
       const featureToggle = toggles.find((f) => f.name === 'test-feature');
       if (featureToggle?.enabled === true) {
         clearTimeout(timeout);

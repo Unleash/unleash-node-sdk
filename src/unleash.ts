@@ -1,9 +1,9 @@
 import { EventEmitter } from 'node:events';
 import { tmpdir } from 'node:os';
 import { UnleashEngine } from '@unleash/yggdrasil-engine';
-import Client, { type Name } from './client';
+import Client from './client';
 import type { Context } from './context';
-import { type ImpressionEvent, UnleashEvents } from './events';
+import { createImpressionEvent, type ImpressionEvent, UnleashEvents } from './events';
 import type { EnhancedFeatureInterface, FeatureInterface } from './feature';
 import {
   createFallbackFunction,
@@ -12,6 +12,7 @@ import {
   generateInstanceId,
 } from './helpers';
 import { MetricsAPI } from './impact-metrics/metric-api';
+import type { Name } from './index';
 import Metrics from './metrics';
 import Repository, { type RepositoryInterface } from './repository';
 import { resolveBootstrapProvider } from './repository/bootstrap-provider';
@@ -87,6 +88,7 @@ export class Unleash extends EventEmitter {
   }: UnleashConfig) {
     super();
 
+    this.engine.registerCustomStrategies(strategies);
     Unleash.instanceCount++;
 
     this.on(UnleashEvents.Error, (error) => {
@@ -136,6 +138,7 @@ export class Unleash extends EventEmitter {
       bootstrapProvider,
       bootstrapOverride,
       fetcher,
+      engine: this.engine,
       mode: experimentalMode,
       storageProvider: storageProvider || new FileStorageProvider(backupPath),
     });
@@ -157,6 +160,7 @@ export class Unleash extends EventEmitter {
     this.repository.on(UnleashEvents.Unchanged, (msg) => this.emit(UnleashEvents.Unchanged, msg));
 
     this.repository.on(UnleashEvents.Changed, (data) => {
+      this.ready = true;
       this.emit(UnleashEvents.Changed, data);
 
       // Only emit the fully synchronized event the first time.
@@ -285,20 +289,42 @@ export class Unleash extends EventEmitter {
   isEnabled(name: Name, context?: Context, fallbackValue?: boolean): boolean;
   isEnabled(name: Name, context: Context = {}, fallback?: FallbackFunction | boolean): boolean {
     const enhancedContext = { ...this.staticContext, ...context };
-    const fallbackFunc = createFallbackFunction(name, enhancedContext, fallback);
 
-    let result: boolean;
-    if (this.ready) {
-      result = this.client.isEnabled(name, enhancedContext, fallbackFunc);
-    } else {
-      result = fallbackFunc();
+    if (this.ready && !this.destroyed) {
+      // the engine counts automatically so long as the flag exists so we skip the count here
+      // internal handling of counting is done for performance reasons on the happy path
+      const enabledResult = this.engine.isEnabled(name, enhancedContext);
+      const enabled = enabledResult.enabled;
+      if (enabled != null) {
+        if (enabledResult.impressionData) {
+          this.emit(
+            UnleashEvents.Impression,
+            createImpressionEvent({
+              featureName: name,
+              context: enhancedContext,
+              enabled,
+              eventType: 'isEnabled',
+            }),
+          );
+        }
+
+        this.emitCount(name, enabled);
+        return enabled;
+      }
+    }
+
+    const enabled = createFallbackFunction(name, enhancedContext, fallback)();
+
+    if (!this.ready) {
       this.emit(
         UnleashEvents.Warn,
-        `Unleash has not been initialized yet. isEnabled('${name}') defaulted to ${result}`,
+        `Unleash has not been initialized yet. isEnabled('${name}') defaulted to ${enabled}`,
       );
     }
-    this.count(name, result);
-    return result;
+
+    if (!this.destroyed) this.engine.count(name, enabled);
+    this.emitCount(name, enabled);
+    return enabled;
   }
 
   getVariant(
@@ -307,50 +333,51 @@ export class Unleash extends EventEmitter {
     fallbackVariant?: Variant,
   ): VariantWithFeatureStatus {
     const enhancedContext = { ...this.staticContext, ...context };
-    let variant: VariantWithFeatureStatus;
-    if (this.ready) {
-      variant = this.client.getVariant(name, enhancedContext, fallbackVariant);
-    } else {
-      variant =
-        typeof fallbackVariant !== 'undefined'
-          ? { ...fallbackVariant, feature_enabled: false, featureEnabled: false }
-          : { ...defaultVariant, featureEnabled: defaultVariant.feature_enabled ?? false };
+    const result =
+      this.ready && !this.destroyed ? this.engine.checkVariant(name, enhancedContext) : undefined;
+    const featureEnabled = result?.variant?.featureEnabled ?? false;
+    const selected = result?.variant?.enabled
+      ? result.variant
+      : (fallbackVariant ?? defaultVariant);
+    const variant: VariantWithFeatureStatus = {
+      ...selected,
+      // Engine payload types are strings; the SDK's public payload enum remains
+      // the contract for callers.
+      payload: selected.payload as Variant['payload'],
+      feature_enabled: featureEnabled,
+      featureEnabled,
+    };
+
+    if (result?.impressionData) {
+      this.emit(
+        UnleashEvents.Impression,
+        createImpressionEvent({
+          featureName: name,
+          context: enhancedContext,
+          enabled: variant.enabled,
+          eventType: 'getVariant',
+          variant: variant.name,
+        }),
+      );
+    }
+
+    if (!this.ready) {
       this.emit(
         UnleashEvents.Warn,
         `Unleash has not been initialized yet. getVariant('${name}') defaulted to ${JSON.stringify(variant)}`,
       );
     }
 
-    if (variant.name) {
-      this.countVariant(name, variant.name);
+    if (!this.destroyed) {
+      this.engine.count(name, featureEnabled);
+      if (variant.name) this.engine.countVariant(name, variant.name);
     }
-
-    this.count(name, Boolean(variant.feature_enabled));
-
+    this.emitCount(name, featureEnabled);
     return variant;
   }
 
   forceGetVariant(name: string, context: Context = {}, fallbackVariant?: Variant): Variant {
-    const enhancedContext = { ...this.staticContext, ...context };
-    let variant: Variant;
-    if (this.ready) {
-      variant = this.client.forceGetVariant(name, enhancedContext, fallbackVariant);
-    } else {
-      variant =
-        typeof fallbackVariant !== 'undefined'
-          ? { ...fallbackVariant, feature_enabled: false }
-          : defaultVariant;
-      this.emit(
-        UnleashEvents.Warn,
-        `Unleash has not been initialized yet. forceGetVariant('${name}') defaulted to ${JSON.stringify(variant)}`,
-      );
-    }
-    if (variant.name) {
-      this.countVariant(name, variant.name);
-    }
-    this.count(name, variant.feature_enabled || false);
-
-    return variant;
+    return this.getVariant(name, context, fallbackVariant);
   }
 
   getFeatureToggleDefinition(toggleName: string): FeatureInterface | undefined {
@@ -374,6 +401,12 @@ export class Unleash extends EventEmitter {
 
   countVariant(toggleName: string, variantName: string) {
     this.metrics.countVariant(toggleName, variantName);
+  }
+
+  private emitCount(name: string, enabled: boolean): void {
+    if (!this.destroyed && this.metrics.isEnabled()) {
+      this.emit(UnleashEvents.Count, name, enabled);
+    }
   }
 
   flushMetrics(): Promise<void> {

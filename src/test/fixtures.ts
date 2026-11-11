@@ -1,6 +1,6 @@
 import { EventEmitter } from 'node:events';
+import type { ClientFeatures, ClientFeaturesDelta } from '@unleash/yggdrasil-engine';
 import { afterEach } from 'vitest';
-import type { ClientFeaturesResponse as ClientFeatures, ClientFeaturesDelta } from '../feature';
 import type { FetcherInterface, StateUpdate } from '../repository/fetcher';
 import InMemStorageProvider from '../repository/storage-provider-in-mem';
 import { Unleash } from '../unleash';
@@ -12,7 +12,7 @@ export function feature(name = 'feature', overrides: Partial<Feature> = {}): Fea
   return {
     name,
     enabled: true,
-    strategies: [{ name: 'default', parameters: {}, constraints: [], variants: undefined }],
+    strategies: [{ name: 'default', variants: undefined }],
     ...overrides,
   };
 }

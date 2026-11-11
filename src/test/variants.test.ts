@@ -1,7 +1,14 @@
 import { expect, test } from 'vitest';
-import { selectVariant } from '../variant';
+import type { Context } from '../context';
+import { client, FakeFetcher, type Feature, state } from './fixtures';
 
-function genVariants(n: number) {
+async function getVariant(feature: Feature, context: Context) {
+  const sdk = client({ fetcher: new FakeFetcher(state([feature])) });
+  await sdk.start();
+  return sdk.getVariant(feature.name, context);
+}
+
+function genVariants(n: number): NonNullable<Feature['variants']> {
   return Array.from(new Array(n)).map((_v, i) => ({
     name: `variant${i + 1}`,
     payload: {
@@ -11,8 +18,7 @@ function genVariants(n: number) {
     weight: 1,
   }));
 }
-//@ts-expect-error
-function createFeature(variants) {
+function createFeature(variants: Feature['variants'] = []): Feature {
   return {
     name: 'toggleName',
     enabled: true,
@@ -21,17 +27,16 @@ function createFeature(variants) {
   };
 }
 
-test('selectVariant should return null', () => {
-  //@ts-expect-error
-  const variant = selectVariant(createFeature(), {
+test('getVariant should return disabled without variants', async () => {
+  const variant = await getVariant(createFeature(), {
     toggleName: 'toggleName',
     userId: 'a',
   });
-  expect(variant).toBeNull();
+  expect(variant).toMatchObject({ name: 'disabled', enabled: false, feature_enabled: true });
 });
 
-test('selectVariant should select on 1 variant', () => {
-  const variant = selectVariant(createFeature(genVariants(1)), {
+test('getVariant should select on 1 variant', async () => {
+  const variant = await getVariant(createFeature(genVariants(1)), {
     toggleName: 'toggleName',
     userId: 'a',
   });
@@ -39,51 +44,50 @@ test('selectVariant should select on 1 variant', () => {
   expect(variant?.name).toEqual('variant1');
 });
 
-test('selectVariant should select on 2 variants', () => {
+test('getVariant should select on 2 variants', async () => {
   const feature = createFeature(genVariants(2));
-  const variant = selectVariant(feature, { toggleName: 'toggleName', userId: 'a' });
+  const variant = await getVariant(feature, { toggleName: 'toggleName', userId: 'a' });
   expect(variant?.name).toEqual('variant1');
-  const variant2 = selectVariant(feature, { toggleName: 'toggleName', userId: '0' });
+  const variant2 = await getVariant(feature, { toggleName: 'toggleName', userId: '0' });
   expect(variant2?.name).toEqual('variant2');
 });
 
-test('selectVariant should use variant stickiness when specified to select variant', () => {
+test('getVariant should use variant stickiness when specified to select variant', async () => {
   const variants = genVariants(2).map((v) => ({ ...v, stickiness: 'someField' }));
   const feature = createFeature(variants);
-  const variant = selectVariant(feature, { someField: 'a' });
+  const variant = await getVariant(feature, { someField: 'a' });
   expect(variant?.name).toEqual('variant1');
-  const variant2 = selectVariant(feature, { someField: '0' });
+  const variant2 = await getVariant(feature, { someField: '0' });
   expect(variant2?.name).toEqual('variant2');
 });
 
-test('selectVariant should use variant stickiness for many variants', () => {
+test('getVariant should use variant stickiness for many variants', async () => {
   const variants = genVariants(4).map((v) => ({ ...v, stickiness: 'organization', weight: 25 }));
 
   const feature = createFeature(variants);
 
-  const variant = selectVariant(feature, { organization: '1430' });
+  const variant = await getVariant(feature, { organization: '1430' });
   expect(variant?.name).toEqual('variant1');
-  const variant2 = selectVariant(feature, { organization: '125' });
+  const variant2 = await getVariant(feature, { organization: '125' });
   expect(variant2?.name).toEqual('variant2');
-  const variant3 = selectVariant(feature, { organization: '930' });
+  const variant3 = await getVariant(feature, { organization: '930' });
   expect(variant3?.name).toEqual('variant3');
-  const variant4 = selectVariant(feature, { organization: '381' });
+  const variant4 = await getVariant(feature, { organization: '381' });
   expect(variant4?.name).toEqual('variant4');
 });
 
-test('selectVariant should select on 3 variants', () => {
+test('getVariant should select on 3 variants', async () => {
   const feature = createFeature(genVariants(3));
-  const variant = selectVariant(feature, { toggleName: 'toggleName', userId: '0' });
+  const variant = await getVariant(feature, { toggleName: 'toggleName', userId: '0' });
   expect(variant?.name).toEqual('variant1');
-  const variant2 = selectVariant(feature, { toggleName: 'toggleName', userId: 'zxa' });
+  const variant2 = await getVariant(feature, { toggleName: 'toggleName', userId: 'zxa' });
   expect(variant2?.name).toEqual('variant2');
-  const variant3 = selectVariant(feature, { toggleName: 'toggleName', userId: 'ya' });
+  const variant3 = await getVariant(feature, { toggleName: 'toggleName', userId: 'ya' });
   expect(variant3?.name).toEqual('variant3');
 });
 
-test('selectVariant should use variant overrides', () => {
+test('getVariant should use variant overrides', async () => {
   const variants = genVariants(3);
-  //@ts-expect-error
   variants[0].overrides = [
     {
       contextName: 'userId',
@@ -92,13 +96,12 @@ test('selectVariant should use variant overrides', () => {
   ];
 
   const feature = createFeature(variants);
-  const variant1 = selectVariant(feature, { toggleName: 'toggleName', userId: 'z' });
+  const variant1 = await getVariant(feature, { toggleName: 'toggleName', userId: 'z' });
   expect(variant1?.name).toEqual('variant1');
 });
 
-test('selectVariant should use *first* variant override', () => {
+test('getVariant should use *first* variant override', async () => {
   const variants = genVariants(3);
-  //@ts-expect-error
   variants[0].overrides = [
     {
       contextName: 'userId',
@@ -106,7 +109,6 @@ test('selectVariant should use *first* variant override', () => {
     },
   ];
 
-  //@ts-expect-error
   variants[1].overrides = [
     {
       contextName: 'userId',
@@ -115,12 +117,12 @@ test('selectVariant should use *first* variant override', () => {
   ];
 
   const feature = createFeature(variants);
-  const variant1 = selectVariant(feature, { toggleName: 'toggleName', userId: 'z' });
+  const variant1 = await getVariant(feature, { toggleName: 'toggleName', userId: 'z' });
   expect(variant1?.name).toEqual('variant1');
 });
 
-test('selectVariant should use *first* variant override for userId=132', () => {
-  const featureToggle = {
+test('getVariant should use *first* variant override for userId=132', async () => {
+  const featureToggle: Feature = {
     name: 'Feature.Variants.override.D',
     description: 'Variant with overrides',
     enabled: true,
@@ -158,7 +160,6 @@ test('selectVariant should use *first* variant override for userId=132', () => {
       },
     ],
   };
-  //@ts-expect-error
-  const variant1 = selectVariant(featureToggle, { userId: '132' });
+  const variant1 = await getVariant(featureToggle, { userId: '132' });
   expect(variant1?.name).toEqual('variant1');
 });

@@ -1,68 +1,60 @@
-import { expect, test, vi } from 'vitest';
-import FlexibleRolloutStrategy from '../../strategy/flexible-rollout-strategy';
+import { expect, test } from 'vitest';
+import { strategyEvaluator } from './evaluation';
 
-test('should have correct name', () => {
-  const strategy = new FlexibleRolloutStrategy();
-  expect(strategy.name).toBe('flexibleRollout');
-});
-
-test('should NOT be enabled for userId=61 and rollout=9', () => {
-  const strategy = new FlexibleRolloutStrategy();
-  const params = { rollout: 9, stickiness: 'default', groupId: 'Demo' };
+test('should NOT be enabled for userId=61 and rollout=9', async () => {
+  const evaluate = await strategyEvaluator('flexibleRollout');
+  const params = { rollout: '9', stickiness: 'default', groupId: 'Demo' };
   const context = { userId: '61', application: 'web' };
-  expect(strategy.isEnabled(params, context)).toBe(false);
+  expect(await evaluate(params, context)).toBe(false);
 });
 
-test('should be enabled for userId=61 and rollout=10', () => {
-  const strategy = new FlexibleRolloutStrategy();
+test('should be enabled for userId=61 and rollout=10', async () => {
+  const evaluate = await strategyEvaluator('flexibleRollout');
   const params = { rollout: '10', stickiness: 'default', groupId: 'Demo' };
   const context = { userId: '61', application: 'web' };
-  expect(strategy.isEnabled(params, context)).toBe(true);
+  expect(await evaluate(params, context)).toBe(true);
 });
 
-test('should be disabled when stickiness=userId and userId not on context', () => {
-  const strategy = new FlexibleRolloutStrategy();
+test('should be disabled when stickiness=userId and userId not on context', async () => {
+  const evaluate = await strategyEvaluator('flexibleRollout');
   const params = { rollout: '100', stickiness: 'userId', groupId: 'Demo' };
   const context = {};
-  expect(strategy.isEnabled(params, context)).toBe(false);
+  expect(await evaluate(params, context)).toBe(false);
 });
 
-test('should fallback to random if stickiness=default and empty context', () => {
-  const randomGenerator = vi.fn(() => '42');
-
-  const strategy = new FlexibleRolloutStrategy(randomGenerator);
+test('should fallback to random if stickiness=default and empty context', async () => {
+  const evaluate = await strategyEvaluator('flexibleRollout');
   const params = { rollout: '100', stickiness: 'default', groupId: 'Demo' };
   const context = {};
 
-  expect(strategy.isEnabled(params, context)).toBe(true);
-  expect(randomGenerator).toHaveBeenCalled();
+  expect(await evaluate(params, context)).toBe(true);
 });
 
-test('should NOT be enabled for rollout=10% when userId is 123', () => {
-  const strategy = new FlexibleRolloutStrategy();
-  const params = { rollout: 10, stickiness: 'default', groupId: 'toggleName' };
+test('should NOT be enabled for rollout=10% when userId is 123', async () => {
+  const evaluate = await strategyEvaluator('flexibleRollout');
+  const params = { rollout: '10', stickiness: 'default', groupId: 'toggleName' };
   const context = { environment: 'dev', userId: '123' };
-  expect(strategy.isEnabled(params, context)).toBe(false);
+  expect(await evaluate(params, context)).toBe(false);
 });
 
-test('should be disabled when stickiness=customerId and customerId not found on context', () => {
-  const strategy = new FlexibleRolloutStrategy();
+test('should be disabled when stickiness=customerId and customerId not found on context', async () => {
+  const evaluate = await strategyEvaluator('flexibleRollout');
   const params = {
     rollout: '100',
     stickiness: 'customerId',
     groupId: 'Demo',
   };
   const context = {};
-  expect(strategy.isEnabled(params, context)).toBe(false);
+  expect(await evaluate(params, context)).toBe(false);
 });
 
-test('should be enabled when stickiness=customerId and customerId=61', () => {
-  const strategy = new FlexibleRolloutStrategy();
+test('should be enabled when stickiness=customerId and customerId=61', async () => {
+  const evaluate = await strategyEvaluator('flexibleRollout');
   const params = {
     rollout: '100',
     stickiness: 'customerId',
     groupId: 'Demo',
   };
   const context = { customerId: 61 };
-  expect(strategy.isEnabled(params, context)).toBe(true);
+  expect(await evaluate(params, context)).toBe(true);
 });

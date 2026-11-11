@@ -1,4 +1,4 @@
-import type { ClientFeaturesResponse } from './feature';
+import type { ClientFeatures } from '@unleash/yggdrasil-engine';
 import type { CustomHeaders, CustomHeadersFunction } from './headers';
 import type { HttpOptions } from './http-options';
 import type { BootstrapOptions } from './repository/bootstrap-provider';
@@ -30,7 +30,7 @@ export interface UnleashConfig {
   tags?: Array<TagFilter>;
   bootstrap?: BootstrapOptions;
   bootstrapOverride?: boolean;
-  storageProvider?: StorageProvider<ClientFeaturesResponse>;
+  storageProvider?: StorageProvider<ClientFeatures>;
   disableAutoStart?: boolean;
   skipInstanceCountWarning?: boolean;
   experimentalMode?: Mode;

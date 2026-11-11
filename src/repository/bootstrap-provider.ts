@@ -1,20 +1,18 @@
 import { promises } from 'node:fs';
+import type { ClientFeatures } from '@unleash/yggdrasil-engine';
 import fetch from 'make-fetch-happen';
-import type { ClientFeaturesResponse, FeatureInterface } from '../feature';
 import type { CustomHeaders } from '../headers';
 import { buildHeaders } from '../request';
-import type { Segment } from '../strategy/strategy';
 
 export interface BootstrapProvider {
-  readBootstrap(): Promise<ClientFeaturesResponse | undefined>;
+  readBootstrap(): Promise<ClientFeatures | undefined>;
 }
 
 export interface BootstrapOptions {
   url?: string;
   urlHeaders?: CustomHeaders;
   filePath?: string;
-  data?: FeatureInterface[];
-  segments?: Segment[];
+  features?: ClientFeatures;
   bootstrapProvider?: BootstrapProvider;
 }
 
@@ -25,9 +23,7 @@ export class DefaultBootstrapProvider implements BootstrapProvider {
 
   private filePath?: string;
 
-  private data?: FeatureInterface[];
-
-  private segments?: Segment[];
+  private data?: ClientFeatures;
 
   private appName: string;
 
@@ -37,14 +33,13 @@ export class DefaultBootstrapProvider implements BootstrapProvider {
     this.url = options.url;
     this.urlHeaders = options.urlHeaders;
     this.filePath = options.filePath;
-    this.data = options.data;
-    this.segments = options.segments;
+    this.data = options.features;
 
     this.appName = appName;
     this.instanceId = instanceId;
   }
 
-  private async loadFromUrl(bootstrapUrl: string): Promise<ClientFeaturesResponse | undefined> {
+  private async loadFromUrl(bootstrapUrl: string): Promise<ClientFeatures | undefined> {
     const response = await fetch(bootstrapUrl, {
       method: 'GET',
       timeout: 10_000,
@@ -66,14 +61,14 @@ export class DefaultBootstrapProvider implements BootstrapProvider {
     return undefined;
   }
 
-  private async loadFromFile(filePath: string): Promise<ClientFeaturesResponse | undefined> {
+  private async loadFromFile(filePath: string): Promise<ClientFeatures | undefined> {
     const fileContent = await promises.readFile(filePath, 'utf8');
     return JSON.parse(fileContent);
   }
 
-  async readBootstrap(): Promise<ClientFeaturesResponse | undefined> {
+  async readBootstrap(): Promise<ClientFeatures | undefined> {
     if (this.data) {
-      return { version: 2, segments: this.segments, features: [...this.data] };
+      return this.data;
     }
     if (this.url) {
       return this.loadFromUrl(this.url);
