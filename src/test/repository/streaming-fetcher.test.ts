@@ -11,7 +11,6 @@ function makeOptions(overrides: Partial<StreamingFetchingOptions> = {}): Streami
     instanceId: 'test-instance',
     headers: {},
     connectionId: 'conn-1',
-    onSaveDelta: async () => {},
     onModeChange: async () => {},
     eventSource: undefined,
     ...overrides,

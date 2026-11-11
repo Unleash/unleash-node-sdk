@@ -159,17 +159,6 @@ export default class Metrics extends EventEmitter {
     this.disabled = true;
   }
 
-  // Temporary bridge while evaluation still uses the JavaScript client.
-  count(name: string, enabled: boolean): void {
-    this.engine.count(name, enabled);
-    if (!this.disabled) this.emit(UnleashEvents.Count, name, enabled);
-  }
-
-  countVariant(name: string, variant: string): void {
-    this.engine.countVariant(name, variant);
-    if (!this.disabled) this.emit(UnleashEvents.CountVariant, name, variant);
-  }
-
   isEnabled(): boolean {
     return !this.disabled;
   }

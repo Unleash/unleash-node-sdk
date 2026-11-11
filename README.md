@@ -47,6 +47,71 @@ if (variant.name === 'blue') {
 }
 ```
 
+## Readiness and bootstrap
+
+The startup events describe different states:
+
+| Event | Meaning |
+| --- | --- |
+| `ready` | The first usable feature state has loaded from bootstrap, backup storage, or a live update. |
+| `synchronized` | The first live update from the API or an injected fetcher has been applied. |
+| `changed` | A live state update has been applied. Its payload contains feature summaries. |
+
+When bootstrap is the first source to make the client ready, it emits `ready`.
+Applying bootstrap emits neither `changed` nor `synchronized`, and does not write
+the bootstrap snapshot to storage. To use bootstrap again after
+a restart, provide it again; a backup saved from a live update can also provide
+initial state. Live updates take precedence over bootstrap, and bootstrap takes
+precedence over backup.
+
+`startUnleash()` waits for `synchronized`. It remains pending if only bootstrap or
+backup state is available and no live update arrives. To start using bootstrap
+state as soon as it is ready, construct a client and wait for `ready` instead:
+
+```js
+import { once } from 'node:events';
+import { Unleash } from 'unleash-client';
+
+const unleash = new Unleash({
+  url: 'https://<your-unleash-instance>/api/',
+  appName: 'my-node-name',
+  customHeaders: { Authorization: '<your-backend-token>' },
+  bootstrap: {
+    features: {
+      version: 2,
+      features: [
+        { name: 'my-feature', enabled: true, strategies: [{ name: 'default' }] },
+      ],
+    },
+  },
+});
+
+await once(unleash, 'ready');
+const enabled = unleash.isEnabled('my-feature');
+```
+
+## TypeScript flag names
+
+By default, `isEnabled()` accepts any string. To restrict feature names, augment
+`UnleashTypes` in a TypeScript module included by your project:
+
+```ts
+import { isEnabled } from 'unleash-client';
+
+declare module 'unleash-client' {
+  interface UnleashTypes {
+    flagNames: 'checkout' | 'search';
+  }
+}
+
+isEnabled('checkout'); // Allowed
+isEnabled('checkuot'); // TypeScript error
+```
+
+The restriction applies to both the package-level `isEnabled()` function and
+`unleash.isEnabled()` on SDK instances. It only affects compile-time checking;
+runtime evaluation is unchanged.
+
 ## Contributing
 
 ### Local development
@@ -97,10 +162,3 @@ yarn build       # compile TypeScript to lib/
 ## License
 
 Apache-2.0
-
-### Startup and bootstrap lifecycle
-
-Bootstrap and backup state make the SDK ready for local evaluation. Bootstrap is
-not persisted and emits neither changed nor synchronized. Only a live API update
-establishes synchronization and emits changed. `startUnleash()` waits for that
-live synchronization; bootstrap-only callers should wait for ready instead.
