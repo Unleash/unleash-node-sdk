@@ -1,8 +1,8 @@
 import type { ClientFeaturesResponse } from './feature';
 import type { CustomHeaders, CustomHeadersFunction } from './headers';
 import type { HttpOptions } from './http-options';
-import type { RepositoryInterface } from './repository';
 import type { BootstrapOptions } from './repository/bootstrap-provider';
+import type { FetcherInterface } from './repository/fetcher';
 import type { StorageProvider } from './repository/storage-provider';
 import type { Strategy } from './strategy';
 import type { TagFilter } from './tags';
@@ -25,7 +25,7 @@ export interface UnleashConfig {
   customHeaders?: CustomHeaders;
   customHeadersFunction?: CustomHeadersFunction;
   timeout?: number;
-  repository?: RepositoryInterface;
+  fetcher?: FetcherInterface;
   httpOptions?: HttpOptions;
   tags?: Array<TagFilter>;
   bootstrap?: BootstrapOptions;
