@@ -46,66 +46,77 @@ test('should increase instanceCount every time sdk is created ', async () => {
   const u1 = new Unleash({
     appName: 'instance-count-1',
     disableMetrics: true,
+    disableAutoStart: true,
     backupPath: getRandomBackupPath(),
     url: baseUrl,
   });
   const u2 = new Unleash({
     appName: 'instance-count-2',
     disableMetrics: true,
+    disableAutoStart: true,
     backupPath: getRandomBackupPath(),
     url: baseUrl,
   });
   const u3 = new Unleash({
     appName: 'instance-count-3',
     disableMetrics: true,
+    disableAutoStart: true,
     backupPath: getRandomBackupPath(),
     url: baseUrl,
   });
   const u4 = new Unleash({
     appName: 'instance-count-3',
     disableMetrics: true,
+    disableAutoStart: true,
     backupPath: getRandomBackupPath(),
     url: baseUrl,
   });
   const u5 = new Unleash({
     appName: 'instance-count-3',
     disableMetrics: true,
+    disableAutoStart: true,
     backupPath: getRandomBackupPath(),
     url: baseUrl,
   });
   const u6 = new Unleash({
     appName: 'instance-count-3',
     disableMetrics: true,
+    disableAutoStart: true,
     backupPath: getRandomBackupPath(),
     url: baseUrl,
   });
   const u7 = new Unleash({
     appName: 'instance-count-3',
     disableMetrics: true,
+    disableAutoStart: true,
     backupPath: getRandomBackupPath(),
     url: baseUrl,
   });
   const u8 = new Unleash({
     appName: 'instance-count-3',
     disableMetrics: true,
+    disableAutoStart: true,
     backupPath: getRandomBackupPath(),
     url: baseUrl,
   });
   const u9 = new Unleash({
     appName: 'instance-count-3',
     disableMetrics: true,
+    disableAutoStart: true,
     backupPath: getRandomBackupPath(),
     url: baseUrl,
   });
   const u10 = new Unleash({
     appName: 'instance-count-3',
     disableMetrics: true,
+    disableAutoStart: true,
     backupPath: getRandomBackupPath(),
     url: baseUrl,
   });
   const u11 = new Unleash({
     appName: 'instance-count-3',
     disableMetrics: true,
+    disableAutoStart: true,
     backupPath: getRandomBackupPath(),
     url: baseUrl,
   });

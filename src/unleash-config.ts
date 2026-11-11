@@ -29,7 +29,6 @@ export interface UnleashConfig {
   httpOptions?: HttpOptions;
   tags?: Array<TagFilter>;
   bootstrap?: BootstrapOptions;
-  bootstrapOverride?: boolean;
   storageProvider?: StorageProvider<ClientFeatures>;
   disableAutoStart?: boolean;
   skipInstanceCountWarning?: boolean;

@@ -70,7 +70,7 @@ test('should load if backup file is corrupted', () =>
         throw err;
       })
       .on('warn', (err) => {
-        if (String(err).includes('Unleash storage failed parsing file')) {
+        if (String(err).includes('Unleash SDK was unable to load backup')) {
           instance.destroy();
           resolve();
         }
