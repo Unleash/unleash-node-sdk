@@ -18,6 +18,7 @@ import type { TagFilter } from '../tags';
 import type { Mode } from '../unleash-config';
 import { AdaptiveFetcher } from './adaptive-fetcher';
 import type { BootstrapProvider } from './bootstrap-provider';
+import type { FetcherInterface } from './fetcher';
 import type { StorageProvider } from './storage-provider';
 
 export const SUPPORTED_SPEC_VERSION = '5.2.0';
@@ -50,6 +51,7 @@ export interface RepositoryOptions {
   storageProvider: StorageProvider<ClientFeaturesResponse>;
   eventSource?: EventSource;
   mode: Mode;
+  fetcher?: FetcherInterface;
 }
 
 interface FeatureToggleData {
@@ -75,7 +77,13 @@ export default class Repository extends EventEmitter implements EventEmitter {
 
   private segments: Map<number, Segment>;
 
-  private fetcher: AdaptiveFetcher;
+  private fetcher: FetcherInterface;
+
+  private get transport(): AdaptiveFetcher {
+    if (!(this.fetcher instanceof AdaptiveFetcher))
+      throw new Error('Injected fetcher does not expose transport controls');
+    return this.fetcher;
+  }
 
   // Keep references for backward compatibility
   public readonly url: string;
@@ -84,11 +92,11 @@ export default class Repository extends EventEmitter implements EventEmitter {
 
   // Etag property for backward compatibility
   public get etag(): string | undefined {
-    return this.fetcher.getEtag?.() || undefined;
+    return this.transport.getEtag?.() || undefined;
   }
 
   public set etag(value: string | undefined) {
-    this.fetcher.setEtag?.(value);
+    this.transport.setEtag?.(value);
   }
 
   constructor({
@@ -109,6 +117,7 @@ export default class Repository extends EventEmitter implements EventEmitter {
     storageProvider,
     eventSource,
     mode,
+    fetcher,
   }: RepositoryOptions) {
     super();
     this.appName = appName;
@@ -119,24 +128,27 @@ export default class Repository extends EventEmitter implements EventEmitter {
     this.storageProvider = storageProvider;
     this.segments = new Map();
 
-    this.fetcher = new AdaptiveFetcher({
-      url,
-      appName,
-      instanceId,
-      connectionId,
-      refreshInterval,
-      timeout,
-      headers,
-      customHeadersFunction,
-      httpOptions,
-      namePrefix,
-      tags,
-      projectName,
-      mode,
-      eventSource,
-      onSave: this.save.bind(this),
-    });
+    this.fetcher =
+      fetcher ??
+      new AdaptiveFetcher({
+        url,
+        appName,
+        instanceId,
+        connectionId,
+        refreshInterval,
+        timeout,
+        headers,
+        customHeadersFunction,
+        httpOptions,
+        namePrefix,
+        tags,
+        projectName,
+        mode,
+        eventSource,
+        specVersion: SUPPORTED_SPEC_VERSION,
+      });
 
+    this.fetcher.registerUpdate((response) => this.save(parseApiResponse(response), true));
     this.setupFetchingStrategyEvents();
   }
 
@@ -346,24 +358,24 @@ Message: ${message}`,
   }
 
   getMode(): 'streaming' | 'polling' {
-    return this.fetcher.getMode();
+    return this.transport.getMode();
   }
 
   async setMode(mode: 'polling' | 'streaming'): Promise<void> {
-    await this.fetcher.setMode(mode);
+    await this.transport.setMode(mode);
   }
 
   // Compatibility methods for tests - delegate to fetching strategy
   getFailures(): number {
-    return this.fetcher.getFailures();
+    return this.transport.getFailures();
   }
 
   nextFetch(): number {
-    return this.fetcher.nextFetch();
+    return this.transport.nextFetch();
   }
 
   async fetch(): Promise<void> {
-    return this.fetcher.fetch();
+    return this.transport.fetch();
   }
 
   private enhanceStrategies = (

@@ -4,9 +4,9 @@ import { mkdirp } from 'mkdirp';
 import nock from 'nock';
 import { assert, expect, test, vi } from 'vitest';
 import { InMemStorageProvider } from '..';
-import type { RepositoryInterface } from '../repository';
+import type { FeatureInterface } from '../feature';
 import { Strategy, Unleash, UnleashEvents } from '../unleash';
-import FakeRepo from './fake_repo';
+import { FakeFetcher } from './fixtures';
 
 class EnvironmentStrategy extends Strategy {
   constructor() {
@@ -408,10 +408,12 @@ test('returns undefined for unknown feature-toggle definition', async () => {
   });
 });
 
-test('should use the injected repository', async () => {
+test('should use the injected fetcher', async () => {
   await new Promise<void>((resolve, reject) => {
-    // @ts-expect-error
-    const repo = new FakeRepo();
+    const fetcher = new FakeFetcher({
+      version: 2,
+      features: [{ name: 'fake-feature', enabled: false, strategies: [] }],
+    });
     const url = mockNetwork();
     const instance = new Unleash({
       appName: 'foo',
@@ -419,15 +421,13 @@ test('should use the injected repository', async () => {
       skipInstanceCountWarning: true,
       url,
       backupPath: getRandomBackupPath(),
-      // @ts-expect-error
-      repository: repo,
+      fetcher,
     }).on('error', reject);
     instance.on('ready', () => {
       expect(instance.isEnabled('fake-feature')).toBe(false);
       instance.destroy();
       resolve();
     });
-    repo.emit('ready');
   });
 });
 
@@ -916,7 +916,7 @@ test('should throw when getInstantiate called with different unleash-config ', (
   i1.destroy();
 });
 
-test('should allow custom repository', async () => {
+test('should allow a custom fetcher', async () => {
   await new Promise<void>((resolve) => {
     const url = getUrl();
 
@@ -938,23 +938,16 @@ test('should allow custom repository', async () => {
         ],
       },
       storageProvider: new InMemStorageProvider(),
-      repository: {
-        // @ts-expect-error
-        getToggle: () => ({ name: 'test', enabled: true, strategies: [{ name: 'default' }] }),
-        getToggles: () => [],
-        getSegment: () => undefined,
-        stop: () => {},
-        // @ts-expect-error
-        start: () => {
-          setInterval(() => {}, 1000);
-        },
-        // @ts-expect-error
-        on: (evt, fun) => {
-          if (evt === 'ready') {
-            setTimeout(() => fun(), 100);
-          }
-        },
-      },
+      fetcher: new FakeFetcher({
+        version: 2,
+        features: [
+          {
+            name: 'test',
+            enabled: true,
+            strategies: [{ name: 'default', parameters: {}, constraints: [] }],
+          },
+        ],
+      }),
     });
 
     instance.on('error', () => {});
@@ -967,19 +960,19 @@ test('should allow custom repository', async () => {
   });
 });
 
-const metricsCapturingUnleash = (input: unknown) => {
+const metricsCapturingUnleash = async (input: unknown) => {
   const url = getUrl();
-  const repository = new FakeRepo(input);
+  const fetcher = new FakeFetcher({ version: 2, features: [input as FeatureInterface] });
   const instance = new Unleash({
     skipInstanceCountWarning: true,
     appName: 'foo',
-    metricsInterval: 10,
-    // @ts-expect-error
-    repository,
+    metricsInterval: 0,
+    disableAutoStart: true,
+    fetcher,
     url,
   });
   nock(url).post('/client/metrics').reply(200);
-  repository.emit(UnleashEvents.Ready);
+  await instance.start();
   // @ts-expect-error
   const capturedData = [];
   instance.on(UnleashEvents.Sent, (data) => {
@@ -990,7 +983,7 @@ const metricsCapturingUnleash = (input: unknown) => {
 };
 
 test('should report variant metrics', async () => {
-  const { instance, capturedData } = metricsCapturingUnleash({
+  const { instance, capturedData } = await metricsCapturingUnleash({
     name: 'toggle-with-variants',
     enabled: true,
     strategies: [{ name: 'default', constraints: [] }],
@@ -1010,7 +1003,7 @@ test('should report variant metrics', async () => {
 });
 
 test('should report disabled variant metrics', async () => {
-  const { instance, capturedData } = metricsCapturingUnleash({
+  const { instance, capturedData } = await metricsCapturingUnleash({
     name: 'toggle-without-variants',
     enabled: true,
     strategies: [{ name: 'default', constraints: [] }],
@@ -1030,7 +1023,7 @@ test('should report disabled variant metrics', async () => {
 });
 
 test('should report disabled toggle metrics', async () => {
-  const { instance, capturedData } = metricsCapturingUnleash({
+  const { instance, capturedData } = await metricsCapturingUnleash({
     name: 'disabled-toggle',
     enabled: false,
     strategies: [{ name: 'default', constraints: [] }],
@@ -1050,7 +1043,7 @@ test('should report disabled toggle metrics', async () => {
 });
 
 test('should not report dependent feature metrics', async () => {
-  const { instance, capturedData } = metricsCapturingUnleash({
+  const { instance, capturedData } = await metricsCapturingUnleash({
     name: 'toggle-with-dependency',
     enabled: true,
     dependencies: [{ feature: 'dependency' }],
@@ -1144,24 +1137,19 @@ test('should emit correctly serialized warn for forceGetVariant before initializ
 
 test('should not allow to start twice', async () => {
   const url = mockNetwork();
-  let repositoryStartedCount = 0;
-  const mockRepository = {
-    on() {},
-    start() {
-      repositoryStartedCount++;
-    },
-  } as unknown as RepositoryInterface;
+  const fetcher = new FakeFetcher();
   const instance = new Unleash({
     appName: 'foo',
     disableMetrics: true,
     skipInstanceCountWarning: true,
     url,
     backupPath: getRandomBackupPath(),
-    repository: mockRepository,
+    fetcher,
   });
 
   await instance.start();
   await instance.start();
 
-  expect(repositoryStartedCount).toEqual(1);
+  expect(fetcher.starts).toEqual(1);
+  instance.destroy();
 });
