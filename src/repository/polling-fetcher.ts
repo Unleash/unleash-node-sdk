@@ -24,7 +24,7 @@ export class PollingFetcher extends EventEmitter implements FetcherInterface {
   }
 
   timedFetch(interval: number) {
-    if (interval > 0) {
+    if (interval > 0 && !this.stopped) {
       this.timer = setTimeout(() => this.fetch(), interval);
       if (process.env.NODE_ENV !== 'test' && typeof this.timer.unref === 'function') {
         this.timer.unref();
