@@ -9,7 +9,6 @@ import {
   getVariant,
   initialize,
   isEnabled,
-  Strategy,
   startUnleash,
 } from '../index';
 
@@ -35,7 +34,6 @@ test('should load main module', () => {
   expect(initialize).toBeTruthy();
   expect(startUnleash).toBeTruthy();
   expect(isEnabled).toBeTruthy();
-  expect(Strategy).toBeTruthy();
   expect(destroy).toBeTruthy();
   expect(countVariant).toBeTruthy();
   expect(getVariant).toBeTruthy();

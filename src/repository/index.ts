@@ -7,14 +7,15 @@ import {
   type UnleashEngine,
 } from '@unleash/yggdrasil-engine';
 import { UnleashEvents } from '../events';
-import type { EnhancedFeatureInterface, FeatureInterface } from '../feature';
-import type { CustomHeaders, CustomHeadersFunction } from '../headers';
-import type { HttpOptions } from '../http-options';
 import type {
+  EnhancedFeatureInterface,
   EnhancedStrategyTransportInterface,
+  FeatureInterface,
   Segment,
   StrategyTransportInterface,
-} from '../strategy/strategy';
+} from '../feature';
+import type { CustomHeaders, CustomHeadersFunction } from '../headers';
+import type { HttpOptions } from '../http-options';
 import type { TagFilter } from '../tags';
 import type { Mode } from '../unleash-config';
 import { AdaptiveFetcher } from './adaptive-fetcher';

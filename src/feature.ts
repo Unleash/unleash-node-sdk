@@ -1,6 +1,12 @@
-import type { StrategyTransportInterface } from './strategy';
-import type { EnhancedStrategyTransportInterface, Segment } from './strategy/strategy';
-import type { VariantDefinition } from './variant';
+import type { ClientFeatures } from '@unleash/yggdrasil-engine';
+export type StrategyTransportInterface = NonNullable<
+  ClientFeatures['features'][number]['strategies']
+>[number];
+export type Segment = NonNullable<ClientFeatures['segments']>[number];
+export type EnhancedStrategyTransportInterface = Omit<StrategyTransportInterface, 'segments'> & {
+  segments?: (Segment | undefined)[];
+};
+type VariantDefinition = NonNullable<ClientFeatures['features'][number]['variants']>[number];
 
 export interface Dependency {
   feature: string;
