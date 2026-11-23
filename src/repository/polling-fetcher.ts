@@ -1,6 +1,6 @@
 import { EventEmitter } from 'node:events';
 import { UnleashEvents } from '../events';
-import { parseApiResponse } from '../feature';
+import type { ClientFeaturesResponse as ClientFeatures } from '../feature';
 import { get } from '../request';
 import type { TagFilter } from '../tags';
 import getUrl from '../url-utils';
@@ -17,10 +17,19 @@ export class PollingFetcher extends EventEmitter implements FetcherInterface {
 
   private options: PollingFetchingOptions;
 
+  private specVersion: string;
+
+  private updateCallback: ((feature: ClientFeatures) => Promise<void>) | undefined;
+
   constructor(options: PollingFetchingOptions) {
     super();
     this.options = options;
     this.etag = options.etag;
+    this.specVersion = options.specVersion;
+  }
+
+  registerUpdate(sink: (feature: ClientFeatures) => Promise<void>): void {
+    this.updateCallback = sink;
   }
 
   timedFetch(interval: number) {
@@ -143,7 +152,7 @@ export class PollingFetcher extends EventEmitter implements FetcherInterface {
         interval: this.options.refreshInterval,
         headers,
         httpOptions: this.options.httpOptions,
-        supportedSpecVersion: '5.2.0',
+        supportedSpecVersion: this.specVersion,
       });
       if (res.status === 304) {
         this.emit(UnleashEvents.Unchanged);
@@ -166,7 +175,9 @@ export class PollingFetcher extends EventEmitter implements FetcherInterface {
             await this.options.onModeChange('streaming');
             return;
           }
-          await this.options.onSave(parseApiResponse(data), true);
+          if (this.updateCallback) {
+            await this.updateCallback(data);
+          }
         } catch (err) {
           this.emit(UnleashEvents.Error, err);
         }

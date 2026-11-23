@@ -68,7 +68,7 @@ export class Unleash extends EventEmitter {
     disableMetrics = false,
     backupPath = BACKUP_PATH,
     strategies = [],
-    repository,
+    fetcher,
     namePrefix,
     customHeaders,
     customHeadersFunction,
@@ -119,26 +119,25 @@ export class Unleash extends EventEmitter {
 
     const bootstrapProvider = resolveBootstrapProvider(bootstrap, appName, unleashInstanceId);
 
-    this.repository =
-      repository ||
-      new Repository({
-        projectName,
-        url: unleashUrl,
-        appName,
-        instanceId: unleashInstanceId,
-        connectionId: unleashConnectionId,
-        refreshInterval,
-        headers: customHeaders,
-        customHeadersFunction,
-        timeout,
-        httpOptions,
-        namePrefix,
-        tags,
-        bootstrapProvider,
-        bootstrapOverride,
-        mode: experimentalMode,
-        storageProvider: storageProvider || new FileStorageProvider(backupPath),
-      });
+    this.repository = new Repository({
+      projectName,
+      url: unleashUrl,
+      appName,
+      instanceId: unleashInstanceId,
+      connectionId: unleashConnectionId,
+      refreshInterval,
+      headers: customHeaders,
+      customHeadersFunction,
+      timeout,
+      httpOptions,
+      namePrefix,
+      tags,
+      bootstrapProvider,
+      bootstrapOverride,
+      fetcher,
+      mode: experimentalMode,
+      storageProvider: storageProvider || new FileStorageProvider(backupPath),
+    });
 
     this.repository.on(UnleashEvents.Ready, () => {
       this.ready = true;
@@ -228,7 +227,7 @@ export class Unleash extends EventEmitter {
     const cleanConfig = {
       ...config,
       // Remove complex objects
-      repository: undefined,
+      fetcher: undefined,
       customHeadersFunction: undefined,
       storageProvider: undefined,
     };

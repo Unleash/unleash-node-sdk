@@ -1,41 +1,38 @@
-import { createServer } from 'node:http';
-import { assert, expect, test } from 'vitest';
+import nock from 'nock';
+import { expect, test } from 'vitest';
 import { Unleash } from '../unleash';
 
 test('should retry on error', async () => {
-  await new Promise<void>((resolve) => {
+  await new Promise<void>((resolve, reject) => {
     expect.assertions(1);
 
     let calls = 0;
-    const server = createServer((_req, res) => {
-      calls++;
-      res.writeHead(408);
-      res.end();
-    });
-
-    server.listen(() => {
-      // @ts-expect-error
-      const { port } = server.address();
-
-      const unleash = new Unleash({
-        appName: 'network',
-        url: `http://localhost:${port}`,
-        refreshInterval: 1,
-        timeout: 0,
-        disableMetrics: true,
+    const server = nock('http://retry.test')
+      .get('/client/features')
+      .times(3)
+      .reply(() => {
+        calls++;
+        return [408, ''];
       });
 
-      unleash.on('error', () => {
+    const unleash = new Unleash({
+      appName: 'network',
+      url: 'http://retry.test',
+      refreshInterval: 1,
+      timeout: 0,
+      disableMetrics: true,
+    });
+
+    unleash.on('error', () => {
+      try {
         expect(calls).toBe(3);
-        unleash.destroy();
-        server.close();
+        server.done();
         resolve();
-      });
-    });
-    server.on('error', (e) => {
-      console.error(e);
-      server.close();
-      assert.fail(e.message);
+      } catch (error) {
+        reject(error);
+      } finally {
+        unleash.destroy();
+      }
     });
   });
 });

@@ -1,6 +1,6 @@
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import * as nock from 'nock';
+import nock from 'nock';
 import { expect, test } from 'vitest';
 import { Unleash } from '../unleash';
 

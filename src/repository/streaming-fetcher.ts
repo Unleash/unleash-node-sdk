@@ -1,7 +1,7 @@
 import { EventEmitter } from 'node:events';
 import { EventSource } from '../event-source';
 import { UnleashEvents } from '../events';
-import { parseApiResponse } from '../feature';
+import type { ClientFeaturesDelta } from '../feature';
 import { buildHeaders } from '../request';
 import { resolveUrl } from '../url-utils';
 import type { FetcherInterface, StreamingFetchingOptions } from './fetcher';
@@ -20,8 +20,6 @@ export class StreamingFetcher extends EventEmitter implements FetcherInterface {
 
   private readonly connectionId?: string;
 
-  private readonly onSave: StreamingFetchingOptions['onSave'];
-
   private readonly onModeChange?: StreamingFetchingOptions['onModeChange'];
 
   private readonly failoverStrategy: FailoverStrategy;
@@ -35,7 +33,6 @@ export class StreamingFetcher extends EventEmitter implements FetcherInterface {
     eventSource,
     maxFailuresUntilFailover = 5,
     failureWindowMs = 60_000,
-    onSave,
     onModeChange,
   }: StreamingFetchingOptions) {
     super();
@@ -45,11 +42,16 @@ export class StreamingFetcher extends EventEmitter implements FetcherInterface {
     this.instanceId = instanceId;
     this.headers = headers;
     this.connectionId = connectionId;
-    this.onSave = onSave;
     this.onModeChange = onModeChange;
 
     this.eventSource = eventSource;
     this.failoverStrategy = new FailoverStrategy(maxFailuresUntilFailover, failureWindowMs);
+  }
+
+  private updateCallback: ((feature: ClientFeaturesDelta) => Promise<void>) | undefined;
+
+  registerUpdate(updateCallback: (feature: ClientFeaturesDelta) => Promise<void>): void {
+    this.updateCallback = updateCallback;
   }
 
   private setupEventSource() {
@@ -127,8 +129,10 @@ export class StreamingFetcher extends EventEmitter implements FetcherInterface {
 
   private async handleFlagsFromStream(event: { data: string }) {
     try {
-      const data = parseApiResponse(JSON.parse(event.data));
-      await this.onSave(data, true);
+      const data = JSON.parse(event.data);
+      if (this.updateCallback) {
+        await this.updateCallback(data);
+      }
     } catch (err) {
       const errorMessage =
         err instanceof Error && typeof err.message === 'string' ? err.message : String(err);
