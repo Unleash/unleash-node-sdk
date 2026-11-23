@@ -1,6 +1,7 @@
 import http from 'node:http';
 import https from 'node:https';
 import type { URL } from 'node:url';
+import type { CollectedMetric, MetricBucket } from '@unleash/yggdrasil-engine';
 import { HttpProxyAgent } from 'http-proxy-agent';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 import fetch from 'make-fetch-happen';
@@ -8,6 +9,63 @@ import { getProxyForUrl } from 'proxy-from-env';
 import details from './details.json';
 import type { CustomHeaders } from './headers';
 import type { HttpOptions } from './http-options';
+
+declare var Bun:
+  | {
+      version: string;
+    }
+  | undefined;
+
+declare var Deno:
+  | {
+      version: {
+        deno: string;
+      };
+    }
+  | undefined;
+
+type PlatformName = 'bun' | 'deno' | 'node' | 'unknown';
+
+export type PlatformData = {
+  name: PlatformName;
+  version: string;
+};
+
+export function getPlatformData(): PlatformData {
+  if (typeof Bun !== 'undefined') {
+    return { name: 'bun', version: Bun.version };
+  } else if (typeof Deno !== 'undefined') {
+    return { name: 'deno', version: Deno.version.deno };
+  } else if (typeof process !== 'undefined' && process.versions && process.versions.node) {
+    return { name: 'node', version: process.versions.node };
+  } else {
+    return { name: 'unknown', version: 'unknown' };
+  }
+}
+
+export interface RegistrationData extends BaseMetricsData {
+  sdkVersion: string;
+  strategies: string[];
+  started: Date;
+  interval: number;
+}
+
+interface BaseMetricsData {
+  appName: string;
+  instanceId: string;
+  connectionId: string;
+  platformName: PlatformName;
+  platformVersion: string;
+  yggdrasilVersion: string;
+  specVersion: string;
+  sdkFlavor?: string;
+  sdkFlavorVersion?: string;
+}
+
+export interface MetricsData extends BaseMetricsData {
+  bucket?: MetricBucket;
+  impactMetrics?: CollectedMetric[];
+}
 
 export interface RequestOptions {
   url: string;
@@ -25,12 +83,8 @@ export interface GetRequestOptions extends RequestOptions {
   interval?: number;
 }
 
-export interface Data {
-  [key: string]: unknown;
-}
-
 export interface PostRequestOptions extends RequestOptions {
-  json: Data;
+  json: RegistrationData | MetricsData;
   appName?: string;
   instanceId?: string;
   connectionId?: string;

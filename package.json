@@ -31,6 +31,7 @@
   },
   "homepage": "https://github.com/Unleash/unleash-node-sdk",
   "dependencies": {
+    "@unleash/yggdrasil-engine": "0.1.0-alpha.1",
     "http-proxy-agent": "^7.0.2",
     "https-proxy-agent": "^7.0.5",
     "ip-address": "^10.7.2",
