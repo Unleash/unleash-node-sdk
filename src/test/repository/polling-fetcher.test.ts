@@ -1,6 +1,6 @@
+import { getSpecVersion } from '@unleash/yggdrasil-engine';
 import nock from 'nock';
 import { afterEach, expect, test, vi } from 'vitest';
-import { SUPPORTED_SPEC_VERSION } from '../../repository';
 import type { PollingFetchingOptions } from '../../repository/fetcher';
 import { PollingFetcher } from '../../repository/polling-fetcher';
 import { state } from '../fixtures';
@@ -14,7 +14,7 @@ function setup(options: Partial<PollingFetchingOptions> = {}) {
     connectionId: 'connection',
     refreshInterval: 1000,
     mode: { type: 'polling', format: 'full' },
-    specVersion: SUPPORTED_SPEC_VERSION,
+    specVersion: getSpecVersion(),
     ...options,
   });
   const update = vi.fn().mockResolvedValue(undefined);
@@ -27,7 +27,7 @@ afterEach(() => {
   nock.cleanAll();
 });
 
-test('fetches with filters, dynamic authorization, connection metadata, and supported spec version', async () => {
+test('fetches with filters, dynamic authorization, connection metadata, and engine spec version', async () => {
   const { fetcher, update } = setup({
     projectName: 'project',
     namePrefix: 'flag',
@@ -43,7 +43,7 @@ test('fetches with filters, dynamic authorization, connection metadata, and supp
     .matchHeader('unleash-instanceid', 'instance')
     .matchHeader('unleash-connection-id', 'connection')
     .matchHeader('unleash-interval', '1000')
-    .matchHeader('unleash-client-spec', SUPPORTED_SPEC_VERSION)
+    .matchHeader('unleash-client-spec', getSpecVersion())
     .reply(200, state());
   await fetcher.start();
   expect(request.isDone()).toBe(true);

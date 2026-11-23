@@ -1,5 +1,5 @@
 import nock from 'nock';
-import { expect, test } from 'vitest';
+import { afterEach, expect, test } from 'vitest';
 import {
   count,
   countVariant,
@@ -13,6 +13,11 @@ import {
   startUnleash,
 } from '../index';
 
+afterEach(() => {
+  destroy();
+  nock.cleanAll();
+});
+
 let counter = 1;
 const getUrl = () => {
   const url = `http://test${counter}.app/`;
@@ -24,7 +29,7 @@ const nockMetrics = (url: string, code = 200) => nock(url).post(metricsUrl).repl
 const registerUrl = '/client/register';
 const nockRegister = (url: string, code = 200) => nock(url).post(registerUrl).reply(code, '');
 const nockFeatures = (url: string, code = 200) =>
-  nock(url).get('/client/features').reply(code, { features: [] });
+  nock(url).get('/client/features').reply(code, { version: 2, features: [] });
 
 test('should load main module', () => {
   expect(initialize).toBeTruthy();

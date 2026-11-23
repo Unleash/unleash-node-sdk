@@ -27,11 +27,9 @@ interface BooleanMap {
  *   }
  * }
  */
-export interface UnleashTypes {
-  flagNames: string;
-}
+import type { Name } from './index';
 
-export type Name = UnleashTypes['flagNames'];
+export type { Name, UnleashTypes } from './index';
 
 export default class UnleashClient extends EventEmitter {
   private repository: RepositoryInterface;
