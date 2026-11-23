@@ -595,7 +595,7 @@ test.skip('should respect timeout', (t) =>
     repo.on('data', reject);
   }));
 
-test('should reject invalid features', () =>
+test('should warn on invalid features', () =>
   new Promise<void>((resolve) => {
     const url = 'http://unleash-test-1.app';
     setup(url, [
@@ -616,7 +616,7 @@ test('should reject invalid features', () =>
       refreshInterval: 10,
     });
 
-    repo.once('error', (err) => {
+    repo.once('warn', (err) => {
       expect(err).toBeTruthy();
       repo.stop();
       resolve();
@@ -625,7 +625,7 @@ test('should reject invalid features', () =>
     repo.start();
   }));
 
-test('should reject invalid variant', () =>
+test('should warn on invalid variant', () =>
   new Promise<void>((resolve) => {
     const url = 'http://unleash-test-1-invalid-bariant.app';
     setup(url, [
@@ -651,8 +651,8 @@ test('should reject invalid variant', () =>
       refreshInterval: 10,
     });
 
-    repo.once('error', (err) => {
-      expect(err).toBeTruthy();
+    repo.once('warn', (err) => {
+      expect(err).toContain('Unleash SDK was unable to update from fetcher');
       repo.stop();
       resolve();
     });
@@ -731,16 +731,7 @@ test('should load bootstrap first if faster than unleash-api', () =>
           .features.find((f) => f.name === 'feature')?.enabled,
       ).toBe(false);
     });
-    repo.on('changed', () => {
-      // Bootstrap still emits changed until the lifecycle PR.
-      if (!bootstrapReady) {
-        expect(
-          engineFor(repo)
-            .getState()
-            .features.find((f) => f.name === 'feature')?.enabled,
-        ).toBe(false);
-        return;
-      }
+    repo.once('changed', () => {
       expect(bootstrapReady).toBe(true);
       expect(
         engineFor(repo)

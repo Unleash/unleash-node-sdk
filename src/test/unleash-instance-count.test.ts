@@ -46,18 +46,21 @@ test('should increase instanceCount every time sdk is created ', () => {
   const u1 = new Unleash({
     appName: 'instance-count-1',
     disableMetrics: true,
+    disableAutoStart: true,
     backupPath: getRandomBackupPath(),
     url: baseUrl,
   });
   const u2 = new Unleash({
     appName: 'instance-count-2',
     disableMetrics: true,
+    disableAutoStart: true,
     backupPath: getRandomBackupPath(),
     url: baseUrl,
   });
   const u3 = new Unleash({
     appName: 'instance-count-3',
     disableMetrics: true,
+    disableAutoStart: true,
     backupPath: getRandomBackupPath(),
     url: baseUrl,
   });
