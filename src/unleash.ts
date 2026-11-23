@@ -1,9 +1,12 @@
 import { EventEmitter } from 'node:events';
 import { tmpdir } from 'node:os';
-import { getSupportedStrategies, UnleashEngine } from '@unleash/yggdrasil-engine';
+import {
+  getSupportedStrategies,
+  type ToggleDefinition,
+  UnleashEngine,
+} from '@unleash/yggdrasil-engine';
 import type { Context } from './context';
 import { createImpressionEvent, UnleashEvents } from './events';
-import type { EnhancedFeatureInterface, FeatureInterface } from './feature';
 import {
   createFallbackFunction,
   type FallbackFunction,
@@ -32,6 +35,8 @@ export interface StaticContext {
 export class Unleash extends EventEmitter {
   private static configSignature?: string;
 
+  private engine: UnleashEngine;
+
   private static instance?: Unleash;
 
   private static instanceCount: number = 0;
@@ -48,9 +53,7 @@ export class Unleash extends EventEmitter {
 
   private started: boolean = false;
 
-  private engine = new UnleashEngine();
-
-  private destroyed = false;
+  private destroyed: boolean = false;
 
   public impactMetrics: MetricsAPI;
 
@@ -83,7 +86,9 @@ export class Unleash extends EventEmitter {
   }: UnleashConfig) {
     super();
 
+    this.engine = new UnleashEngine();
     this.engine.registerCustomStrategies(strategies);
+
     Unleash.instanceCount++;
 
     this.on(UnleashEvents.Error, (error) => {
@@ -131,10 +136,10 @@ export class Unleash extends EventEmitter {
       namePrefix,
       tags,
       bootstrapProvider,
-      fetcher,
-      engine: this.engine,
       mode: experimentalMode,
       storageProvider: storageProvider || new FileStorageProvider(backupPath),
+      engine: this.engine,
+      fetcher,
     });
 
     this.repository.on(UnleashEvents.Ready, () => {
@@ -178,9 +183,9 @@ export class Unleash extends EventEmitter {
       customHeadersFunction,
       timeout,
       httpOptions,
-      engine: this.engine,
       sdkFlavor,
       sdkFlavorVersion,
+      engine: this.engine,
     });
 
     this.impactMetrics = new MetricsAPI(this.engine);
@@ -193,9 +198,6 @@ export class Unleash extends EventEmitter {
     this.metrics.on(UnleashEvents.Warn, (msg) => this.emit(UnleashEvents.Warn, msg));
     this.metrics.on(UnleashEvents.Sent, (payload) => this.emit(UnleashEvents.Sent, payload));
 
-    this.metrics.on(UnleashEvents.Count, (name, enabled) => {
-      this.emit(UnleashEvents.Count, name, enabled);
-    });
     this.metrics.on(UnleashEvents.Registered, (payload) => {
       this.emit(UnleashEvents.Registered, payload);
     });
@@ -382,39 +384,15 @@ export class Unleash extends EventEmitter {
     return variant;
   }
 
-  forceGetVariant(name: string, context: Context = {}, fallbackVariant?: Variant): Variant {
-    return this.getVariant(name, context, fallbackVariant);
-  }
-
-  getFeatureToggleDefinition(toggleName: string): FeatureInterface | undefined {
-    if (this.destroyed) return undefined;
-    return this.repository.getToggle(toggleName);
-  }
-
-  getFeatureToggleDefinitions(): Array<FeatureInterface>;
-  getFeatureToggleDefinitions(withFullSegments: boolean): Array<EnhancedFeatureInterface>;
-  getFeatureToggleDefinitions(
-    withFullSegments?: boolean,
-  ): Array<FeatureInterface | EnhancedFeatureInterface> {
-    if (this.destroyed) return [];
-    if (withFullSegments === true) {
-      return this.repository.getTogglesWithSegmentData();
-    }
-    return this.repository.getToggles();
-  }
-
-  count(toggleName: string, enabled: boolean) {
-    this.metrics.count(toggleName, enabled);
-  }
-
-  countVariant(toggleName: string, variantName: string) {
-    this.metrics.countVariant(toggleName, variantName);
-  }
-
   private emitCount(name: string, enabled: boolean): void {
     if (!this.destroyed && this.metrics.isEnabled()) {
       this.emit(UnleashEvents.Count, name, enabled);
     }
+  }
+
+  getFeatureToggleDefinitions(): Array<ToggleDefinition> {
+    if (this.destroyed) return [];
+    return this.engine.listFeatures().features;
   }
 
   flushMetrics(): Promise<void> {
@@ -424,16 +402,5 @@ export class Unleash extends EventEmitter {
   async destroyWithFlush(): Promise<void> {
     await this.flushMetrics();
     this.destroy();
-  }
-
-  /**
-   * Experimental: Change the fetching mode at runtime
-   * @param mode The new mode to switch to ('polling' or 'streaming')
-   */
-  async setExperimentalMode(mode: 'polling' | 'streaming'): Promise<void> {
-    if (this.repository.setMode) {
-      return this.repository.setMode(mode);
-    }
-    throw new Error('setMode is not supported by this repository implementation');
   }
 }

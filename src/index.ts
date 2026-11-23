@@ -1,8 +1,7 @@
 import { once } from 'node:events';
-
+import type { ToggleDefinition } from '@unleash/yggdrasil-engine';
 import { Context } from './context';
 import { UnleashEvents } from './events';
-import type { ClientFeaturesResponse } from './feature';
 import InMemStorageProvider from './repository/storage-provider-in-mem';
 import { TagFilter } from './tags';
 import { Unleash } from './unleash';
@@ -11,16 +10,17 @@ import { defaultVariant, PayloadType, Variant } from './variant';
 
 export { UnleashMetricClient } from './impact-metrics/metric-client';
 export type { FetcherInterface, StateUpdate } from './repository/fetcher';
+export type { Strategy } from './strategy';
 
 // biome-ignore lint/suspicious/noEmptyInterface: Public module augmentation hook.
 export interface UnleashTypes {}
+
 export type Name = UnleashTypes extends { flagNames: infer FlagName extends string }
   ? FlagName
   : string;
 
 // exports
-export type { Strategy } from './strategy';
-export type { ClientFeaturesResponse, UnleashConfig };
+export type { UnleashConfig };
 export { Context, InMemStorageProvider, PayloadType, TagFilter, Unleash, UnleashEvents, Variant };
 
 let instance: undefined | Unleash;
@@ -50,12 +50,8 @@ export function destroy() {
   instance = undefined;
 }
 
-export function getFeatureToggleDefinition(toggleName: string) {
-  return instance?.getFeatureToggleDefinition(toggleName);
-}
-
-export function getFeatureToggleDefinitions(withFullSegments: boolean = false) {
-  return instance?.getFeatureToggleDefinitions(withFullSegments);
+export function getFeatureToggleDefinitions(): ToggleDefinition[] {
+  return instance ? instance.getFeatureToggleDefinitions() : [];
 }
 
 export function getVariant(
@@ -63,25 +59,9 @@ export function getVariant(
   context: Context = {},
   fallbackVariant?: Variant,
 ): Variant {
-  const variant = fallbackVariant || defaultVariant;
-  return instance ? instance.getVariant(name, context, variant) : variant;
-}
-
-export function forceGetVariant(
-  name: string,
-  context: Context = {},
-  fallbackVariant?: Variant,
-): Variant {
-  const variant = fallbackVariant || defaultVariant;
-  return instance ? instance.forceGetVariant(name, context, variant) : variant;
-}
-
-export function count(toggleName: string, enabled: boolean) {
-  return instance?.count(toggleName, enabled);
-}
-
-export function countVariant(toggleName: string, variantName: string) {
-  return instance?.countVariant(toggleName, variantName);
+  return instance
+    ? instance.getVariant(name, context, fallbackVariant)
+    : fallbackVariant || defaultVariant;
 }
 
 export async function flushMetrics(): Promise<void> {
